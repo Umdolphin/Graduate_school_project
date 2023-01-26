@@ -1,0 +1,224 @@
+---
+title: 통계밥법론 Chap5 실습코드
+author: 202140191 엄태훈
+date: 2021-03-27(SAT)
+# runtime: shiny
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Chap5 Introductory Inference 
+152P ~ 173P () Chap5의 절반을 나눠서 진행했습니다.  
+다음 과제에서 Chap5의 남은 절반을 실습할 계획입니다.  
+
+### 5.1.1 Test of a Hypothesis Concering the Mean of a Population Having Known Standard Deviation  
+`NTplot`을 이용하여 기각역, 신뢰구간 등 가설검정에 대한 다양한 시각화를 진행할 수 있다.  
+- alpha.right: 우측의 유의수준을 설정한다.  
+- alpha.left: 좌측의 유의수준을 설정한다.  
+- alpha.left, alpha.right를 동시에 설정하면 좌측검정, 우측검정의 결과값을 동시에 보여준다.  
+- distribution.name을 통해 분포의 형태를 지정할 수 있다.(normal, z,t,binomial)  
+type = "confidence"로 지정하게 되면 신뢰구간의 하한 상한을 구할 수 있다.  
+
+```{r}
+library(HH)
+NTplot(mean0=0,xbar=1.8,sd=1,alpha.right=0.05,alpha.left=0,shiny=FALSE,n=1,distribution.name="normal")
+
+NTplot(mean0=0,xbar=-1.8,sd=1,alpha.left=0.05,alpha.right=0,shiny=FALSE,n=1,distribution.name="normal")
+
+NTplot(mean0=0,xbar=1.8,sd=1,alpha.left=0.025,alpha.right=0.025,shiny=FALSE,n=1,distribution.name="normal")
+
+
+NTplot(mean0=0,xbar=1.8,sd=1,type="confidence",alpha.left=0.05,alpha.right=0,shiny=FALSE,n=1,distribution.name="normal")
+
+NTplot(mean0=0,xbar=-1.8,sd=1,type="confidence",alpha.right=0.05,alpha.left=0,shiny=FALSE,n=1,distribution.name="normal")
+
+NTplot(mean0=0,xbar=1.8,sd=1,type="confidence",alpha.left=0.025,alpha.right=0.025,shiny=FALSE,n=1,distribution.name="normal")
+
+```
+
+
+```{r}
+library(HH)
+
+NTplot(mean0=0.5,xbar=0.75,sd=0.5,alpha.right=0.05,alpha.left=0,shiny=FALSE,n=20,distribution.name="normal")
+
+NTplot(mean0=0.5,xbar=0.25,sd=0.5,alpha.left=0.05,alpha.right=0,shiny=FALSE,n=20,distribution.name="normal")
+
+NTplot(mean0=0.5,xbar=0.75,sd=0.5,alpha.left=0.025,alpha.right=0.025,shiny=FALSE,n=20,distribution.name="normal")
+
+NTplot(mean0=0.5,xbar=0.75,sd=0.5,type="confidence",alpha.left=0.05,alpha.right=0,shiny=FALSE,n=20,distribution.name="normal")
+
+NTplot(mean0=0.5,xbar=0.25,sd=0.5,type="confidence",alpha.right=0.05,alpha.left=0,shiny=FALSE,n=20,distribution.name="normal")
+
+NTplot(mean0=0.5,xbar=0.75,sd=0.5,type="confidence",alpha.left=0.025,alpha.right=0.025,shiny=FALSE,n=20,distribution.name="normal")
+
+```
+
+## 5.2.1 Example - Inference on a Population Mean U
+R에 내장돼있는 stem 함수를 이용하게 되면  데이터에 대한 줄기-잎 그림을 그릴 수 있다.  
+```{r}
+data(vocab)
+stem(vocab$score,scale=2)
+```
+
+## 5.3 Confidence Interval the Variance or Standard Deviation of a Normal Population
+NTplot의 distribution.name = "t"로 지정함으로써 정규분포가 아닌 t분포에 대해서도 시각화를 진행할 수 있다. t분포를 지정했을 경우, df를 통해 자유도 또한 지정해줘야 한다.    
+```{r}
+vocab.t <- t.test(vocab$score,mu=10)
+sd(vocab$score)
+NTplot(xbar=12.87,sd=0.2848,xlim=c(12.0,13.5),type="confidence",
+       alpha.right=.025,alpha.left=0.025,distribution.name="t",n=1,df=53)
+```
+
+t.test의 결과를 한 객체에 저장하고 NTplot을 그릴 수 있다.  
+이는 t.test의 결과를 시각적으로 도출해준다.  
+```{r}
+NTplot(vocab.t)
+```
+
+## chisq-distribution을 기본 plot을 통해 그리기  
+dchisq를 통해 카이제곱분포의 확률밀도함수를 쉽게 풀 수 있다.  
+```{r}
+x <- seq(0,30,by=0.2)
+y1 <- dchisq(x,df=1)
+y2 <- dchisq(x,df=3)
+y3 <- dchisq(x,df=5)
+y4 <- dchisq(x,df=10)
+
+plot(x,y1,type="n",main="chi-squared-distribution",xlab='x',
+     ylab='prob')
+lines(x,y1,col="red",lwd=1.5)
+lines(x,y2,col="green",lwd=1.5)
+lines(x,y3,col="blue",lwd=1.5)
+lines(x,y4,col="skyblue",lwd=1.5)
+legend('topright',lwd=c(1,1,1,1),col=c("red",'green','blue','skyblue'),
+       legend=c('df=1','df=3','df=5','df=10'))
+
+
+```
+
+자유도가 커질수록 종 모양에 가까워지는 것을 확인할 수 있다.  
+
+
+## Using HH Package  
+
+HH패키지는 chisq, f분포에 대한 시각화 함수 또한 제공한다.  
+chisq.setup: 자유도에 해당하는 카이제곱 분포의 틀을 잡는다.  
+chisq.curve: 자유도에 해당하는 카이제곱 분포를 그린다.
+- col을 통해 색깔을 지정할 수 있다.
+- xlim.in을 통해 x의 범위를 지정할 수 있다.  
+- xlim.in의 qchisq.intermediate를 통해 유의 확률에 따라서 조절할 수도 있다.  
+- ylim.in을 통해 y의 범위를 지정할 수 있다.
+
+
+```{r}
+chisq.setup(df=12,xlim.in=c(0,30))
+chisq.curve(df=12, col='blue')
+chisq.observed(22, df=12)
+```
+
+
+```{r}
+chisq.setup(df=12,xlim.in=c(0,qchisq.intermediate(p=1-.025,df=12)),ylim.in=c(0,0.2))
+chisq.curve(df=12, col='RED')
+chisq.observed(22, df=12)
+```
+
+type=**"confidnce"**을 통해 신뢰구간을 추정할 수 있다.  
+
+```{r}
+chisq.setup(df=12)
+chisq.curve(df=12,col='blue',alpha=c(.025,.025),type="confidence")
+chisq.observed(22, df=12)
+```
+
+F분포는 chisq 분포와 달리 2개의 자유도를 입력해야 한다.  
+F.setup: 자유도에 해당하는 F 분포의 틀을 잡는다.  
+F.curve: 자유도에 해당하는 F 분포를 그린다.
+- col을 통해 색깔을 지정할 수 있다.
+- xlim.in을 통해 x의 범위를 지정할 수 있다.  
+- ylim.in을 통해 y의 범위를 지정할 수 있다.
+- main.in을 통해 title을 설정할 수 있다.  
+alpha: 설정한 유의수준에 대한 기각역을 보여준다. 
+- 하나의 값을 입력하면 자동으로 우측 검정으로 실행된다.  
+
+```{r}
+F.setup(df1=5, df2=30)
+F.curve(df1=5, df2=30, col='blue', alpha=c(.05, .05))
+
+```
+
+
+```{r}
+F.setup(df1=5, df2=30,)
+F.curve(df1=5, df2=30, col='Orange',xlim.in=c(0,5))
+F.observed(3, df1=5, df2=30)
+```
+
+
+## 5.4.3 Tests Comparing Two Population Means When the Samples Are Independent
+2 sample t에 대한 결과를 NTplot을 통해 시각적으로 도출할 수 있다.  
+```{r}
+data(cereals)
+table(cereals[,c("mfr","type")])
+C.KG <- cereals$type=="C" & cereals$mfr %in% c("K","G")
+cerealsC <- cereals[C.KG,c("mfr","carbo")]
+cerealsC$mfr <- factor(cerealsC$mfr) 
+bwplot(carbo ~ mfr,data=cerealsC)+
+  dotplot(carbo ~ mfr,data=cerealsC)
+t.t <- t.test(carbo ~ mfr, data=cerealsC,
+              var.equal=TRUE)
+t.t
+
+mm <- tapply(cerealsC$carbo,cerealsC$mfr,mean)
+vv <- tapply(cerealsC$carbo,cerealsC$mfr,var)
+ll <- tapply(cerealsC$carbo,cerealsC$mfr,length)
+s2p <- ((ll-1) %*% vv) / sum(ll-1)
+
+tt <- -diff(mm) / (sqrt(s2p) * sqrt(sum(1/ll)))
+tt
+
+NTplot(t.t,zaxis=TRUE,shiny=FALSE)
+```
+
+## 5.5.1 Example-t-test on Matched Pairs of Means
+
+```{r}
+library(lattice)
+data(teachers)
+str(teachers)
+teachers$English_Greek = teachers$English - teachers$Greek
+
+teachers$English_Greek_sq = sqrt(teachers$English - teachers$Greek + 17)
+
+a<-bwplot(teachers$English_Greek,xlab="English-Greek",main="Boxplot of English-Greek")+
+  dotplot(teachers$English_Greek,xlab="English-Greek")
+b<-bwplot(teachers$English_Greek_sq,xlab="English-Greek_sq",main="Boxplot of English-Greek_sq")+
+  dotplot(teachers$English_Greek_sq,xlab="English_Greek_sq")
+
+print(a,split=c(1,1,2,1),more=TRUE)
+print(b,split=c(2,1,2,1),more=FALSE)
+```
+
+```{r}
+stem(teachers$English_Greek)
+Eng_Greek_ttest<-t.test(teachers$English_Greek)
+NTplot(Eng_Greek_ttest)
+```
+
+```{r}
+stem(sqrt(teachers$English_Greek+17),scale=.5)
+Eng_Greek_ttest_sq<-t.test(sqrt(teachers$English_Greek+17),scale=.5)
+NTplot(Eng_Greek_ttest_sq)
+```
+
+## 5.6.2 Sample Size for Hypothesis Testing
+mean0와 mean1를 동시에 설정하면 귀무가설과 대립가설의 분포를 동시에 확인할 수 있다.  
+```{r}
+NTplot(mean0=1,mean1=3,n=13.91,sd=3,distribution.name="normal")
+```
+
+

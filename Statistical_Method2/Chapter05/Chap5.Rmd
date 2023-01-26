@@ -1,0 +1,1317 @@
+---
+title: 통계밥법론2 Chap5 실습코드
+author: 202140191 엄태훈
+date: 2021-10-02(SAT)
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Chap5 Mosaic Displays for n-Way Tables
+
+**모자이크 그림**은 변수 간의 연관 패턴을 시각화 하는데 도움이 많이 된다.  
+이 기술을 확장하면 부분 연관성, 주변 연관성 등의 구조를 드러낼 수 있다.     
+또한, 모자이크 그림은 **Marimekko chart, Eikosogram**이라고도 불리기도 하며, 특히 범주형 데이터에 대해 시각화하는데 아주 유용하다.  
+
+***
+
+## 5.1 Introduction
+
+Chpater4에서 **fourfold display**, **tile plot**, **sieve diagram**, **agreement charts**, **trilinaer plot** 같은 분할표의 연관 패턴을 시각화하기 위한 기술들을 배웠다.  
+
+Chapter5에서는 n-way 빈도표를 시각화하기 위한 **mosaic plot**에 대해서 알아본다. 이 방법은 면적이 셀의 빈도에 비례하며, 이런 점에서 **sieve diagram**과 유사하다.  
+또한, 3개 이상의 변수를 가지는 고차원 분할표에 대하여 여러 독립성을 가정하여 다양한 모델을 만들어낼 수 있는 **로그 선형 모델**에 대해서도 살펴본다.  
+
+**mosaic plot**과 관련된 장점은 아래와 같다.  
+
+* n-way 빈도표에 대해서 더 일반화할 수 있다.    
+* 빈도 데이터에 대한 로그선형 모델, 일반화된 선형 모델 및 일반화된 비선형 모델에 밀접하게 연결한다.  
+* 순서적인 모델을 n-way 테이블의 다양한 주변 총합에 연결시키기 위한 방법을 제공한다.  
+* 다양한 로그 선형 모델에 적합된 변수들 사이의 관계를 설명하는데 사용될 수 있다.  
+
+R에서는 `vcd`패키지의 `mosaic`함수를 통해 **모자이크 플랏**을 그릴 수 있다.  
+- `mosaic(table,suppress,labeling,shade)`
+
+* table: 모자이크 플랏을 그릴 분할표
+* suppress: 지정한 값의 절대값을 기준으로 셀에 값을 표시한다.  
+* labeling: 셀의 라벨링 방법
+* shade: 잔차에 대한 음영 처리 여부
+
+***
+
+## 5.2 Two-way tables
+
+*Example 5.1: Hair color and eye color*
+
+```{r}
+library(vcd)
+data("HairEyeColor", package = "datasets")
+haireye <- margin.table(HairEyeColor, 1:2)
+mosaic(haireye)
+```
+
+성별 계층을 통일하여 눈의 색깔과 머리 색깔의 분할표를 가지는 `haireye` 데이터를 이용하여 `mosaic plot`을 그려보았다.  
+모자이크 플롯의 직사각형 너비는 빈도에 비례하는 것을 볼 수 있으며, **Hair**의 경우, **Hair == Brown**일 경우의 면적이 제일 크므로 갈색 머리를 가진 사람이 가장 많다는 것을 쉽게 알 수 있다.  
+
+```{r}
+mosaic(haireye,
+       labeling = labeling_cells)
+```
+
+`labelling = labelling_cells`옵션을 통해 직사각형의 각 셀이 의미하는 변수들의 조합이 무엇인지 살펴볼 수 있다.  
+
+```{r}
+mosaic(haireye,
+       labeling = labeling_values)
+```
+
+`labeling = labeling_values`옵션을 통해 직사각형위에 빈도를 나타내도록 하였다.  
+`haireye` 데이터에서 **Eye = Brown, Hair = Brown**인 사람이 119명으로 가장 많으며, **Eye = Blue, Hair = Blond** 사람이 94명으로 두 번째로 많은 것을 확인할 수 있다.  
+
+```{r}
+mosaic(haireye,
+       labeling = labeling_residuals)
+```
+
+`labeling = labeling_residuals`옵션을 지정하게 되면 각 셀이가지고 있는 피어슨 잔차의 값을 출력해준다.  
+이 경우, 잔차가 표시되지 않는 셀이 발생하는데 이러한 문제는 `suppress`옵션을 통해 해결할 수 있다.  
+
+```{r}
+mosaic(haireye,
+       suppress = 0,
+       labeling = labeling_residuals)
+```
+
+`suppress`옵션은 위의 `mosaic`함수 설명에서도 살펴볼 수 있듯이, 분석가가 지정한 절댓값을 기준으로 잔차를 출력해준다.  
+`suppress = 0`을 지정하게 되면 절대값 0을 기준으로 잔차를 출력해달라는 의미로 모든 잔차가 출력되는 것을 확인할 수 있다.  
+
+```{r}
+(hair <- margin.table(haireye,1))
+```
+
+`margin.talbe`함수를 이용하여 Eye의 색깔에 상관없이 Hair 색깔의 빈도를 구해 보았다.  
+Hair 색깔이 **Brown, Blond, Black, Red**의 순서로 많은 것을 확인할 수 있다.  
+
+```{r}
+expected <- rep(sum(hair) / 4,4)
+names(expected) <- names(hair)
+expected
+```
+
+marginal표의 기대 빈도는 모든 요소들의 빈도를 더한 후 범주의 갯수로 나누기 때문에 동일한 기댓값을 갖게 된다. 
+여기서는 hair 색깔들의 기대 빈도가 148로 모두 동일한 것을 확인할 수 있다.  
+
+```{r}
+(residuals <- (hair - expected) / sqrt(expected))
+```
+
+피어슨 잔차공식($r_i = (n_i-m_i)/ \sqrt{(m_i)}$)을 이용하여 잔차를 구한 결과는 위와 같다.  
+
+Brown을 제외한 나머지 3개의 컬러는 음의 값을 갖는 것을 알 수 있다.  
+잔차가 음의 값을 갖는다는 것은 기대빈도가 관찰빈도보다 높다는 의미이고 잔차가 양의 값을 갖는다는 것은 관찰빈도가 기대빈도보다 높다는 의미이다.  
+
+즉, **Hair = Brown**인 경우에는 관찰빈도가 기대빈도보다 높고 나머지 나머지 3개의 컬러의 경우, 기대빈도가 관찰빈도보다 높다는 것을 알 수 있다.  
+
+```{r}
+round(addmargins(prop.table(haireye,1),2),3)
+```
+
+`addmargins`함수와 `prop.table`함수를 이용하여 Hair의 색깔에 따른 Eye의 확률표를 구해보았다.  
+**Hair = Black** 일 때, **Eye = brown**,  
+**Hair = Brown** 일 때, **Eye = brown**,  
+**Hair = Red**일 때, **Eye = Brown**,  
+**Hair = Blond**일 때, **Eye = Blue**의 비율이 각각의 **Hair**에서 가장 높은 것을 확인할 수 있다.  
+
+```{r}
+exp <- independence_table(haireye)
+resids <- (haireye - exp) / sqrt(exp)
+round(resids, 2)
+```
+
+marginal 표가 아닌 2-way표의 경우 기대빈도를 계산할 때, 조금 다른 식을 이용해서 계산해야 한다.($m_{ij} = n_{++} * \pi_{i+} * \pi_{+j}$)  
+
+앞선 Chapter에서 살펴본 것처럼 분할표의 기대빈도는 `independence_table`함수를 이용하여 쉽게 계산할 수 있다.  
+위의 결과는 `independence_table`함수를 통해 기대빈도를 구하고 관찰빈도를 이용하여 잔차를 구한 값이다.  
+
+
+```{r}
+mosaic(haireye,shade=TRUE)
+```
+
+모자이크 플랏을 통해 잔차진단을 진행할수도 있다. 
+`mosaic`함수에서 `shade = True`를 주게되면 피어슨 잔차에 값의 따라 직사각형의 셀의 색깔을 바꿔준다.  
+파란색의 경우 양의 잔차를 가지며, 해당셀의 관찰빈도가 기대빈도보다 높고, 빨간색의 경우 음의 잔차를 가지며, 해당셀의 관찰빈도가 기대빈도보다 낮다는 의미이다.  
+
+여기서는, **Eye = Brown, Hair = Black**, **Eye = Green, Hair = Red**, **Eye = Blue, Hair = Blond**가 관찰빈도가 기대빈도보다 높아 파란색으로 표시된다.  
+
+**Eye = Blue, Hair = Black**, **Eye = Brown, Hair = Blond**, **Eye = Hazel, Hair = Blond**의 경우 관찰빈도가 기대빈도보다 낮으므로 빨간색으로 표시되는 것을 확인할 수 있다.  
+
+우측 하단 아래에 있는 P-value는 피어슨 카이제곱 검정통계량을 통해 독립성 검정을 진행한 결과이다.  
+
+귀무가설$H_0$: 주어진 두 변수는 독립이며, 연관성이 없다.  
+대립가설$H_1$: 주어진 두 변수는 독립이 아니며, 연관성이 있다.  
+
+유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, **Hair Color**, **Eye Color**는 서로 독립이 아니며 연관성이 있다고 볼 수 있다.  
+
+```{r}
+mosaic(haireye,shade=TRUE,
+       suppress = 0,
+       labeling = labeling_residuals)
+
+```
+
+`suppress`와 `labeling`옵션을 활용하여 잔차에 따른 음영 처리와 더불어 잔차값을 출력할 수 있다.  
+
+
+```{r}
+(chisq <- sum(resids ^2))
+(df <- prod(dim(haireye) - 1))
+pchisq(chisq, df, lower.tail = FALSE)
+```
+
+피어슨 잔차값을 이용하여 피어슨 검정통계량을 구한 후, 검정통계량 값을 통해 가설검정을 진행해 보았다.  
+모자이크 플랏에서 살펴본 결과와 동일하게 유의확률이 유의수준 0.05보다 작아 **Hair Color**, **Eye Color**는 서로 독립이 아닌 것을 확인할 수 있다.  
+
+```{r}
+chisq.test(haireye)
+```
+
+`chisq.test`함수를 사용하여 독립성 검정을 진행한 결과, 동일한 결과를 얻을 수 있는 것 또한 확인할 수 있다.  
+
+### 5.2.2 Interpretation and reordering
+
+```{r}
+haireye2 <- as.table(haireye[, c("Brown","Hazel","Green","Blue")])
+mosaic(haireye2, shade = TRUE)
+```
+
+해석의 용이함을위해 주어진 데이터의 범주를 재구성한 후, **모자이크 플롯**을 그릴 수 있다.  
+`haireye`데이터에서 눈 색깔의 범주 순서를 어두운색에서 밝은 색으로 정렬한 후 다시 한 번 **모자이크 플롯**을 그려보았다.  
+
+상대적으로 어두운 눈색깔인 **Brown, Hazel**을 가질 때, **Blond**머리를 가지는 사람은 적은 것을 알 수 있다.  
+이처럼 범주의 수준에 대해서 순서를 재구성하게 되면 상대적으로 해석과 변수들의 패턴을 찾는데있어 편리한 것을 확인할 수 있다.  
+
+***
+
+## 5.3 The strucplot framework
+
+모자이크 그림은 앞서 4장에서 살펴본 **sieve plot, association plot**, 후에 뒤에서 살펴볼 **doubledecker plot**과 많은 공통점이 있다.  
+이 방법들의 주요한 공통점은 분할표의 빈도를 tile로써 시각화 한다는데에 있다.  
+
+
+데이터를 단순히 시각화 하는 것도 중요하지만, 시각화된 결과를 보고함에 있어 적절한 색조화 혹은 간격배치를 통해 결과를 쉽게 살펴볼 수 있게 하는 것 또한 중요한 요소이다.  
+**strucplot framework**는 이렇게 시각화를 세밀하게 조절하는데 사용될 수 있는 다양한 함수를 제공한다. 이 프레임워크는 그래픽의 측면을 세심하게 컨트롤 할 수 있는 conditional 그림의 클래스를 제공한다. 
+
+`strucplot`은 이처럼 고차원 분할표의 특정 측면을 계층적 방식으로 시각화하며, 기존에 가지는 분할표 시각화 기법과 더불어 더 다양한 조절 옵션을 가지고 있다.  
+`strucplot`은 `vcd`패키지 안에 포함돼있다.  
+- `strucplot(table, core, gp, spacing)`
+
+* table: strucplot을 적용할 분할표
+* core: 표현하고자하는 시각화 형태(default는 모자이크 플랏)
+* spacing: 간격 조정
+* gp: 색깔 조정 및 그래프의 시각적 요소 조정
+
+
+Ex)
+
+* 타일의 라벨링
+* 타일 사이의 간격
+* 타일의 시각적 요소
+* 타일의 내용
+
+```{r}
+strucplot(haireye, gp = gpar(fill = "blue"))
+```
+
+`strucplot`함수를 이용하여 `haireye`의 모자이크 플롯을 그린 후, `gp`옵션을 통해 타일의 색깔을 바꿔주었다.  
+
+```{r}
+strucplot(haireye,core = struc_assoc,spacing = spacing_increase, gp = gpar(fill ="red"))
+```
+
+`core`함수를 통해 시각화의 형태를 `association plot`으로 지정한 후, `gp`옵션을 통해 타일의 색깔을 빨간색으로 바꿔주었다.  
+
+
+```{r}
+strucplot(haireye,core = struc_assoc,shade = TRUE)
+```
+
+`strucplot`또한 잔차에 따른 음영처리 여부인 `shade`옵션을 제공한다.  
+
+### 5.3.2 Shading schemes
+
+#### 5.3.2.1 Specifying graphical parameters for strucplot displays
+
+```{r}
+fill_colors <- c("brown4","#acba72","green","lightblue")
+(fill_colors_mat <- t(matrix(rep(fill_colors,4),ncol=4)))
+```
+
+```{r}
+mosaic(haireye2, gp = gpar(fill = fill_colors_mat, col = 0))
+```
+
+기본적인 color가 아닌 특정 color를 정의하여 모자이크 플롯을 구성할 수 있다. 위의 코드에서는 원하는 color를 정의한 후, `gp = gpar(fill)` 옵션을 통해 정의한 color를 넣어주었다.  
+
+```{r}
+mosaic(haireye2, gp = shading_Marimekko(haireye2))
+```
+
+`gp=shading_Marimekko(객체)`를 통해 미리 정의돼있는 색깔을 불러올 수 있다.  
+
+```{r}
+library(colorspace)
+toeplitz(1 : 4)
+```
+
+`colorspace`패키지는 다양한 컬러를 매핑할 수 있도록 수많은 파레트 옵션을 가지고 있는 패키지이다.   
+
+`toeplitz`함수는 대칭행렬을 만들어주는 함수이다.  
+- `toeplitz(x)`
+
+* x: 대칭행렬을 만들 숫자들
+
+```{r}
+fill_colors <- rainbow_hcl(8)[ 1 + toeplitz(1 : 4)]
+mosaic(haireye2, gp = gpar(fill = fill_colors, col = 0))
+```
+
+`rainbow_hcl`함수는 HCL 색상 팔레트를 제공하는 함수로 `colorspace`패키지에 포함돼 있다.  
+- `rainbow_hcl(n)`
+
+* n: 생성하고자 하는 파레트의 수 
+
+시각화를 진행함에 있어 특정 위치를 색깔을 통해 강조하고 싶은 경우가 있을 수 있다.  
+위의 그림의 경우 `toeplitz`함수를 이용하여 대각선상에 있는 셀의 색깔을 동일하게 해주며, 나머지 셀 또한 대칭에 따라 동일한 색을 가지는 것을 볼 수 있다.  
+
+```{r}
+mosaic(haireye2, gp = shading_diagonal(haireye2))
+```
+
+`gp = shading_diagonal(객체명)`을 통해 대각상의 셀에 대해 동일한 색깔을 할수도 있다.  
+
+```{r}
+mosaic(haireye2, highlighting = "Eye",
+       highlighting_fill = fill_colors)
+```
+
+```{r}
+mosaic(haireye2, highlighting = "Hair",
+       highlighting_fill = fill_colors)
+```
+
+한 변수의 수준에 따라 모자이크를 음영처리 할수도 있다.  
+R에서는 `mosaic`함수에서 `highlighting`, `highlighting_fill` 옵션을 통해 쉽게 진행할 수 있다. 
+위의 그림은 `highlighting`옵션을 `Eye`로 지정했기 때문에, `Eye`의 수준을 쉽게 살펴보고자 `Hair`변수의 수준마다 간격이 띄어져 있는것을 확인할 수 있다.  
+아래의 그림은 `highliting`옵션을 `Hair`로 지정했기때문에, `Hair`의 수준을 쉽게 살펴보고자 `Eye`변수의 수준마다 간격이 띄어져 있는것을 확인할 수 있다.  
+
+```{r}
+mosaic(Eye ~ Hair, data = haireye2, highlighting_fill = fill_colors)
+```
+
+`highlighting`옵션을 이용하기 번거롭다면, formula의 형태 (단, 반응변수 ~ 독립변수)로 구성한 후, `highlighting_fill`옵션만 이용하여 진행할수도 있다.  
+
+#### 5.3.2.2 Residual-based shading
+
+*Example 5.2: Interpolation options*
+
+```{r}
+mosaic(haireye2, shade = TRUE, gp_args = list(interpolate = 1:4))
+```
+
+모자이크 플롯에서 잔차를 표시함에 있어 색의 농도를 고려하는 것도 중요하다.  
+`gp_args = list(interpolate)`옵션은 지정한 범위만큼의 잔차를 나눈 후, 나눠진 값에 따라 음영을 조절해준다.  
+위의 코드에서는 `interpolate = 1:4`로 지정하였기 때문에 양의 잔차와 음의 잔차의 최대값을 제외하고 절댓값 (1,4)의 범위로 음영을 나눠준 것을 확인할 수 있다.  
+
+```{r}
+interp <- function(x) pmin(x / 6, 1)
+mosaic(haireye2, shade = TRUE, gp_args = list(interpolate = interp))
+```
+
+데이터에 맞는 함수를 만든 후, 분석가가 원하는 간격만큼으로 설정하여 잔차의 음영을 조절할수도 있다.  
+
+*Example 5.3: Shading functions*
+
+```{r}
+mosaic(haireye2, gp = shading_Friendly, legend = legend_fixed)
+```
+
+색의 농도 뿐만 아니라 잔차의 범위에 따라 직사각형의 형태를 바꿔주는 것도 가능하다.    
+위의 예시에서는 `gp = shading_Friendly` 옵션을 통해 기존의 빨간색, 파란색으로 양의 잔차, 음의 잔차를 구분하고 잔차의 범위에 따라 직사각형의 선을 점선, 실선의 형태로 바꿔주었다.  
+
+```{r}
+set.seed(1234)
+mosaic(haireye, gp = shading_max)
+```
+
+`gp = shading_max`옵션을 사용하게 되면, 순열기반 검정을 바탕으로 잔차의 유의성을 확인한 후, 유의한 차이가 있다고 판단되는 잔차를 모자이크 플롯에 표시해주게 된다.  
+
+*Example 5.4: Arthritis treatment*
+
+```{r}
+art <- xtabs(~ Treatment + Improved, data = Arthritis, subset = Sex == "Female")
+names(dimnames(art))[2] <- "Improvement"
+```
+
+`Arthritis`데이터를 처방된 약과 약의 효과에 대한 빈도를 가지는 분할표 형태로 만들어주었다.  
+
+```{r}
+mosaic(art, gp = shading_Friendly, margin = c(right = 1), labeling = labeling_residuals, suppress = 0, digits = 2)
+```
+
+`Arthritis*` 데이터의 모자이크 플롯을 그려보았다. 
+
+`gp = shading_Friendly`를 통해 잔차의 값에 따라 직사각형의 형태를 바꿔주고 `labeling = labeling_residuals`를 통해 잔차의 값을 직사각형 안에 표시해 주었다. `digits`옵션은 지정된 소수점까지 표시하여 출력해달라는 옵션이다.   
+
+```{r}
+set.seed(1234)
+mosaic(art, gp = shading_max, margin = c(right = 1))
+```
+
+`shading_max`옵션을 통해 유의한 잔차만을 나타내게 하였다.  
+그 결과, **Improvement = None, Treatment = Placebo**, **Improvement = Marked, Treatment = Treated**의 경우 파랑색으로 관찰빈도가 기대빈도보다 높은 것을 알 수 있다.  
+반대로, **Improvement = Marked, Treatment = Placebo**, *Improvement = None, Treatment = Treated**의 경우 빨간색으로 관찰빈도가 기대빈도보다 낮은 것을 알 수 있다.  
+따라서, 약이 실제 약인 경우, 효과가 나타나지 않는 것 보다 효과가 뚜렷한 경우가 많았고 약이 위약일 경우 효과가 뚜렷한 것보다 나타나지 않는 경우가 더 많았다.     
+
+```{r}
+residuals(chisq.test(art))
+```
+
+`residuals`함수를 통해 `chisq.test`의 결과에서 잔차값만 출력할 수 있다.  
+잔차값을 살펴보면, 앞에서 모자이크 플롯을 통해 살펴본 결과와 동일한 것을 확인할 수 있다.  
+
+```{r}
+set.seed(1234)
+art_max <- coindep_test(art)
+art_max
+```
+
+`shading_max`를 사용할 때, p-value는 `coindep_test`를 통해 검정이 되고 `coindep_test`의 결과에 따라 유의성이 검정된다.  
+`coindep_test`는 동일한 여백을 가진 n개의 랜덤 테이블을 생성하여 각각에 대한 최대 잔차 통계량을 계산한 후, conditional 독립성에 따른 분할표의 conditional 독립성 검정을 수행한다. 이때 얻어지는 P-value를 범례에 표시한다.   
+`coindep_test`는 `vcd`패키지에 포함돼있다.  
+- `coindep_test(table)`
+
+* table: conditional independence test를 시행할 분할표
+
+`coindep_test`결과 유의확률은 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, **Treatment, Improvement**두 변수는 서로 독립이 아니며 연관성이 있다고 해석할 수 있다.  
+
+```{r}
+art_max$qdist(c(0.90, 0.99))
+```
+
+마지막으로, 시뮬레이션 분포의 90% ~ 99% quantile을 음영의 수준으로 사용하게 된다.  
+즉, `Arthritis`데이터의 음영의 수준은 앞선 그림에서 출력된대로 (1.2,1.6)의 범위를 사용한다.  
+
+*Example 5.5: UK soccer scores*
+
+```{r}
+library(vcdExtra)
+data("UKSoccer", package = "vcd")
+CMHtest(UKSoccer)
+```
+
+`CMHtest`를 통해 `UKSoccer`데이터에 대한 독립성 검정을 진행해 보았다.  
+4가지의 방법을 모두 적용했을 때의 유의확률이 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다.  
+즉, 홈경기의 득점과 원정경기의 득점은 서로 독립인 것을 알 수 있다.  
+
+```{r}
+set.seed(1234)
+mosaic(UKSoccer, gp = shading_max, labeling = labeling_residuals, digits = 2)
+```
+
+`shading_max`를 사용한 모자이크 플롯의 결과, **Away = 2, Home = 4**인 경우 관찰빈도가 기대빈도보다 높게 나온것을 확인할 수 있고 유일하게 유의한 잔차인 것을 알 수 있다.    
+`coindep_test`의 결과는 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 즉, 원정경기 득점과 홈경기 득점은 서로 연관이 있다라고 할 수 있다.   
+하지만, 모자이크 플롯을 살펴보면 원정경기의 득점과 홈경기 득점간에는 큰 연관이 있는 것처럼 보이지 않는다.    
+
+***
+
+## 5.4 Three-way and larger tables
+
+*Example 5.6: Hair color, eye color, and sex*
+
+```{r}
+HEC <- HairEyeColor[, c("Brown","Hazel","Green","Blue"),]
+```
+
+`HairEyeColor`에서 앞서 진행한 전처리 과정과 달리 계층변수인 성별 변수를 제외하지 않고 변수의 수준을 재지정한 후, `HEC`객체에 저장하였다.  
+
+```{r}
+mosaic(HEC)
+```
+
+성별을 계층변수로하는 3차원의 모자이크 플롯을 그려보았다.  
+2차원과 달리 3차원부터는 셀에 출력되는 정보가 없으면 모자이크 플롯을 해석하기가 약간은 난해한 것을 확인할 수 있다.  
+
+```{r}
+mosaic(HEC,
+       rot_labels = c(right = -45), 
+       labeling = labeling_values)
+```
+
+`labeling`옵션을 통해 직사각형의 각 셀에 빈도를 표시하도록 하였다.  
+여성과 남성 모두 **Hair = Brown, Eye = Brown**인 사람이 가장 많은 것을 확인할 수 있다.  
+
+3-way 이상의 모자이크 플롯을 그리는 경우 변수들의 이름이 잘 보이지않는 경우가 발생할 수 있다.  
+이때, `rot_labels`함수를 통해 이름의 위치를 약간 조정해주게 되면, 시각적으로 더 나은 결과를 제공할 수 있게 만들어줄 수 있다.  
+
+```{r}
+mosaic(HEC,
+       rot_labels = c(right = -45),
+       labeling = labeling_residuals,
+       shade = TRUE)
+```
+
+`shade`옵션을 통해 잔차의 값에 따라 음영을 다르게 하도록 하였다.  
+남성과 여성 모두 **Hair = Black, Eye = Brown**일때, 양의 잔차를 가지므로 관찰빈도가 기대빈도보다 큰 것을 알 수 있고 **Hair = Blond, Eye = Brown**일때, 음의 잔차를 가지므로 관찰빈도가 기대빈도보다 낮은 것을 확인할 수 있다.  
+
+또한, 유의확률이 유의수준 0.05보다 작으므로 성별을 계층으로 하는 머리색과 눈색깔에 대한 분할표는 유의하다.  
+즉, 성별을 계층으로 했을 때 머리색과 눈색깔은 서로 연관이 있는 것을 알 수 있다.  
+
+### 5.4.1 A primer on loglinear models
+
+로그선형 모델의 기본 개념은 **독립성(sieve diagram, mosaic plot)하에서 기대빈도 간의 곱셈관계가 로그 빈도에 대한 모댈로서 표현**이 될 때 가법모델이 된다는 것이다.  
+즉 우리가 알고있는 두 이산 변수의 기대빈도의 경우, 한 값이라도 0이되면 기대빈도가 0이되는 문제가 발생한다. 하지만, 여기에 로그를 취하게 되면 기대빈도가 0이 되는 문제를 방지할 수 있으므로, **로그선형모델**은 상당히 유의하게 사용할 수 있다.  
+
+*Example 5.7: Hair color, eye color, and sex*
+
+`loglin`함수는 반복적인 비례 적합을 통해 다차원 분할표에 로그 선형 모델을 적합시키는 데 사용된다.  
+- `loglin(table,margin)`
+
+* table: `loglin`함수를 적용할 분할표 데이터
+* margin: 모형을 적합시킴에 있어 사용할 행 또는 열
+
+`loglm`함수는 로그 선형 모델을 glm과 같은 다른 피팅 함수의 모델과 유사한 방식으로 지정할 수 있도록한다.  
+`loglm`함수는 `MASS`패키지 안에 포함돼 있다.  
+- `loglm(formula,data)`
+
+* formula: 사용자가 적합하고자 하는 모델의 구성식
+* data: 변수에 사용된 데이터
+
+```{r}
+set.seed(12345)
+n <- 100
+A <- factor(sample(c("a1","a2"),n, replace = TRUE))
+B <- factor(sample(c("b1","b2"),n, replace = TRUE))
+sex <- factor(sample(c("M","F"),n, replace = TRUE))
+age <- round(rnorm(n, mean = 30, sd = 5))
+mydata <- data.frame(A, B, sex, age)
+mytable <- xtabs(~ A + B + sex, data = mydata)
+```
+
+```{r}
+loglin(mytable, margin = list(1,2))
+loglin(mytable, margin = list(c(1,2)))
+```
+
+`mytable`데이터를 `loglin`함수를 이용하여 로그 선형모델에 적합시켜 보았다.  
+적합시킨 두 모델 모두 피어슨 카이제곱 통계량이 기각역보다 작게 나오므로 귀무가설을 기각하지 못한다.  
+따라서, 성별을 계층 변수로 할 때, 두 변수 A,B는 서로 독립임을 알 수 있다.  
+
+```{r}
+library(MASS)
+loglm(~ Hair + Eye, data = haireye)
+```
+
+`loglm`함수를 사용하여 로그선형모델에 적합시키게 되면 출력결과로 LR,피어슨 방법을 통해 계산된 검정통계량, 자유도, 유의확률을 제공한다.  
+위의 결과를 살펴보면, 유의확률이 모두 유의수준 0.05보다 작으모로 귀무가설을 기각한다.  
+따라서, **Hair**, **Eye**는 서로 독립이아니며, 연관성이 있다는 것을 쉽게 확인할 수 있다.  
+
+```{r}
+mosaic(~Hair+Eye, data = haireye,shade = TRUE)
+```
+
+**모자이크 플롯**을 통해서도 두 변수는 서로 연관성이 있다는 같은 결과를 확인할 수 있다.  
+
+```{r}
+HE_S <- loglm(~ Hair * Eye + Sex, data = HairEyeColor)
+HE_S
+```
+
+위의 Formula는 **Hair**, **Eye**변수가 **Sex**변수에 대해서 공동적으로 독립인지 확인하는 Formula로 **[HairEye][Sex]**모형을 적합시킨다.  
+앞에서 진행한 분석과 달리 **Sex**변수에 대해 공동적으로 독립임을 가정하면, 유의확률이 모두 유의하지 않으므로 귀무가설을 기각하지 못하는 것을 확인할 수 있다.  
+따라서, **Hair**,**Eye**는 **Sex**변수에 대해서 공동적으로 독립이다. 즉, 연관성이 없다는 것을 확인할 수 있다.  
+
+```{r}
+residuals(HE_S, type = "pearson")
+```
+
+**hair,eye,sex에 대한 3-way 분할표**의 잔차를 살펴보면 위와같은 결과를 얻을 수 있다.  
+남성과 여성 모두 **Eye = Blue, Hair = Blond**인 경우의 잔차가 상대적으로 높거나 낮은 것을 확인할 수 있다.  
+남성의 경우에는 잔차가 음의 값이므로 관찰빈도가 기대빈도보다 낮고, 여성의 경우에는 잔차가 양의 값이므로 관찰빈도가 기대빈도보다 높은것을 확인할 수 있다.  
+
+```{r}
+HEC <- HairEyeColor[, c("Brown","Hazel","Green","Blue"),]
+mosaic(HEC, expected = ~Hair * Eye + Sex,
+       labeling = labeling_residuals,
+       digits = 2, rot_labels = c(right = -45))
+```
+
+3-way 분할표의 **모자이크 플롯**을 그린 결과는 위와같다.  
+잔차를 통해 살펴본 결과와 동일한 셀에 각각 빨간색, 파란색으로 표시된 것을 확인할 수 있으며, 유의확률 또한 유의하지 않은 것을 확인할 수 있다.  
+
+### 5.4.2 Fitting models
+
+3개 이상의 변수를 분할표에 나타내는 경우, 변수의 차원이 넓어지게 된다.  
+이때, 고려할 변수들이 많아지므로 변수들을 이용하여 모델에 적합시키는 경우, 다양한 독립성 유형의 모델이 나올 수 있고 각 모델의 잔차를 표시할 수 있다.  
+
+변수 A,B,C가 있는 3-way 분할표의 경우 적합될 수 있는 가설 모형 중 일부는 아래와 같다.  
+
+$H_1$: **Complete independence**: 모델의 formula는 ~A + B + C로 표시되며, 이는 A,B,C가 상호독립이라고 가정한다.  
+
+$H_2$: **Joint independence**: 모델의 formula는 ~A*B + C로 표시되며, 변수 C가 A,B에 대해서 공동독립인 모형을 적합시킨다. 변수 C가 변수 A와 B의 조합과 관련이 있지만 해당 연관성이 정확하게 적합되기 때문에 A, B 사이의 연관성을 나타내지는 않는다.  
+
+$H_3$: **Conditional independence**: 모델의 formula는 ~ A * C + B * C (or ~ (A + B) * C)으로 표시되며, 이는 C가 제어될 때 A와 B는 조건부 독립이라고 가정한다. 이 모형이 적합하면 모자이크 표시는 C에 대해 제어되는 변수 A와 B사이의 조건부 연관성을 표시하지만 A와C 또는 B와 C사이의 연관성을 표시하지는 않는다.  
+
+$H_4$: **No three-way interaction**: 이 모형의 경우 marginally 혹은 conditionally적으로 어떠한 독립적인 쌍이 없다고 가정한다. 그러나 두 변수 간의 연관성은 세 번째 변수의 각 수준에서 동일하다.  
+
+
+*Example 5.8: Hair color, eye color, and sex*
+
+```{r}
+abbrev <- list(abbreviate = c(FALSE,FALSE,1))
+mosaic(HEC, expected = ~ Hair + Eye + Sex,
+        labeling_args = abbrev,
+        main = "Model: ~ Hair + Eye + Sex")
+```
+
+위의 그림은 **[Hair][Eye][Sex]**에 대한 상호 독립 모델을 가정하고 적합시킨 모델의 잔차를 표시하는 **모자이크 플롯**이다.  
+유의확률은 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, 위의 세 변수들 중 독립이 아닌 변수들의 쌍이있다고 할 수 있다.  
+
+```{r}
+mosaic(HEC, expected = ~ Hair * Sex + Eye * Sex,
+       labeling_args = abbrev, main = "Model: ~ Hair * Sex + Eye*Sex")
+```
+
+위의 그림은 **{HairSex}[EyeSex]**에 대한 모델로 **Sex**변수가 주어졌을 때, **Hair**,**Eye**변수의 독립성을 가정한 모델이다.  
+유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, **Sex**변수가 제어될 때, **Hair**,**Eye**변수는 서로 독립이 아닌것을 알 수 있다.  
+
+```{r}
+mod1 <- loglm(~ Hair + Eye + Sex, data = HEC) # [Hair][Eye][Sex]
+mod2 <- loglm(~ Hair * Sex + Eye * Sex, data = HEC) # [HairSex][EyeSex]
+mod3 <- loglm(~ Hair * Eye + Sex, data = HEC) # [HairEye][Sex]
+LRstats(mod1, mod2, mod3)
+```
+
+`LRstats`함수를 이용하여 적합시킨 모델들을 서로 비교할 수 있다.  
+AIC, BIC, 검정통계량의 경우, **mod3**가 가장 낮은 것을 확인할 수 있었다.  
+**mod1, mod2**의 유의확률은 유의수준 0.05보다 작으므로 귀무가설을 기각하여 변수간 독립이 아닌것을 알 수 있고 **mod3**는 유의확률이 유의수준 0.05보다 크므로 귀무가설을 기각하지 못하여 **Sex**변수에 대해서 공동적으로 독립인 것을 알 수 있다.  
+
+```{r}
+anova(mod1)
+```
+
+```{r}
+anova(mod1, mod2, mod3, test = "chisq")
+```
+
+`anova`함수를 이용하여 모형을 비교하며, 잔차의 차이를 비교할 수 있다.   
+`Model1, Model2`는 변수간 연관성이 높아 잔차의 차이가 크게 나타나므로 기존 모형을 대체하여 사용하는 것이 좋다는 근거가 된다.  
+하지만, `Model3`는 기준 모형과의 잔차의 차이가 크지 않으므로 변수를 추가하여 복잡한 모형을 사용할 필요가 없다는 근거가 된다.  
+
+***
+
+## 5.5 Model and plot collections
+
+### 5.5.1 Sequential plots and models
+
+```{r}
+for(nf in 2 : 5){
+  print(loglin2string(joint(nf, factors = LETTERS[1:5])))
+}
+```
+
+```{r}
+for (nf in 2 : 5){
+  print(loglin2string(conditional(nf, factors = LETTERS[1:5]),sep = ""))
+}
+```
+
+```{r}
+for (nf in 2 : 5){
+print(loglin2formula(conditional(nf, factors = LETTERS[1:5])))
+}
+```
+
+```{r}
+loglin2formula(joint(3, table = HEC))
+```
+
+```{r}
+loglin2string(joint(3, table = HEC))
+```
+
+`loglin2string` 혹은 `loglin2formula`함수를 이용하여 모자이크 관련 함수에서 사용할 수 있도록 위의 몇 가지 예제들과 같이 분석하고자 하는 모델 공식 또는 문자열로 변환해준다.  
+
+```{r}
+HEC.mods <- seq_loglm(HEC, type = "joint")
+LRstats(HEC.mods)
+```
+
+그러나, 주어진 유형에 따른 순차적 모델을 직접 입력하는 것은 번거로운 작업일 것이다.  
+따라서, 이러한 경우 R에서는 `seq_loglm`함수를 이용하여 간단하게 진행할 수 있다.  
+`seq_loglm`함수는 지정한 독립성 유형의 타입에 대해서 가능한 모든 독립성 유형 모델을 순차적으로 적합시켜주는 함수로, `vcdExtra`패키지에 포함돼있다.  
+- `seq_loglm(table,type)`
+
+* table: 로그선형모델을 적합시킬 분할표
+* type: 분석가가 가정하고자 하는 독립성 유형("joint", "conditional", "mutual", "markov", "saturated")
+
+분석 후, `LRstats`함수를 이용하여 순차적 모델의 결과를 비교할 수도 있다.  
+
+`model.1, model.2`의 유의확률은 유의수준 0.05보다 작으므로 귀무가설을 기각하여 변수간 독립이 아닌 것을 확인할 수 있고 `model.3`의 유의확률은 유의수준 0.05보다 크므로 귀무가설을 기각하지 못하여 변수간 독립인 것을 확인할 수 있다.  
+
+### 5.5.2 Causal models
+
+*Example 5.9: Martial status and pre-and extramarital sex*
+
+```{r}
+data("PreSex", package =  "vcd")
+structable(Gender + PremaritalSex + ExtramaritalSex ~ MaritalStatus, data = PreSex)
+```
+
+`PreSex`데이터는 혼전 및 혼외 성관계와 이혼에 대해 나타나는 데이터로 `vcd`패키지 안에 포함돼있다.  
+
+* MartialStatus: 결혼 여부 (Factor variable - Divorced, Married)
+* ExtramaritialSex: 혼외 성관계 여부 (Factor variable - Yes, No)
+* PremartialSex 혼전 성관계 여부 (Factor variable - Yes, No)
+* Gender: 성별 (Facotr variable - Women, Men)
+
+`PreSex`데이터를 `structable`함수를 이용하여 복잡한 형테의 분할표를 한 눈에 볼 수 있게 변환하였다.  
+남성과 여성 모두 혼전, 혼외 성관계 여부가 No인 빈도가 가장 높았다.  
+
+```{r}
+PreSex <- aperm(PreSex, 4 : 1)
+```
+
+`aperm`함수를 이용하여 주어진 `PreSex`데이터의 범주형 변수의 수준을 재지정하였다.  
+
+```{r}
+mosaic(margin.table(PreSex, 1 : 2), shade = TRUE,
+       main = "Gender and Premarital Sex")
+```
+
+PreSex의 1번째 2번째 데이터를 통해 모자이크 플롯을 그려보았다.  
+**Gender = Women, Premarital Sex = Yes**, **Gender = Men, Premarital Sex = No**인 경우 관찰빈도가 기대빈도 보다 낮았고,  
+**Gender = Women, Premarital Sex = No**, **Gender = Men, Premarital Sex = Yes**인 경우 관찰빈도가 기대빈도 보다 높았다.  
+이를 통해, 성별이 여성인 경우 Premarital Sex 경험이 적은 것으로 보였으며, 성별이 남성인 경우 Premarital Sex 경험이 많은 것 처럼 보이는 것을 확인할 수 있었다.  
+유의확률은 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, **PremaritalSex**와 **Gender**는 독립이 아니며, 서로 연관성이 있다고 할 수 있다.  
+
+
+```{r}
+mosaic(margin.table(PreSex, 1 : 3),
+       expected = ~ Gender * PremaritalSex + ExtramaritalSex, main = "Gender*Pre + ExtramaritalSex")
+```
+
+**ExtramaritalSex**변수까지 고려하여 모자이크 플롯을 다시 한 번 나타내었다.  
+위의 모델은 **ExtramaritalSex**변수가 **Gender**, **PremartialSex**에 대해 공동적으로 독립이라는 가정을 한 후, 적합시킨 모델이다.  
+위의 모자이크 플롯을 살펴본 결과, **PremartialSex = Yes인 남성**이 **PremartialSex =No인 남성**에 비해 **ExtramaritalSex 가능성이 더 높은 것**을 확인할 수 있다.  
+유의확률은 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, **ExtramaritalSex**가 **Gender**, **PremartialSex**에 대해서 공동적으로 독립이 아니라는 것을 확인할 수 있다.  
+
+```{r}
+loddsratio(margin.table(PreSex, 1 : 3), stratum = 1,
+           log = FALSE)
+```
+
+또한, 오즈비를 고려해봤을때, **ExtramaritalSex**는 **PremartialSex**의 여부에 따라 달라지지만, **성별**에 따라 달라지지 않는 것을 확인할 수 있다.  
+
+```{r}
+mosaic(PreSex, expected = ~ Gender * PremaritalSex * ExtramaritalSex + MaritalStatus, main = "Gender*Pre*Extra + MaritalStatus")
+```
+
+**MaritalStatus** 변수까지 고려한 모자이크 플롯을 그려보았다.  
+위의 모델은 **MaritalStatus**변수가 **ExtramaritalSex**, **PremaritalSex**, **Gender**에 대해서 공동적으로 독립이라는 가정을 한 후, 적합시킨 모형이다.  
+
+**MaritalStatus = Married**일 때, 남성과 여성 모두 **ExtramaritalSex**가 Yes보다 No인 빈도가 더 많이 나타나는 것을 확인할 수 있었으며, **MaritalStatus = Divorced**일 때, 남성과 여성 모두, **ExtramaritalSex**가 Yes인 빈도가 더 많이 나타나는 것 또한 확인할 수 있었다.   
+
+유의확률은 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, **MaritalStatus**변수가 **ExtramaritalSex**, **PremaritalSex**, **Gender**에 대해서 공동적으로 독립이라고 할 수 없다.  
+
+
+```{r}
+mosaic(PreSex,
+       expected = ~ Gender * PremaritalSex * ExtramaritalSex + MaritalStatus * PremaritalSex * ExtramaritalSex, main = "G*P*E + P*E*M")
+```
+
+위의 모델은 **PremaritalSex**, **ExtramaritalSex**가 제어될 때, **Gender**와 **MaritalStatus**는 조건부 독립이라고 가정한 후, 적합시킨 모델이다.  
+모자이크 플롯을 통해 특별한 패턴은 찾을 수 없었고 주어진 모형의 유의확률이 0.05보다 크므로 귀무가설을 기각한다.  
+따라서, **PremaritalSex**, **ExtramaritalSex**가 제어될 때, **Gender**와 **MaritalStatus**는 조건부 독립이라고 할 수 있다.  
+
+### 5.5.3 Partial association
+
+*Example 5.10: Employment status data*
+
+```{r}
+data("Employment", package = "vcd")
+structable(Employment)
+```
+
+`Employment`데이터는 1974년 해고된 직원 1314명을 연구한 데이터로 `vcd`패키지안에 포함돼있다.  
+
+* EmploymentStatus: 고용상태 (Factor variable - NewJob, Unemployed)
+* EmploymentLength: 해고 당시 고용기간 (Factor variable - <1Mo, 1-3Mo, 3-12Mo, 1-2Yr, 2-5Yr, >5Yr)
+* LayoffCause: 해고 원인 (Factor variable - Closure, Replaced)
+
+*Employment*데이터를 로드한 후, `structable`함수를 통해 데이터 탐색을 진행하였다.  
+
+```{r}
+loglm(~ EmploymentStatus + EmploymentLength * LayoffCause, data = Employment)
+```
+
+`loglm`을 통해 **EmploymentStatus**가 **EmploymentLength,LayoffCause**과 독립이라는 가정을 하는 **[EmploymentStatus] [EmploymentLength LayoffCause]**모형을 적합시켰다.  
+적합시킨 모형의 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, **EmploymentStatus**는 **EmploymentLength,LayoffCause**과 독립이 아니라고 할 수 있다.  
+
+```{r}
+mosaic(Employment, shade = TRUE,
+       expected = ~ EmploymentStatus + EmploymentLength * LayoffCause, main = "EmploymentStatus + Length * Cause")
+```
+
+위 모형의 **모자이크 플롯**을 그린 결과는 위와 같다.  
+**LayoffCause = Closure**로 인한 해고인 경우 **EmploymentLength에 관계없이 EmploymentStatus = Unemployed 빈도가 더 높은 것**을 확인할 수 있으며, **LayoffCause = Replaced이면서, 3개월 이상의 EmploymentLength인 경우, Newjob일 빈도가 높은 것**을 확인할 수 있었다.  
+
+```{r}
+loglm(~ EmploymentStatus * LayoffCause + EmploymentLength * LayoffCause, data = Employment)
+```
+
+이번에는 **LayoffCause**이 제어될 때, **EmploymentStatus**와 **EmploymentLength**은 서로 독립이라는 가정을 하는 **[EmploymentStatus][LayoffCause] [EmploymentLength][LayoffCause]** 모형을 적합시켜 보았다.  
+
+LR방법을 통해 계산된 유의확률은 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다. 하지만, 피어슨 검정통계량 방법을 통해 계산된 유의확률은 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 즉 두 방법에 대해 다른 결과가 나온 것을 확인할 수 있다.  
+이러한 결과를 더 자세히 살펴보기 위해, 부분 관계에 대한 별도의 모델을 적합시켜본다.  
+
+```{r}
+mosaic(Employment, shade = TRUE, gp_args = list(interpolate = 1 : 4), expected = ~ EmploymentStatus * LayoffCause + EmploymentLength * LayoffCause,
+       main = "EmploymentStatus * Cause + Length * Cause")
+
+```
+
+모자이크 플롯을 살펴본 결과, **EmploymentLength가 3달 이하인 경우, LayoffCause = Replaced라고 하더라도, Unemployed일 빈도**가 높았다.  
+
+```{r}
+mods.list <-
+  apply(Employment, "LayoffCause",
+        function(x) loglm(~ EmploymentStatus + EmploymentLength, data = x))
+mods.list
+```
+
+결과를 더 자세히 살펴보기 위해, 해고 원인의 두 수준에 대해서 **EmploymentStatus**,**EmploymentLength**에 대한 `loglm`개별 모델을 적합시켰다.  
+
+**Layoffcause = Closure**일때의 `loglm`결과는 유의확률이 모두 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다. 따라서, **EmploymentLength**와 **EmploymentStatus**는 서로 독립이라고 할 수 있다.  
+
+**Layoffcause = Replaced**일때의 `loglm`결과는 유의확률이 모두 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, **EmploymentLength**와 **EmploymentStatus**는 서로 독립이 아니라고 할 수 있다.  
+
+```{r}
+mosaic(Employment[,,"Closure"], shade = TRUE,
+       gp_args = list(interpolate = 1 : 4),
+       margin = c(right = 1), main = "Layoff: Closure")
+```
+
+모자이크 플롯을 통해서도 두 로그선형모델의 결과를 쉽게 이해할 수 있다.  
+**Layoffcause = Closure**인 경우, 특별한 패턴은 보이지 않고 **EmploymentLength**과 **EmploymentStatus**는 독립인 것처럼 보인다.  
+
+
+```{r}
+mosaic(Employment[,,"Replaced"],shade = TRUE,
+       gp_args = list(interpolate = 1 : 4),
+       margin = c(right = 1), main = "Layoff: Replaced")
+
+```
+
+**Layoffcause = Replaced**인 경우, **EmploymentLength**가 3개월 이하인 사람의 경우 **EmploymentStatus = NewJob**일 빈도가 낮지만 **EmploymentLength**가 3개월을 초과하는 **EmploymentStatus = Unemployed** 빈도가 상당히 낮은 것을 확인할 수 있다.  
+
+이렇게 전체적인 모델을 살펴볼때에는 드러나지 않는 패턴이 부분 관계에 대해 별도의 모델을 적합시키게 되면 쉽게 패턴을 찾을 수 있다.  
+
+*Example 5.11: Corporal punishment data*
+
+```{r}
+data("Punishment", package = "vcd")
+head(Punishment)
+str(Punishment, vec.len = 2)
+```
+
+`punishment`데이터는 아동 체벌에 대한 1,456명의 무작위 표본에 관한 데이터로 `vcd`패키지에 포함돼있다.  
+
+* Freq: 빈도 (Discrete variable)
+* attitude: 아이들에 대한 처벌 여부 (Factor variable - no,moderate)
+* memory: 어릴때 체벌에 대한 기억이 있는지에 대한 여부 (Factor variable - yes, no)
+* education: 최종학력 (Factor variable - elementary, secondary, high)
+* age: 조사된 나이 그룹 (Factor variable - 15~24, 25~39, 40~)
+
+```{r}
+pun <- xtabs(Freq ~ memory + attitude + age + education, data = Punishment)
+dimnames(pun) <- list(
+  Memory = c("yes","no"),
+  Attitude = c("no","moderate"),
+  Age = c("15-24", "25-39", "40+"),
+  Education = c("Elementary", "Secondary", "High"))
+```
+
+`xtabs`함수를 이용하여 행은 **Attitude** 열은 **Memory**이고 **Age**, **Education**을 계층변수로 가지는 분할표의 형태로 만들어주었다.  
+
+```{r}
+(mod.cond <- loglm(~ Memory * Age * Education +
+                     Attitude * Age * Education, data = pun))
+```
+
+`loglm`함수를 사용하여 **Age**, **Education**이 제어될 때, **Memory**, **Attitude**가 조건부 독립이라는 가정을 한 후 로그선형모델에 적합시켜 보았다.  
+적합시킨 모형의 유의확률이 모두 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, **Age**, **Education**이 제어될 때, **Memory**, **Attitude**가 조건부 독립이 아니라고 할 수 있다. 즉, **Memory**와 **Attitude**는 서로 연관이있다고 할 수 있다.  
+
+```{r}
+set.seed(1071)
+coindep_test(pun, margin = c("Age", "Education"),
+             indepfun = function(x) sum(x^2), aggfun = sum)
+```
+
+`coindep_test`함수를 이용하여 분할표의 conditional 독립성 검정을 진행할수도 있다. 
+`coindep_test`의 유의확률 또한 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  따라서 **Memory**와 **Attitude**는 서로 독립이 아니라고 할 수 있다.  
+
+```{r}
+mods.list <- apply(pun, c("Age", "Education"),
+                   function(x) loglm(~ Memory + Attitude, data = x)$pearson)
+```
+
+`apply`함수를 이용하여 **Age, Education**가 제어될 때, `loglm(~Memory + Attitude)`의 **pearson 검정통계량**을 확인하였다.    
+전반적으로 전체 연령에서 **Education = Elementary**의 검정통계량이 높게 나오는 것을 확인할 수 있고 **Age = 40+, Education = Elementary**일때의 검정통계량이 가장 높은것을 확인할 수 있다.  즉, **Age = 40+, Education = Elementary**일때 **Memory**와 **Attitude**변수의 연관성이 가장 강하다고 할 수 있다.  
+
+```{r}
+set.seed(1071)
+pun_cotab <- cotab_coindep(pun, condvars = 3 : 4, type = "mosaic",
+                           varnames = FALSE, margins = c(2,1,1,2),
+                           test = "sumchisq", interpolate = 1 : 2)
+cotabplot(~ Memory + Attitude | Age + Education,
+          data = pun, panel = pun_cotab)
+```
+
+`cotabplot`함수를 이용하여 여러 개의 모자이크 플롯을 나이와 교육수준에 따라 패널별로 살펴볼 수 있게 하였다.  
+교육수준이 Elementary인 경우, **Attitude = No, Memory = Yes**인 빈도가 낮은 경향을 보이는 것을 확인할 수 있었고 나이가 25세 이상인 경우, **Attitude = moderate, Memory = yes**인 빈도가 높은 경향을 보이는 것을 알 수 있었다.  
+
+```{r}
+mosaic(~ Memory + Attitude | Age + Education, data = pun,
+       shade = TRUE, gp_args = list(interpolate = 1 : 4))
+```
+
+`cotabplot`함수를 이용하지 않고 `mosaic`함수에서도 `|`표현을 이용하여 다중 모자이크 플롯을 이용할 수 있다. 하지만 패널로 나누어진 **cotabplot**에 비해 한 눈에 보기 어렵다는 것을 알 수 있다.  
+하지만, **mosaic**를 이용할 경우, **cotabplot**과 다르게 나이와 교육수준의 조합에 대한 타일의 상대적 크기를 결정해주는 것을 살펴볼 수 있다.  
+
+두 그림을 봤을 때, **Education = elementary**인 경우 연령이 높아질수록 **Attitude**와 **Memory** 사이에 연관성이 강해지는 것을 확인할 수 있다.  
+
+특히, .**Education = elementary, age = 40+**그룹의 경우 **Attitude = no**일때에는 **Memory = no**일 관찰빈도가 높지만, **Attitude = Yes**일때에는 **Memory = Yes**일 관찰빈도가 높아지는 것을 확인할 수 있다.  
+
+***
+
+## 5.6 Mosaic matrices for categorical data
+
+### 5.6.1 Mosaic matrices for pairwise associations
+
+*Example 5.12: Bartlett data on plum-root cuttings*
+
+```{r}
+pairs(Bartlett, gp = shading_Friendly2)
+```
+
+`pairs`함수는 일반적으로 연속형 변수에 대해 모든 연속형 변수의 쌍별 조합을 하나의 패널안에 나타내 패턴을 찾고자할때 사용한다. 하지만, 연속형 변수뿐만 아니라 범주형 변수에서도 산점도 행렬을 통해 쉽게 패턴을 감지할 수 있다.  
+- `pairs(x)`
+
+* x: 산점도 행렬을 그릴 데이터 
+
+`Bartlett`데이터는 자른 길이와 심은 시간이 생존에 미치는 영향을 조사하기 위한 데이터로 `vcdExtra`패키지에 포함돼있다.  
+
+* Length: 자른 길이 (Factor variable - Long, Short)
+* Time: 심은 시간 (Factor variable - Now, Spring)
+* Alive: 생존여부 (Factor variable - Alive, Dead)
+
+`pairs`함수를 범주형 자료에 사용할 경우 위와 같은 그림을 얻을 수 있다. 모자이크 플롯과 더불어 각 범주형 변수의 수준에 대한 열과 행의 합을 도출해준다.  
+
+위의 모자이크 그림을 통해 **Alive & Time**, **Alive & Length** 사이에서는 연관성이 존재하는 것처럼 보이지만, **Time & Length** 사이에서는 연관성이 존재하지 않는 것(독립)처럼 보인다.  
+
+**Time & Alive**의 경우, **Time = Now, Alive = Alive**일때 관찰빈도가 기대빈도보다 높지만, **Time = Spring, Alive = Dead**일때는 관찰빈도가 기대빈도보다 낮은 것을 확인할 수 있다.  
+
+*Example 5.13: Marital status and pre- and extramarital sex*
+
+```{r}
+data("PreSex", package = "vcd")
+pairs(PreSex, gp = shading_Friendly2, space = 0.25,
+      gp_args = list(interpolate = 1:4),
+      diag_panel_args = list(offset_varnames = -.5))
+```
+
+`PreSex`데이터에 `pairs`를 적용하여 다중 모자이크 플롯, 변수의 행과 열의 총빈도를 살펴본 결과이다.  
+대략적인 모자이크 플롯을 봤을 때, **Divorced & Gender**변수(모자이크 플롯을 살펴보면 음영이 진하지 않고 선의 형태만 바뀐것을 볼 수 있으므로, 독립이다.)를 제외한 나머지 변수끼리는 어느 정도 연관성이 존재하는 것처럼 보인다.  
+
+*Example 5.14: Berkeley admissions*
+
+```{r}
+largs <- list(labeling = labeling_border(varnames = FALSE,
+                                         labels = c(T,T,F,T),
+                                         alternate_labels = FALSE))
+dargs <- list(gp_varnames = gpar(fontsize = 20), offset_varnames = -1, labeling = labeling_border(alternate_labels = FALSE))
+pairs(UCBAdmissions, shade = TRUE, space = 0.25,
+      diag_panel_args = dargs,
+      upper_panel_args = largs,
+      lower_panel_args = largs)
+```
+
+위의 그림은 `UCBAdmissions` 데이터에 `pairs`함수를 적용하여 나타낸 결과이다. `UCBAdmissions`데이터에서 **Dept**변수의 경우 많은 수준을 가지고 있기 때문에, 폰트, 여백등 다양한 옵션을 조정하여 시각화를 세밀하게 조정한 것을 살펴볼 수 있다.  
+
+`Admit`을 볼 때, **Admit = Admitted** 보다 **Admit = Rejected**가 더 많은 것을 볼 수 있고, `Gender`의 경우에는 **Gender = Female**보다 **Gender = Male**이 지원자가 더 많은 것을 확인할 수 있다. 
+
+**Gender & Admit**의 관계를 살펴보면, **Gender = Male**이 **Gender = Female**보다  **Admit = Admitted**이 더 많이 되는 경향이 있음을 보여준다.  
+**Gender & Dept**의 관계를 살펴보면, **Gender = Male**은 **Dept = A, Dept = B**에 많이 지원한다. **Gender = Female**의 경우에는 **Dept = A, Dept = B**는 적게 지원하는 반면, **Dept = C** 부서에 가장 많은 지원을 하는 것을 볼 수 있다.  
+**Admit & Dept**의 관계를 살펴보면, **Dept = A, Dept = B**에 **Admit = Admitted** 경향이 높게 나타나고 있으며, **Dept = E, Dept = F**에서 **Admit = Rejected**하는 경우가 많은 것을 알 수 있다.
+
+
+### 5.6.2 Generalized mosaic matrices and pairs plots
+
+*Example 5.15: Berkeley admissions*
+
+```{r}
+pairs(UCBAdmissions, space = 0.2,
+      lower_panel = pairs_mosaic(type = "joint"),
+      upper_panel = pairs_mosaic(type = "total"))
+```
+
+`pairs`옵션에서 `lower_panel, upper_panel`옵션을 통해 앞서 살펴본 type을 지정할 수 있다.  
+`lower_panel`은 왼쪽 아래에 3개의 모자이크 플롯을 나타내고 `upper_paenl`은 오른쪽 위에 3개의 모자이크 플롯을 나타낸다.  
+
+* type = "pairwise": 다른 모든 변수들에 대해 **이변량 marginal** 관계를 보여준다.  
+* type = "total": **상호 독립성**에 대한 모자이크 플롯을 보여준다.  
+* type = "conditional": 모든 다른 변수들이 주어진 **conditional 독립성**에 대한 모자이크 그림을 보여준다.  
+* type = "joint": 모든 변수 쌍의 **결합 독립성**에 대한 모자이크 플롯을 보여준다.  
+
+**joint**를 가정하는 경우, **Dept**와 **Admit**은 연관이 없는 것처럼 보인다. 하지만, **total**을 가정하는 경우, **Dept**와 **Admit**은 연관이 있는 것처럼 보인다.  
+
+```{r}
+pairs(UCBAdmissions, type = "conditional", space = 0.2)
+```
+
+위 그림의 경우, `type = conditional`으로 지정했기 때문에 모든 다른 변수들이 주어진 conditional 독립성에 대한 모자이크 그림을 보여준다.  
+앞서 살펴본 그림과 다르게, conditional 독립성을 가정하고 살펴보게 되면, **Admit**변수와 **Gender**변수는 관련성이 없는 것처럼 보인다.  
+
+반면, **Gender**변수와 **Dept**변수를 살펴보면 앞서 살펴본 결과와 동일하게 **Gender = Male**의 경우에는 **Dept = A, Dept = B**에 많이 지원을하고 **Gender = Female**의 경우에는 **Dept = A, Dept = B**에는 적게 지원하며, **Dept = C**에 많이 지원하는 경향을 보인다.  
+따라서, conditional 독립성을 가정해도 **Gender**와 **Dept**는 서로 연관이 있는 것처럼 보인다.  
+
+*Example 5.16: Arthritis treatment*
+
+```{r}
+library(gpairs)
+data("Arthritis", package = "vcd")
+```
+
+`gpairs`패키지는 대부분의 데이터셋에 범주형 연속형 데이터가 모두 포함되어 있다는 가정하에 더욱 일반화된 산점도 행렬을 제공하는 패키지이다.  
+
+```{r}
+gpairs(Arthritis[,c(5,2,3,4)],
+       diag.pars = list(fontsize = 20),
+       mosaic.pars = list(gp = shading_Friendly,
+                          gp_args = list(interpolate = 1:4)))
+```
+
+`gpairs`함수는 복잡한 데이터셋에서 연속형 변수와 범주형 변수간의 패턴을 보여주는 산점도 행렬을 그릴 수 있게해주는 함수로, `gpairs`패키지안에 포함돼있다.  
+- `gpairs(data,mosaic.pars)`
+
+* data: gpairs함수를 적용할 데이터
+* mosaic.pars: 산점도 행렬에 모자이크 플랏 구성 여부 (gp, gp_args를 통해 추가적인 옵션 지정 가능)
+
+`Arthritis*`데이터에 `gpairs`함수를 적용시켜 보았다.  
+출력 결과, 기존의 모자이크 플롯과 더불어 변수의 분포까지 출력해 주며, 가장 오른쪽 패널에 두 변수 간 산점도 또한 출력해주는 것을 확인할 수 있다.  
+
+**Treatment**의 경우 **Treatment = Placebo**, **Treatment = Treated**의 비율이 동일해 보이며, **Sex**의 경우 **Sex = Female**이 **Sex = Male**보다 빈도가  2배 정도 많은 것으로 보인다.  
+
+
+***
+
+## 5.7 3D mosaics
+
+```{r}
+mosaic3d(Bartlett)
+```
+
+`mosaic3d`함수는 데이터의 모자이크 플롯을 2차원이 아닌 3차원의 플롯으로 확장해주는 함수로 `vcdExtra`패키지 안에 포함돼있다.  
+- `mosiac3d*(table)`
+
+* table: 3차원의 모자이크 플롯을 적용하고자 하는 데이터
+
+***
+
+## 5.8 Visualizing the structure of loglinear models
+
+```{r}
+struc <- array(c(6,10,312,44,37,31,192,76),
+               dim = c(2,2,2),
+               dimnames = list(Age = c("Young", "Old"),
+                               Sex = c("F","M"),
+                               Disease = c("No","Yes")))
+
+struc <- as.table(struc)
+structable(struc)
+```
+
+임의의 데이터 `struc`를 생성한 후, 테이블 형태로 바꿔주었다.  
+
+* Disease: 질병여부 (Factor variable - No,Yes)
+* Age: 나이 (Facotr variable - Young, Old)
+* Sex: 성별 (Factor variable - F,M)
+
+```{r}
+mosaic(struc, shade = TRUE)
+```
+
+모자이크 플롯을 살펴본 결과, **Age = Young, Sex = M**인 경우 질병 발생 빈도가 낮지만, **Age = Old, Sex = M** 질병 발생 빈도가 높은 것을 확인할 수 있다.  
+**Sex = F**의 경우, **Age = Young**일 때 질병 발생 빈도가 높지만,  **Age = Old**일 경우에도 질병 발생 빈도가 높은 것을 확인할 수 있다.  
+유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각하므로 **Sex,Age**는 **Disease**와 독립이 아닌 것을 알 수 있다.  
+
+```{r}
+mosaic(struc, type = "expected",shade=TRUE)
+```
+
+기대빈도를 통해 모자이크 플롯의 타일을 재구성한 결과, 관찰빈도와 비슷한 모자이크 플롯이 구성되는 것을 확인할 수 있다.  
+유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각하므로 **Sex,Age**는 **Disease**와 독립이 아닌 것을 알 수 있다.  
+
+### 5.8.1 Mutual independence
+
+```{r}
+mutual <- loglm(~ Age + Sex + Disease, data = struc, fitted = TRUE)
+fit <- as.table(fitted(mutual))
+structable(fit)
+```
+
+**Age,Sex,Disease** 변수들의 상호 독립을 가정한 후, 주어진 데이터를 로그 선형 모델에 적합시켜보았다.  
+`fit`변수는 적합된 로그 선형 모델을 통해 기대빈도를 구한 결과이다.  
+
+```{r}
+pairs(fit,gp = shading_Friendly2, type = "total")
+```
+
+적합된 로그 선형 모델의 기대빈도를 이용하여 **모자이크 플롯**을 그려보았다.  
+하지만, 기대빈도를 통해 재구성한 모자이크 플롯은 위와 같이 **세 변수간 연관성이 없는 것** 처럼 보인다.  
+
+```{r}
+mosaic3d(fit)
+```
+
+`mosaic3d`함수를 통해 `fit`변수의 적합된 값에 대한 **3D 모자이크 플롯**을 그릴 수 있다.  
+
+### 5.8.2 Joint Independence
+
+```{r}
+joint <- loglm(~ Age * Sex + Disease, data = struc, fitted = TRUE)
+fit <- as.table(fitted(joint))
+structable(fit)
+```
+
+**Disease**변수가 **Age, Sex**변수에 대해서 공동으로 독립이라고 가정한 후, 다시 한 번 로그선형모델에 적합시켜보았다.  
+
+```{r}
+pairs(fit, gp = shading_Friendly2)
+```
+
+**joint independence**를 가정한 후, 모자이크 플롯을 그려보았다. 
+그 결과, 앞선 결과와는 다르게 **Age,Sex**변수간에 약간의 연관성이 나타나는 것을 확인할 수 있다. 하지만, 여전히 전체적인 모형을 고려해볼때, **Age,Sex**는 강한 연관성을 보여주는 것 같지는 않아보인다.  
+
+***
+
+## 5.9 Related visualization methods
+
+`Doubledecker plot`은 추가 범주형 변수에 대한 범주형 변수 (전형적으로 이항)의 의존성을 시각화한다. 즉, 종속 변수를 나타내는 변수를 제외한 모든 독립 변수에 대해 수직 분할이 있는 모자이크 플롯이다.  
+이를 통해, 설명 변수의 조합과 관련된 조건부 반응 비율 간의 차이를 더 쉽게 읽을 수 있다는 장점이 있다.  
+
+`Doubledecker plot`은 `vcd`패키지 안에 포함돼있다.  
+- `Doubledecker(formula,data)`
+
+* formula: 데이터에서 사용할 변수들 및 Doubledecker의 구성 형태 지정(일반적으로 종속변수 ~ 설명변수 + 설명변수 +...의 형태) 
+* data: Doubledecker 그림을 그릴 데이터
+
+### 5.9.1 Doubledecker plots
+
+*Example 5.18: Berkeley admissions*
+
+```{r}
+doubledecker(Admit ~ Dept + Gender, data =UCBAdmissions[2:1,,])
+```
+
+`UCBAdmissions`데이터를 통해 더블데커 플랏을 그려보았다.  
+종속변수의 수준에 따라 음영처리를 한 것을 볼 수 있다(**Admit = Admitted: 검은색**, **Admit = Rejected: 회색**).  
+**Dept = A, Dept = B**의 경우에는 **Gender = Male**의 직사각형의 너비가 **Gender = Female**보다 넓은 것으로 보아 더 많이 지원한 것을 알 수 있으며, **Dept = C, Dept = E**에서는 **Gender = Female**이 **Gender = Male**보다 지원을 많이 했고 **Dept = D, Dept = F**에서는 **Gender = Male, Gender = Female** 모두 동일한 지원 빈도를 보여준다.  
+**Gender = Male, Gender = Female** 모두 **Dept = A, Dept = B**에서 **Admit = Admitted**가 제일 높은 것을 볼 수 있다.  
+
+*Example 5.18: Titanic data*
+
+```{r}
+doubledecker(Survived ~ Class + Age + Sex, Titanic)
+```
+
+`Titanic` 데이터에 대한 더블데커 플랏을 그려보았다. 
+모든 Class에서 **Sex = Female**의 **Survived = Yes**빈도가 높으며, **Sex = Male**의 경우 **Survived = Yes**가 낮은 것을 확인할 수 있다.   
+또한, **Class = Crew**인 곳에 사람이 가장 많이 타고 있는 것을 알 수 있으며, **Age = Children**의 경우 **Class = 3rd**인 곳에 가장 많이 탑승한 것을 볼 수 있다.  
+
+### 5.9.2 Generalized odds ratios
+
+*Example 5.20: Corporal punishment data*
+
+```{r}
+data("Punishment", package = "vcd")
+pun_lor <- loddsratio(Freq ~ memory + attitude | age + education, 
+                      data = Punishment)
+pun_lor_df <- as.data.frame(pun_lor)
+```
+
+`loddsratio`함수를 통해 `Punishment`데이터의 로그 오즈비를 구한 후, `pun_lor_df` 객체에 데이터프레임의 형태로 저장해 주었다.  
+
+```{r}
+plot(pun_lor)
+```
+
+오즈비가 저장된 객체를 plot의 입력값으로 주게 되면 위와 같이 인자의 수준에 따른 오즈비의 변화를 보여준다.  
+
+**Education = high**의 경우, **age**그룹의 나이가 증가함에 따라서 **로그오즈비**가 낮아지는 경향이 있고 **Education = Elementary**의 경우, **age**그룹의 나이가 증가함에 따라서 **로그오즈비**가 증가하는 경향이 있다.  
+
+즉, 최종학력이 고등학교인 사람들의 경우 처벌에 대한 기억이 나이가 증가할수록 점점 사라지지만, 최종학력이 초등학교인 사람들의 경우 처벌에 대한 기억이 나이가 증가할수록 점점 높아지는 것을 알 수 있다.  
+
+```{r}
+pun_lor_df <- transform(pun_lor_df, 
+    age = as.numeric(age), 
+    education = as.numeric(education))
+
+pun_mod <- lm(LOR ~ age * education, data = pun_lor_df, 
+              weights = 1 / ASE^2)
+anova(pun_mod)
+```
+
+**로그오즈비**를 **age,education** 변수에 대한 선형회귀모형으로 적합시켜 보았다.  
+`anova`를 통해 **age,education**의 상호작용에 대한 유의성 검정을 진행한 결과, 유의확률이 0.015로 유의수준 0.05보다 작다. 따라서, **age,education**간의 상호작용은 유의한 변수임을 알 수 있다.  
+
+*Example 5.21: Titanic data*
+
+```{r}
+Titanic2 <- Titanic[, , 2:1, 2:1]
+
+Titanic2["Crew", , "Child",] <- NA
+titanic_lor1 <- loddsratio(~ Survived + Age | Class + Sex,
+                           data = Titanic2)
+plot(titanic_lor1)
+```
+
+`Titanic`데이터의 생존 오즈비를 나이에 따라 살펴보았다.  
+
+성인의 생존 로그오즈비 대 아동의 생존 로그오즈비를 비교해 봤을 때, 여성의 생존 로그 오즈비가 항상 남성보다 높은 것을 확인할 수 있다.  
+
+남성과 여성 모두, **Class가 1st -> 2nd** 변할 때 로그오즈비가 작아지다가 **Class가 2nd -> 3rd**로 변할 때 로그오즈비가 커지는 것을 확인할 수 있다.  
+특히, **Class = 1st, Class = 2nd**에서는 남성과 여성의 로그오즈비 차이가 크지만 **Class = 3rd**일때 로그오즈비의 차이가 크게 줄어든다.  
+이를 통해, 여성의 경우에는 **class =  1st**일 때, 그렇지 않은 경우보다 생존할 오즈가 **10.40(exp(2.3425))**배 높았고 남성의 경우에는 **Class = 3rd**일 때, 그렇지 않은 경우보다 생존할 오즈가 **0.512(exp(-0.6687))**배 높았다는 것을 확인할 수 있다.  
+
+```{r}
+titanic_lor2 <- loddsratio(~ Survived + Sex | Class + Age,
+                           data = Titanic2)
+plot(titanic_lor2)
+
+exp(titanic_lor2$coefficients)
+
+plot(titanic_lor2)
+```
+
+`Titanic`데이터의 생존 로그오즈비를 성별에 따라 살펴보았다.  
+
+남성의 생존 로그오즈비 대 여성의 생존 오즈비는 성인보다 항상 어린아이의 생존오즈비가 더 높은 것을 확인할 수 있다.  
+
+어린이의 경우, **Class = 1st**에서 **Class = 3rd**로 이동함에 따라, 로그오즈비가 낮아지는 것을 확인할 수 있고 성인의 경우, **Class = 1st**에서 **Class = 3rd**로 이동함에 따라, 로그오즈비가 증가하는 것을 볼 수 있다.  
+
+어린이는 **Class = 1**일때, 그렇지 않은 경우보다 생존할 오즈가 **exp(1.2992) = 3.667**배 높은 것을 알 수 있고, 성인의 경우 **Class = 3rd**에서, 그렇지 않은 경우보다 생존할 오즈가 **exp(-1.47) = 0.23**배 높은 것을 알 수 있다.  
+
+### 5.9.3 Dount plot
+
+`Donut plot`은 **pie chart**와 비슷하지만, **pie chart**와 다르게 중간이 뚫려 있다는 차이점이 있다.  
+**pie chart**의 경우 중간이 뚫려있지 않고 채워져있기 때문에 정보를 표시하는 공간이 제한적이다. 하지만, `Dount plot`의 경우 중심의 여백을 이용해 텍스트를 추가적으로 삽입하거나 추가적인 **Pie chart**를 삽입하는 등 더 많은 정보를 표시할 수 있다는 장점이 있다.  
+
+아쉽게도 `Dount plot`을 편리하게 그리기 위한 함수를 R에서 제공하고 있지 않기 때문에 `ggplot2`패키지의 `ggplot`함수를 통해 시각화할 수 있다.  
+
+
+```{r}
+library(ggplot2)
+data <- data.frame(language = c("SPSS","Minitab","R","Python"), Freq = c(4,5,7,12)) # 데이터 생성
+data$fraction <- cumsum(data$Freq / sum(data$Freq)) # 데이터의 퍼센트 구하기
+data$ymax <- cumsum(data$fraction) # 누적합 구하기. 각 데이터의 끝을 나타냄.
+data$ymin <- c(0, head(data$ymax, n = -1)) # 각 데이터의 하단을 나타냄.
+data$labelPosition <- (data$ymax + data$ymin) / 2
+data$label <- paste0(data$language, "\n Frequency: ", data$Freq)
+head(data)
+```
+
+위의 데이터는 임의로 생성한 데이터로, 통계분석을 위한 컴퓨터 프로그래밍 언어 중 어떠한 언어를 선호하는지에 대해 나타내는 데이터이다.  
+`fraction`은 빈도의 누적 비율을 나타내고, `ymax`는 각 비율에 대한 누적합을 구한 결과로 각 데이터의 끝을 나타내며, `ymin`은 각 데이터의 하단을 나타낸다.  
+`labelPosition`은 `donutplot`에서 `text`를 표시하고자 할 때, 각 영역의 중앙에 오도록 **(ymax + ymin)/2**로 설정한 값이다.  
+
+```{r}
+ggplot(data,aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3, fill = language))+
+  geom_rect() +
+  geom_label(x = 3.5, aes(y = labelPosition, label = label), size = 4) +
+  coord_polar(theta = "y") +
+  xlim(c(1,4)) +
+  theme_void() + 
+  theme(legend.position = "none") +
+  annotate(geom = "text", x = 1, y =2, label = "Students's favorite Computer language\n in Statistics",size = 5,
+           color = "Black")
+```
+
+`dount plot`을 그리기 위해서는 위에 얻어진 데이터를 이용해 `geom_rect`함수를 통해 직사각형을 그린 후, 이 직사각형의 앞부분을 짜르게 된다.  
+직사각형의 앞부분을 짜른 후, `coord_polar`함수를 이용하여 원형으로 바꿔주게 되면 직사각형의 앞면이 뚫려있으므로, 원형으로 바꿨을 때 가운데가 뚫리게 되어 `donut plot`을 완성할 수 있게 된다.  
+
+`annotate`함수는 원하는 위치에 원하는 텍스트를 넣을 수 있게 하는 옵션으로, 뚫린 가운데 원에 제목을 넣기 때문에 시각화한 결과를 조금 더 한 눈에 들어올 수 있게 만들어준다.  
+
+### 5.9.4 Balloon plot
+
+`Balloon plot`은 교차표로 만들어진 데이터를 시각화 하는데 유용하게 사용되는 기법 중 하나로, R에서는 `gplots`패키지에 포함된 `Balloonplot`함수를 이용하여 그릴 수 있다.  
+
+`gplots`패키지는 데이터를 시각화하기 위한 도구로 회귀진단에 사용되는 `lmplot2, residplot`, 신뢰구간을 시각화하기 위한 `plotCI, plotmeans`등 다양한 향상된 시각화 함수들을 제공하는 패키지이다.  
+- `balloonplot(data,label,show.margins)`
+
+* data: balloonplot을 그릴 데이터 (반드시 교차표의 형태)
+* label: 빈도표시 여부
+* show.margins: margin 테이블 표시 여부
+
+```{r}
+set.seed(42)
+library(gplots)
+data1 <- data.frame(Age = c(rep("20",16),rep("30",22),rep("40",21),rep("50",11)))
+data2 <- sample(c("SPSS","Minitab","R","Python"),70,replace=TRUE)
+data1 <- cbind(data1,data2)
+colnames(data1)[2] <- "language"
+df <- xtabs(~Age + language, data = data1)
+balloonplot(df, main = "Favorite Computer language in statistics by Age",label =FALSE,show.margins = FALSE)
+```
+
+데이터의 경우, 앞서 사용한 학생들이 가장 좋아하는 컴퓨팅 언어에서 연령 변수를 추가하여 연령에따른 컴퓨팅 언어 선호도 데이터를 만들어주었다.  
+`balloonplot`함수를 사용하여 위와 같은 그림을 얻을 수 있다.  
+
+각 셀에 위치한 풍선처럼 생긴 원은 각 셀의 빈도를 나타낸다. 원이 클수록 셀의 빈도가 높다는 의미이고 원이 작을수록 셀의 빈도가 낮다는 의미이다.  
+
+
+```{r}
+balloonplot(df, main = "Favorite Computer language in statistics by Age",
+            label = TRUE,
+            show.margins = TRUE)
+```
+
+`label, show.margins`옵션을 `TRUE`로 지정하게 되면 각 셀마다의 빈도 및 셀의 **marginal sum**을 출력하도록 만들어 줄 수 있다.  
+제일 많이 선호되는 언어는 Minitab이 22명으로 가장 많고, 연령대의 경우 22명으로 30대가 가장 많은 것을 쉽게 살펴볼 수 있다.  
+20대의 경우 SPSS를 선호하며, 30대의 경우 모든 컴퓨팅 언어가 거의 비슷한 빈도를 가지며, 40대의 경우에는 Minitab, Python을, 50대의 경우에는 Minitab을 가장 선호하는 것을 볼 수 있다.  
+
+```{r}
+balloonplot(df, main = "Favorite Computer language in statistics by Age",
+            label = TRUE,
+            show.margins = TRUE, 
+            dotcolor = "#D1B2FF",dotchar = 17,
+            label.color="#0054FF",text.color = "#F15F5F")
+```
+
+`dotcolor, dotchar, label.color, text.color`을 통해 도형, 텍스트의 색깔이나 모양을 쉽게 바꿔줄 수 있다.  
+
+***
+
+## Summary of Chapter5
+
+* **모자이크 플롯**은 2-way, 3-way, ... , n-way등의 고차원 분할표를 시각화하고 변수들의 패턴을 파악하는데에 유용하게 사용할 수 있는 방법이다.  
+* **로그선형모델**은 고차원의 분할표를 이용하는 경우, 다양한 독립성 유형의 모델을 가정한 후, 데이터를 모형에 적합시키고 싶을 때, 사용할 수 있는 방법이다.     
+* 흔히 자주 사용되는 독립성 유형으로는 모든 변수가 상호독립이라는 가정을 하는 **Complete Independence**, 특정 변수들이 분석하고자 하는 변수에 대한 공동적인 독립이라는 가정을 하는 **Joint Independence**, 특정 변수들이 제어될 때 분석하고자 하는 변수들이 조건부 독립이라는 가정을 하는 **Conditional Independence**, 어떠한 쌍도 독립적이지않다 라는 가정을 하는 **No three -way interaction**유형이 있다.  
+* 3원 분할표 혹은 고차원의 분할표에서 분석하고자 하는 두 변수 사이에 계층 변수인 C가 일부 수준에서는 연관되지만 다른 수준에서는 연관되지 않을 수 있다. 이러한 경우, 전체 모형에 대해 영향을 끼치게 되므로 부분적으로 계층 변수의 수준에 따라 두 변수의 관계가 어떻게 변하는지 탐구하는 것이 필요하다. 이러한 방법을 **부분 연관(Partial association)**이라고 한다.  
+* **산점도 행렬**은 일반적으로 연속형 변수의 패턴을 보기위해 많이 사용하지만, 범주형 변수의 패턴을 보기위해 사용할수도 있다.  
+* **오즈비**의 변화를 단순히 결과창을 통해 해석하면서 비교하는 것보다는 한 객체에 저장한 후, `plot`함수를 통해 변수의 수준 변화에 따라 어떻게 변하는지 보는 것이 좋다.  

@@ -1,0 +1,1061 @@
+---
+title: 통계밥법론2 Chap3 실습코드
+author: 202140191 엄태훈
+date: 2021-09-18(SAT)
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Chap3 Fitting and Graphing Discrete Distributions  
+
+이산형 데이터는 종종 다양한 이론적인 포아송,음이항,기하 등의 **확률분포**를 따른다.  
+우리가 데이터를 가지고 분석하는데에 있어 데이터가 어떠한 확률분포를 따르는지를 알아내고 가정하는 것은 매우 중요하다. 확률분포를 따르지 않으면 기본적인 통계가정을 만족하지 않으므로 분석을 진행함에 있어 상당한 어려움이 따를 수 있다. 따라서, 데이터에 대한 확률분포를 가정하고 이해하는 것 또한 분석에 있어 중요한 요소 중 하나라고 할 수 있다.  
+
+**시각화**는 모델의 진단, 적합도 확인, 추정된 모수에 대한 관측치를 살펴보는데에 사용된다.  
+
+**이산형 빈도 분포**는 사고 사망자, 어떤 특성을 가진 혈액 세포와 같은 사건의 발생 횟수를 포함한다.  
+
+Chapter3에서는 이항 분포, 포아송 분포, 음이항 분포, 기하분포 등 특정 확률 분포를 살펴보며, 주어진 분포의 데이터를 적합시키는 방법과 그에 대한 시각화, 모델 진단 같은 방법론에 대해서도 알아본다.   
+
+***
+
+## 3.1 Introduction to discrete distributions
+
+이산형 데이터 분석은 하나 이상의 사건 유형에 대한 표 작성 연구와 관련이 있으며, 동전 던지기, 성별, 수술 후 환자의 생존 등과 같은 결과 범주를 예시로 생각할 수 있다.  
+
+더 많은 사건에는 더 많은 범주가 나올 수 있으며, 순서를 지정할수도 있다.  
+
+
+Chapter3에서 우리는 숫자 변수로 이루어진 one-way 빈도표에 집중한다.  
+
+
+### 3.1.1 Binomial data
+
+**이항(Binomial)** 데이터는 "성공" 사건의 수에 대한 이산 분포로 발생되며, 각각은 일정한 성공 확률 p로 구성된다.  
+일반적으로 **총 시행횟수 n, 성공 확률 p**라는 2개의 모수를 가지고 있으며, 베르누이 분포의 일반화 분포로 이해할 수 있다.  
+
+EX)
+
+* 동전 던지기
+* 불량품 선별
+
+*Example 3.1: Arbuthnot data*
+
+```{r}
+data("Arbuthnot", package = "HistData")
+head(Arbuthnot,5)
+```
+
+`Arbuthnot`데이터는 1629년부터 1710년까지 남성과 여성의 생존비율을 나타낸 데이터로, `HistData`패키지에 포함된 데이터이다.  
+
+* Year: 출생년도 (Discrete variable)
+* Males: 남성 수 (Discrete variable)
+* Females: 여성 수 (Discrete variable)
+* plague: 역병으로인한 사망자 수 (Discrete variable)
+* Morality: 총 사망자 수 (Discrete variable)
+* Ratio: 남성/여성의 비율 (Continuous variable)
+* Total: 런던에서의 총 세례식 횟수 (Continuous variable)
+
+```{r}
+with(Arbuthnot, {
+  prob = Males / (Males + Females)
+  plot(x = Year, y = prob, type = "b",
+       ylim = c(0.5, 0.54), ylab = "Pr (Male)")
+  abline(h = 0.5, col = "red", lwd = 2)
+  abline(h = mean(prob), col = "blue")
+  lines(loess.smooth(Year, prob), col = "blue", lwd = 2)
+  text(x = 1640, y = 0.5, expression(H[0]: "Pr (Male) = 0.5"),
+       pos = 3, col = "red")
+})
+```
+
+`Arbuthnot` 데이터를 이용하여 출생년도에 따른 남성의 출생비율을 시각화해보았다.  
+
+`with`함수는 데이터에 대해서 여러가지의 작업들을 한 번의 코드 안에서 진행하고 깔끔한 코드 정리를 하고싶을 때 사용한다.  
+- `with(data,task)`
+
+* data: 함수를 적용할 데이터
+* task: 데이터를 이용하여 진행할 작업들(여러 개의 작업을 진행할 수 있다.)
+
+H0: 남성의 출생 비율은 0.5이다.
+H1: 남성의 출생 비율은 0.5가 아니다.
+
+위와같은 귀무가설과 대립가설을 이용하여 가설검정을 진행해 보았을 때, 실제 남성의 출생 비율은 0.517로 우리가 가정한 귀무가설과 큰 차이가 없는 것을 확인할 수 있다.  
+
+
+*Example 3.2: Families in Saxony*
+
+```{r}
+data("Saxony", package = "vcd")
+```
+
+`Saxony`데이터는 Saxony주의 남자 아이들의 숫자에 대한 데이터로 `vcd`패키지안에 포함되어 있다.  
+
+* nMales: 남성 아이들의 수 (Factor variable - 0 ~ 12)
+
+```{r}
+barplot(Saxony, xlab = "Number of males",
+        ylab = "Number of families", col = "lightblue",
+        cex.lab = 1.5)
+```
+
+Saxony데이터의 one-way 빈도표를 한 눈에 살펴보기 위해 **barplot**으로 시각화를 진행해 보았다.  
+남자 아이들의 숫자가 6명일 빈도가 가장 많고 그 다음으로는 5명,7명인 것을 확인할 수 있다.  
+또한, 데이터의 분포 형태가 **종모양(bell shape)**을 가지는 것을 확인할 수 있다.  
+
+*Example 3.3: Weldon's dice*
+
+```{r}
+data("WeldonDice", package = "vcd")
+```
+
+`weldonDice`데이터는 12개의 주사위를 던졌을 때, 5 또는 6이 나왔을 빈도에 대한 데이터로, `vcd`패키지안에 포함 돼 있다.  
+
+* n56: 주사위가 5 또는 6이 나온 수 (Factor variable - 0 ~ 10)
+
+```{r}
+dimnames(WeldonDice)$n56[11] <- "10+"
+barplot(WeldonDice, xlab = "Number of 5s and 6s",
+        ylab = "Frequency", col ="lightblue", cex.lab = 1.5)
+```
+
+`WeldonDice`데이터에서 11번,12번의 빈도가 0므로 10의 수준을 10+로 바꾸어 10,11,12의 경우가 포함되도록 한다.  
+
+WeldonDice 데이터의 one-way 빈도표를 **barplot**으로 나타낸 결과, 4번일 빈도가 가장 많고 그 다음으로 3번,5번인 것을 확인할 수 있다.  
+WeldonDice 데이터 또한 어느 정도 **종모양(bell shape)**의 형태를 띄는 것을 확인할 수 있었다.  
+
+### 3.1.2 Poisson data
+
+**포아송 데이터(Poisson data)**는 고정된 시간 또는 공간 사이에서 사건 k의 수를 관찰하고 이러한 빈도를 표현하는데 사용된다.  
+특히, 포아송 분포는 평균과 분산이 같기 때문에 **과대산포**가 발생할 수 있으므로, 포아송 분포 사용시 과대산포를 반드시 유의해야 한다.  
+
+EX)
+
+* k시간 동안 콜센터로 걸려오는 전화의 건수
+* 책 1페이지당 오탈자가 발생하는 건수
+* k주 동안 고속도로에서 교통사고가 발생하는 건수
+
+*Example 3.4: Death by horse kick*
+
+```{r}
+data("HorseKicks", package = "vcd")
+barplot(HorseKicks, xlab = "Number of deaths",
+        ylab = "Frequency", col = "lightblue",
+        cex.lab = 1.5)
+```
+
+**HorseKicks**데이터를 **barplot**을 통해 시각화를 진행한 결과 분포는 위와 같다.  
+말에게 1명도 사망하지 않는 경우의 빈도가 제일 많고 그 다음으로 1명,2명,3명,4명 순서대로 빈도가 작아지는 것을 확인할 수 있다.  
+
+*Example3.5 : Federalist Papers*
+
+```{r}
+data("Federalist", package = "vcd")
+```
+
+`Federalist`데이터는 '연방주의자 논문'의 저자를 식별하기 위해 특정 키워드(여기서는 'may')의 사용을 조사하기 위한 데이터로 `vcd`패키지 안에 포함돼 있다.  
+
+* nMay: `may`라는 키워드의 발생 횟수 (Factor variable - 0 ~ 6)
+
+```{r}
+barplot(Federalist,
+        xlab = "Occurrences of 'may'",
+        ylab = "Number of blocks of text",
+        col = "lightgreen", cex.lab = 1.5)
+```
+
+**Federalist**데이터를 **barplot**을 통해 시각화를 진행한 결과 분포는 위와 같다.  
+`may`라는 키워드를 한 번도 사용하지 않은 경우가 가장 많았고 그 다음으로 1번,2번,3번,4번의 순서대로 빈도가 작아지는 것을 확인할 수 있다.  
+
+
+*Example 3.6: London cycling deaths*
+
+```{r}
+data("CyclingDeaths", package = "vcdExtra")
+```
+
+`CyclingDeaths`은 2005년부터 2012년까지 런던 사이클링 선수들의 사망빈도를 나타낸 시계열 데이터로 `vcdExtra`패키지 안에 포함돼 있다.  
+
+* date: 연도 (time)
+* deaths: 사망자 수 (Discrete Variable)
+
+```{r}
+CyclingDeaths.tab <- table(CyclingDeaths$deaths)
+CyclingDeaths.tab
+barplot(CyclingDeaths.tab,
+        xlab = "Number of deaths", ylab = "Number of fortnighs", col = "pink", cex.lab = 1.5)
+```
+
+`table`함수를 통해 one-way 표로 정리한 후, **barplot**을 통해 사망자 수의 분포를 살펴보았다.  
+앞선 `Horsekicks, Federalist`의 결과와 거의 유사한 형태이며, 사망자 수가 없을 빈도가 가장 많고 1명,2명,3명 순서대로 빈도가 작아지는 것을 확인할 수 있다.  
+
+### 3.1.3 Type-token distributions
+
+*Example 3.7: Butterfly species in Malaya*
+
+```{r}
+data("Butterfly", package = "vcd")
+```
+
+`Butterfly`는 501개의 나비 종에 대한 각각의 토큰을 나타낸 데이터로, `vcd`패키지 안에 포함돼 있다.  
+
+* nTokens: 나비종의 토큰 수 (Factor variable - 1 ~ 24)
+
+```{r}
+barplot(Butterfly, xlab = "Number of individuals",
+        ylab = "Number of species", cex.lab = 1.5)
+```
+
+`Butterfly`데이터의 분포를 살펴보기 위해 **barplot**을 활용하여 시각화를 진행한 결과, 토큰의 수가 커질수록 빈도가 점점 작아지는 것을 확인할 수 있다.  
+
+***
+
+## 3.2 Characteristics of discrete distributions
+
+### 3.2.1 The binomial distribution
+
+```{r}
+k <- 0:12
+pk <- dbinom(k, 12, 1/3)
+b <- barplot(pk, names.arg = k,
+             xlab = "Number of successes",
+             ylab = "Probability")
+lines(x = b, y = pk, col ="red")
+```
+
+R에서 이항분포의 총 시행횟수, 성공확률을 알 때, 발생확률을 계산하고 싶다면 `dbinom`함수를 통해 간단하게 계산할 수 있다.  
+- `dbinom(x,size,prob)`
+
+* x: 성공횟수
+* size: 시행횟수
+* prob: 성공확률
+
+#### 3.2.1.1 calculation and visualization
+
+*Example 3.8: Weldon's dice*
+
+```{r}
+Weldon_df <- as.data.frame(WeldonDice)
+
+k <- 0:12
+pk <- dbinom(k, 12, 1/3)
+pk <- c(pk[1:10], sum(pk[11:13]))
+Exp <- round(26306 * pk, 5)
+Diff <- Weldon_df$Freq - Exp
+Chisq <- Diff^2 / Exp
+data.frame(Weldon_df, Prob = round(pk,5),
+           Exp, Diff, Chisq)
+```
+
+`WeldonDice`의 데이터에 대해서 이항분포를 가정하고 기댓값, 실제값과 기댓값의 차이, chisq값을 계산하였다.  
+기댓값의 경우 0~4까지 음수의 값을 가지지만 5이상부터는 양수의 값을 가지는 것을 확인할 수 있다. 즉, 관측빈도가 기대빈도보다 높게 나온 것을 알 수 있다.  
+
+```{r}
+p <- c(1/6, 1/3, 1/2, 2/3)
+k <- 0:12
+(Prob <- outer(k, p, function(k,p) dbinom(k,12,p)))
+str(Prob)
+```
+
+`outer`함수는 계산할 함수와 데이터가 여러개 있을 때, 조금 더 편리하게 계산할 수 있도록 돕는 함수이다.  
+- `outer(x,y,fun)`
+
+* x: 계산할 벡터 또는 행렬
+* y: 계산할 벡터 또는 행렬
+* fun: 계산에 사용할 함수
+
+성공확률 변화에 따른 이항분포의 확률계산 값을 Prob변수에 저장하였다.  
+성공확률(p)의 값을 4개로 넣어줬기 때문에 `str`함수를 사용했을 때 13x4형태로 값이 구성되있는 것을 알 수 있다.  
+
+```{r}
+matplot(k, Prob)
+```
+
+성공확률의 변화에 따른 이항분포의 변화를 `matplot`을 통해 시각화를 하였다.  
+
+`matplot`은 matrix의 열을 그래프 위에 표시하도록 도와주는 함수이다.  
+- `matplot(x,y)`
+
+* x: 그래프의 x축에 표시할 데이터
+* y: 그래프의 y축에 표시할 데이터
+
+`matplot`에 추가적인 옵션을 지정하지 않으면 위와 같이 해당 값의 열 번호가 출력된다.  
+
+```{r}
+col <- palette()[2:5]
+matplot(k, Prob,
+        type = "o", pch = 15: 17, col = col, lty = 1,
+        xlab = "Number of Successes", ylab = "Probability")
+legend("topright", legend = c("1/6","1/3","1/2","2/3"),
+       pch = 15:17, lty = 1, col = col,
+       title = "Pr(Success")
+```
+
+여러가지 옵션을 추가하여 변화의 추이를 조금 더 쉽게 살펴볼 수 있도록 하였다.  
+
+성공확률이 커짐에 따라, 가장 큰 확률값을 가지는 성공횟수가 점차 큰쪽으로 변하는 것을 확인할 수 있다.  
+
+### 3.2.2 The Poisson distribution
+
+*Example 3.9: UK soccer scores*
+
+```{r}
+data("UKSoccer", package = "vcd")
+```
+
+`UKSoccer`데이터는 1995/1996 영국 프로축구 리그의 스코어를 홈과 어웨이에 따라서 구분한 데이터로, `vcd`패키지 안에 포함돼 있다.  
+
+* Home: 홈에서의 득점 (Factor variable - 0,1,2,3,4)
+* Away: 원정에서의 득점 (Factor variable - 0,1,2,3,4)
+
+```{r warning = FALSE}
+soccer.df <- as.data.frame(UKSoccer, stringsAsFactors = FALSE)
+soccer.df <- within(soccer.df, {
+  Home <- as.numeric(Home)
+  Away <- as.numeric(Away)
+  Total <- Home + Away
+})
+str(soccer.df)
+```
+
+
+테이블로 구성된 데이터를 데이터 프레임의 형태로 바꾸고 홈득점과 원정득점을 합친 `Total`변수를 추가해 주었다.  
+
+
+```{r warning = FALSE}
+library(vcdExtra)
+soccer.df <- expand.dft(soccer.df)
+head(soccer.df)
+```
+
+`expand.dft`함수를 이용하여 빈도변수를 제외하고 빈도의 수 만큼 변수들의 관측값이 만들어지도록 하였다.  
+
+즉, **Home = 2, Away = 0, Total = 2, Freq = 28** 이라면 Freq 변수는 제외하고 데이터의 행에 **Home = 2, Away = 0, Total = 2**라는 관측값이 28개 만들어지도록 하는 것이다.  
+
+```{r}
+apply(soccer.df,2, function(x) c(mean =mean(x), var = var(x)))
+```
+
+`apply`함수를 통해 Home, Away에 따른 스코어의 평균, 분산값을 쉽게 구하는것을 확인할 수 있다.  
+
+홈의 경우 평균 1.48득점, 원정의 경우 평균 1.06득점이 발생하는 것을 확인할 수 있다.  
+
+*Example 3.10: London cycling deaths*
+
+```{r}
+with(CyclingDeaths, c(mean = mean(deaths),
+                      var = var(deaths),
+                      ratio = mean(deaths) / var(deaths)))
+```
+
+런던 사이클리스트의 사망자 수가 포아송분포를 따르는지 확인해본다.  
+평균 값으로 보아 경주당 평균 0.57명 또는 한 달에 1명 이상 사망한 것을 알 수 있다.  
+
+```{r}
+mean.deaths <- mean(CyclingDeaths$deaths)
+ppois(5, mean.deaths, lower.tail = FALSE)
+```
+
+`ppois`함수는 포아송분포의 범위확률을 계산할 수 있도록 도와주는 함수 중 하나이다.  
+- `ppois(q,lambda,lower.tail)`
+
+* q: 분석가가 계산하고자 하는 발생횟수 범위의 기준
+* labmda: 포아송 분포의 단위시간당 평균 발생 횟수
+* lower.tail: 확률 계산 방법 (TRUE = P(X<x), FALSE = P(X>x))
+
+`ppois`를 통해 5명 이상의 사망한 확률을 계산하였다. 
+계산결과, 확률이 매우 작은 것으로 보아 5명 이상의 사망발생 확률은 매우 작다는 것을 확인할 수 있다.  
+
+#### 3.2.2.1 Calculation and visualization
+
+*Example 3.11: Plotting styles for discrete distributions*
+
+```{r}
+KL <- expand.grid(k = 0:20, lambda = c(1,4,10))
+pois_df <- data.frame(KL, prob = dpois(KL$k, KL$lambda))
+pois_df$lambda <- factor(pois_df$lambda)
+str(pois_df)
+head(pois_df)
+```
+
+`exapnd.grid`함수를 통해 주어진 **k,lambda**에 대한 모든 가능한 조합을 구성하고 그에대한 포아송 확률을 갖고있는 **pois_df**데이터를 생성하였다.  
+
+`dpois`는 포아송분포의 특정 발생횟수에 대한 확률을 계산하고자 할때 사용하는 함수이다.  
+- `dpois(x,lambda)`
+
+* x: 분석가가 계산하고자하는 발생횟수
+* lambda: 포아송 분포의 단위시간당 평균 발생 횟수
+
+```{r}
+library(lattice)
+xyplot(prob ~ k | lambda, data = pois_df,
+       type = c("h","p"), pch = 16, lwd = 4, cex = 1.25, layout = c(3,1),
+       xlab = list("Number of events (k)", cex = 1.25),
+       ylab = list("Probability", cex = 1.25))
+```
+
+`lattice`패키지는 다변량 데이터의 시각화를 돕기위해 설계되었으며, 특정 데이터에 대해서 그룹을 나눠 시각화를 진행하고자 할때 유용하게 사용할 수 있는 패키지이다.  
+
+생성된 데이터 pois_df를 `xyplot`을 이용하여 시각화를 하였다.  
+`xyplot`은 plot을 그림에 있어 특정 그룹을 통해 layout을 나눌 수 있게 도와주는 시각화 함수이며, 이를 통해 lambda에 따른 포아송 분포를 더 쉽게 비교 할 수 있다. 
+- `xyplot(formula,data)`
+
+* formula: 그래프에 변수를 표현하는 방법 (y ~ x | group)은 y변수를 y축, x변수를 x축으로하고 group에 따라 layout을 나눠달라는 의미이다.  
+* data: 시각화에 사용할 데이터
+
+ 
+lambda가 커짐에 따라 포아송 분포의 형태가 정규분포와 같은 **종모양(bell-shape)**의 형태를 가지는 것을 확인할 수 있다.  
+
+```{r}
+mycol <- palette() [2:4]
+plt <- xyplot(prob ~ k, data = pois_df, groups = lambda,
+              type = "b", pch = 15 : 17, lwd = 2, cex = 1.25, col = mycol,
+              xlab = list("Number of events (k)", cex = 1.25),
+              ylab = list("Probability", cex = 1.25),
+              ylim = c(0, 0.4))
+library(directlabels)
+direct.label(plt,list("top.points", cex = 1.5, dl.trans(y = y + 0.1)))
+```
+
+`directlabels`패키지는 `lattice, ggplot2`를 활용하여 시각화를 진행하였을 때, 레이블을 직접 그림에 자동적으로 배치할 수 있도록 도와주는 함수들이 구성돼있는 패키지이다.  
+
+`direct.label`함수를 이용하여 패널을 나누지 않고 하나의 grid안에 모든 포아송 분포를 겹쳐서 나타낼수도 있다.  
+- `direct.label(graph, option)`
+
+* graph: plot이 저장돼있는 객체
+* option: 추가적으로 지정할 옵션 (위의 코드의경우, 레이블의 위치, 포인터 크기, 축의 범위를 조정하였다.)
+
+```{r}
+library(ggplot2)
+gplt <- ggplot(pois_df,
+               aes(x = k, y = prob, colour = lambda, shape = lambda)) +
+  geom_line(size = 1) + geom_point(size = 3)+
+  xlab("Number of events (k)")+
+  ylab("Probability")
+gplt + theme(legend.position = c(0.8, 0.8)) +
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14, face = "bold"))
+```
+
+`ggplot2`패키지의 `ggplot`을 이용하여 그리는 방법도 고려해볼 수 있다.  
+
+`ggplot2 | ggplot`은 R의 가장 강력한 그래픽 기는 중 하나로, 현대 R을 사용하는 대부분의 데이터 사이언티스트들이 시각화를 위해 사용하는 패키지이다. 시각화를 위한 다양한 함수 및 세부적인 조정을 위한 다양한 옵션을 제공한다.  
+- `ggplot(data, aes(x,y,colour)) + option`
+
+* data: 시각화에 쓰일 데이터
+* aes: 축 설정
+* x: x축에 쓰일 데이터
+* y: y축에 쓰일 데이터
+* colour: 그래프에서의 그룹지정
+* option: 추가적인 옵션(+를 이용하여 세부적인 옵션을 여러개 추가 가능)
+
+### 3.2.3 The negative binomial distribution
+
+**음이항 분포(Negative binomial distribution)**은 대기 시간 분포의 한 유형이지만 포아송 분포의 일반화로서 과대산포(분산 > 평균)가 가능하다.  
+**음이항 분포**는 어떤 사건의 일정한 확률 p로 관찰되며, 성공적인 사건을 관찰하는데 얼마나 많은 실패가 필요한지 궁금할 때 사용된다.  
+
+EX)
+
+* 동전을 10번 던질 때, 5번째 시행에서 3번째 앞면이 나올 확률 (성공확률 = p)
+* 100개의 불량품 검사를 할 때, 50번째 시행에서 5번째 불량품이 나올 확률 (불량품이 나올 확률 = p)
+
+
+#### 3.2.3.1 Calculation and visualization
+
+```{r}
+k <- 2
+n <- 2:4
+p <- 0.2
+dbinom(k,n,p)
+
+(mu <- n * (1-p) / p)
+
+dnbinom(k,n,mu = mu)
+dnbinom(k,n,p)
+```
+
+`dnbinom`함수는 음이항분포의 확률값을 계산하는데 사용된다.  
+- `dnbinom(k,n,p,mu)`
+
+* k: 실패횟수
+* n: 성공횟수
+* p: 성공확률
+* mu: 음이항분포의 평균
+
+`dnbinom`을 사용할때, 음이항분포의 평균을 사용해서 계산하거나 성공확률을 사용해서 계산하거나 같은 확률값이 출력되는 것을 확인할 수 있다.  
+
+```{r}
+XN <- expand.grid(k = 0:20, n = c(2,4,6), p = c(0.2,0.3,0.4))
+nbin_df <- data.frame(XN, prob = dnbinom(XN$k, XN$n, XN$p))
+nbin_df$n <- factor(nbin_df$n)
+nbin_df$p <- factor(nbin_df$p)
+str(nbin_df)
+head(nbin_df,5)
+```
+
+만들어진 k,n,p에 대하여 `expand.grid`를 통해 모든 가능한 조합을 생성하고 각각의 확률값을 구한 후, 데이터 프레임 형태로 **nbin_df**객체에 저장하였다.  
+
+```{r}
+xyplot(prob ~ k | n + p, data = nbin_df,
+       xlab = list("Number of failures (k)", cex = 1.25),
+       ylab = list("Probability", cex = 1.25),
+       type = c("h", "p"), pch = 16, lwd = 2,
+       strip = strip.custom(strip.names = TRUE))
+
+```
+
+k,n,p 변화에 따른 음이항 분포의 변화를 `xyplot`을 통해 시각화 하였다.  
+n과 p가 작은경우, 확률값의 분포는 크게 차이가 없어보이고 n과 p가 커질수록 음이항분포의 분포가 정규분포의 **종모양(bell-shape)**와 비슷해지는 것을 확인할 수 있다.  
+
+```{r}
+n <- c(2,4,6)
+p <- c(0.2,0.3,0.4)
+NP <- outer(n,p, function(n, p) n * (1-p) / p)
+dimnames(NP) <- list(n = n, p = p)
+NP
+```
+
+각각의 조합에 대한 음이항 분포의 평균을 table로 나타내었다.  
+
+
+### 3.2.4 The geometric distribution
+
+**기하분포(geometric distribution)**의 경우, 음이항 분포의 특수한 형태로, 첫번째로 성공할 사건 이전까지의 실패의 사건을 살펴본다.  
+
+EX)
+
+* 동전을 던질때, 3번째 시행에서 앞면이 나올 확률
+* 주사위를 던질때, 6번째 시행에서 5가 나올 확률
+
+***
+
+## 3.3 Fitting discrete distributions
+
+*Example 3.12: Death by horsekick*
+
+```{r}
+tab <- as.data.frame(HorseKicks, stringsAsFactors = FALSE)
+colnames(tab) <- c("nDeaths", "Freq")
+str(tab)
+(lambda <- weighted.mean(as.numeric(tab$nDeaths), w = tab$Freq))
+```
+
+`HorseKicks`데이터를 통해 모수가 $\lambda$ = 평균 사망자 수를 갖는 포아송 분포를 예상한다.  
+
+`weighted.mean`은 빈도를 가중치로 하는 가중평균을 계산할 수 있게 도와주는 함수이다.  
+- `weihted.mean(data,w)`
+
+* data: 가중평균을 계산할 데이터
+* w: 가중평균을 계산할 때 사용할 가중치
+
+빈도를 가중치로 하여, 가중평균을 계산한 결과, (예상한) 평균 사망자 수 $\lambda$ = 0.61이 계산된다.  
+
+```{r}
+phat <- dpois(0 : 4, lambda = lambda)
+exp <- sum(tab$Freq) * phat
+chisq <- (tab$Freq - exp)^2 / exp
+
+GOF <- data.frame(tab, phat, exp, chisq)
+GOF
+```
+
+계산된 $\lambda$를 통해 우리는 데이터의 예상 사망자 수를 계산할수 있다.  
+실제 관측된 사망자수와 예측된 사망자 수는 큰 차이가 없는 것처럼 보인다.  
+
+
+```{r}
+(sum(chisq))
+(pchisq(sum(chisq), df = nrow(tab) - 2, lower.tail = FALSE))
+```
+
+적합도 검정의 귀무가설과 대립가설은 다음과 같다.  
+
+* H0: 주어진 데이터가 (우리가 가정한)분포를 따른다.  
+* H1: 주어진 데이터가 (우리가 가정한)분포를 따르지 않는다.  
+
+적합도 검정을 진행한 결과, 유의확률이 0.8719411로 유의수준 0.05보다 큰 것을 확인할 수 있다. 따라서, 귀무가설을 기각하므로 주어진 데이터는 **포아송 분포를 따르는 데이터**라고 할 수 있다.  
+
+### 3.3.1 R tools for discrete distributions
+
+*Example 3.13: Families in Saxony*
+
+```{r}
+library(vcd)
+data("Saxony", package = "vcd")
+Sax_fit <- goodfit(Saxony, type = "binomial")
+unlist(Sax_fit$par)
+```
+
+R에서는 `goodfit`함수를 통해 분포에 대한 적합도 검정을 간단하게 진행할 수 있다.  
+- `goodfit(data, type )`
+
+* data: 적합도 검정을 진행할 데이터 
+* type: 가정하는 분포("binomial", "poisson" 등)
+
+`unlist`는 list로 구성된 데이터에 대해서 list의 형태를 지우고 싶을때 사용하는 함수이다.  
+- `unlist(data)`
+
+* data: list의 형태를 지우고 싶은 데이터
+
+`Saxony`데이터를 이항분포로 가정했을 때, 주어진 데이터의 성공확률 (가족들 중 남성이 있을 확률)은 0.519로 추정된다.  
+
+```{r}
+names(Sax_fit)
+Sax_fit
+```
+
+`goodfit`결과를 저장한 객체는 관측빈도의 수준(level), 관측값, 가정분포로 계산했을 때의 관측값, 관측값과 가정분포를 통해 계산한 관측값의 피어슨 잔차 등의 속성을 포함하고 있는 것을 확인할 수 있다.     
+
+```{r}
+summary(Sax_fit)
+```
+
+summary를 통해 지정한 분포에 대한 적합도 결과를 쉽게 살펴볼 수 있다. 적합도 검정은 ML방법에 의해 계산된 것을 확인할 수 있다.  
+유의확률 p는 유의수준 0.05보다 작으므로 귀무가설을 기각한다.    
+따라서, 주어진 데이터는 **이항분포를 따르지 않는 데이터**라고 할 수 있다.  
+
+*Example 3.14: Weldon's dice*
+
+```{r}
+data("WeldonDice", package = "vcd")
+dice_fit <- goodfit(WeldonDice, type = "binomial",
+                    par = list(size = 12))
+unlist(dice_fit$par)
+```
+
+`WeldonDice`데이터를 이항분포로 가정했을 때, 추정된 phat(5 또는 6이 나올 확률) = 0.3377임을 확인할 수 있다.  
+
+```{r}
+print(dice_fit, digits = 0)
+summary(dice_fit)
+```
+
+적합도 검정 결과, 유의확률 p는 유의수준 0.05보다 크므로 귀무가설을 기각할 수 없다.  
+따라서, 주어진 데이터에 대해서 **이항분포를 따른다고 가정하는 것은 적합함**을 알 수 있다.  
+
+*Example 3.15: Death by horsekick*
+
+```{r}
+data("HorseKicks", package = "vcd")
+HK_fit <- goodfit(HorseKicks, type = "poisson")
+HK_fit$par
+```
+
+`HorseKicks`데이터를 포아송 분포로 가정했을 때, 추정된 $\lambda$값(평균 사망 횟수)은 0.61임을 알 수 있다.  
+
+
+```{r}
+HK_fit
+summary(HK_fit)
+```
+
+적합도 검정 결과, 유의확률 p는 유의수준 0.05보다 크므로 귀무가설을 기각할 수 없다.  
+따라서, 주어진 데이터에 대해서 **포아송 분포를 따른다고 가정하는 것은 적합함**을 알 수 있다.    
+
+*Example 3.16: Federalist Papers*
+
+```{r}
+data("Federalist", package = "vcd")
+Fed_fit0 <- goodfit(Federalist, type = "poisson")
+unlist(Fed_fit0$par)
+```
+
+`Federalist`데이터를 포아송 분포로 가정했을 때, 추정된 $\lambda$값(may의 평균 발생 횟수)은 0.6564885이다.  
+
+```{r}
+Fed_fit0
+summary(Fed_fit0)
+```
+
+적합도 검정 결과, 유의확률 p는 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, 주어진 데이터에 대해서 **포아송 분포를 따른다고 가정하는 것은 적합하지 않음**을 알 수 있다.  
+
+```{r}
+Fed_fit1 <- goodfit(Federalist, type = "nbinomial")
+unlist(Fed_fit1$par)
+summary(Fed_fit1)
+```
+
+`Federalist`데이터를 음이항 분포로 가정한 후, 적합도 검정을 다시 진행해 보았다.  
+
+유의확률 p는 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다.    
+따라서, 주어진 데이터에 대해서 **음이항 분포를 따른다고 가정하는 것은 적합함**을 알 수 있다.  
+
+### 3.3.2 Plots of observed and fitted frequencies
+
+관측빈도와 적합빈도의 그림은 적합된 이론적 분포의 형태와 데이터와 이론 사이의 편차의 패턴을 모두 보여주는데 도움이 된다.  
+
+```{r}
+plot(Fed_fit0, scale = "raw", type = "standing")
+plot(Fed_fit0, type = "standing")
+```
+
+첫번째 그래프의 경우, 실제 데이터에 대한 분포이며, 두번쨰 그래프의 경우 더 작은 빈도를 더 잘보이게 하기위해 Tukey가 제안한 **rootogram** 그래프이다.  
+두번째 그래프의 경우, y축은 기존 빈도에 **root**를 씌운 값임을 확인할 수 있다.  
+
+회색으로 그려진 막대는 실제 데이터의 관측값, 빨간색으로 표시된 점은 특정 분포를 가정했을 때의 관측값(기대값)임을 확인할 수 있다.  
+
+```{r}
+plot(Fed_fit0, type = "hanging", shade = TRUE)
+plot(Fed_fit0, type = "deviation", shade = TRUE)
+```
+
+두 그래프 모두 루토그램을 사용한 그래프이다.  
+첫번째 그래프의 경우, 막대를 이동하여 위쪽이 예상 빈도에 맞도록 한다.  두번째 그래프의 경우, 관측 빈도와 적합 빈도간의 차이를 강조한다.  
+또한, 두 그래프 모두 `shade = TRUE`옵션을 추가하여 피어슨 잔차에 대한 정보 및 적합도 검정같은 추가적인 정보를 얻을 수 있게 하였다. 
+
+```{r}
+plot(Fed_fit0, main = "Poisson", shade = TRUE, legend = FALSE)
+plot(Fed_fit1, main = "Negative binomial", shade = TRUE, legend = FALSE)
+```
+
+첫번째 그래프의 경우, 데이터에 적합하지 않은 `포아송분포`를 가정하여 사용했으므로, 관측 빈도와 적합 빈도 사이의 이탈이 많다.  
+이에 반해, `음이항분포`를 가정한 두번쨰 그래프는 이탈된 부분이 없는것을 볼 수 있다. 따라서, 주어진 `Federalist`데이터는 **음이항분포로 가정하는 것이 적합함**을 그래프를 통해서도 쉽게 살펴볼 수 있다.  
+
+```{r}
+data("Butterfly", package = "vcd")
+But_fit1 <- goodfit(Butterfly, type = "poisson")
+But_fit2 <- goodfit(Butterfly, type = "nbinomial")
+plot(But_fit1, main = "Poisson", shade = TRUE, legend = FALSE)
+plot(But_fit2, main = "Negative binomial", shade = TRUE, legend = FALSE)
+```
+
+첫번째 포아송 가정의 그래프의 경우, 과대, 과소 평가하는 부분이 대부분인 것을 볼 수 있고 두번째 그래프 또한 어느정도 존재하는 것을 알 수 있다.  
+
+```{r}
+summary(But_fit1)
+summary(But_fit2)
+```
+
+또한, 적합도 검정의 유의확률 모두 유의수준 0.05보다 작은 것을 확인할 수 있다.  
+이를통해, `Butterfly` 데이터는 **포아송, 음이항 모두 적절한 분포 가정이 아닌것**을 확인할 수 있다.   
+
+***
+
+## 3.4 Diagnosing discrete distributions: Ord plots
+
+이상적으로 이산 분포를 위해 선택된 일반적인 형식은 데이터 생성을 위한 그럴듯한 메커니즘의 실직적인 지식에 의해 지시되어야 한다.  
+그러나 이러한 지식이 부족한 경우, 특정 데이터셋의 적합한 분포를 알기 쉽지 않다.  
+
+이러한 경우, 한 가지 간단한 대안으로 **Ord**를 고려해볼 수 있다.  
+
+`Ord plot`은 `vcd`패키지에 포함된 함수로, 데이터가 이산형 분포 중 어떠한 분포를 따르는지에 대한 진단을 해주고 분포를 가정한 뒤, 가정한 분포를 통해 얻어진 추정직선을 제시한다.    
+- `Ord_plot(data)`
+
+* data: Ord를 통해 분포를 진단할 데이터
+
+```{r}
+(ord <- Ord_plot(Butterfly,
+                main = "Butterfly species collected in Malaya",
+                gp = gpar(cex = 1), pch = 16))
+ord
+```
+
+검은색 석은 발생횟수 빈도에 대한 일반적인 최소 제곱 회귀적합을 나타내며, 빨간색 선은 가중치를 적용한 최소 제곱 적합을 나타낸다.  
+
+위의 그래프의 경우, 두 선의 절편과 기울기는 상당히 가까운 것처럼 보인다.  
+`Ord_plot`을 통해 `Butterfly`데이터에 대한 이산 분포 진단 결과, $\theta$ = 1.061의 값을 가지는 로그 시리즈 분포로 진단한 것을 알 수 있다.  
+
+#### 3.4.0.1 Ord plot examples
+
+*Example 3.17: Death by horse kick*
+
+```{r}
+data("HorseKicks", pacakge = "vcd")
+nk <- as.vector(HorseKicks)
+k <- as.numeric(names(HorseKicks))
+nk1 <- c(NA, nk[-length(nk)])
+y <- k * nk / nk1
+weight <- sqrt(pmax(nk, 1) - 1)
+(ord_df <- data.frame(k, nk, nk1, y, weight))
+```
+
+
+`Ord_plot`진단을 위한 필요한 값들을 생성하고 객체 Ord_df에 넣어준다.  
+
+```{r}
+coef(lm(y ~ k, weights = weight, data = ord_df))
+```
+
+가중치를 적용한 최소 제곱 회귀선의 결과를 통한 회귀 계수는 위와 같으며, 이 경우 식은 **y = -0.034k + 0.656** 이다.
+
+```{r}
+Ord_plot(HorseKicks,
+         main = "Death by horse kicks",
+         gp = gpar(cex = 1),
+         pch = 16)
+```
+
+`HorseKicks`데이터의 `Ord_plot`을 통한 이산 분포 진단결과, $\lambda$ = 0.656을 가지는 포아송 분포로 진단한 것을 확인할 수 있다.  
+
+*Example 3.18: Federalist Papers*
+
+```{r}
+Ord_plot(Federalist, main = "Instances of 'may' in Federalist Papers",
+         gp = gpar(cex = 1),
+         pch = 16)
+```
+
+`Federalist`데이터의 `Ord_plot`을 통한 이산 분포 진단결과, $p$ = 0.576을 가지는 음이항 분포로 진단한 것을 확인할 수 있다.    
+
+*Example 3.19: Women in queues*
+
+```{r}
+data("WomenQueue", package = "vcd")
+WomenQueue
+```
+
+`WomenQueue`데이터는 `vcd`패키지에 포함된 데이터로, 런던 지하철역의 100개의 대기열 중, 길이가 10인 대기열에서의 여성의 대기 숫자를 나타낸다.  
+
+* nWomen: 여성의 수(Factor Variable - 1 ~ 10)
+
+```{r}
+Ord_plot(WomenQueue, main = "Women in queues of length 10",
+         gp = gpar(cex = 1), pch = 16)
+```
+
+`WomenQueue`데이터의 `Ord_plot`을 통한 이산 분포 진단결과, $p$ = 0.529을 가지는 이항 분포로 진단한 것을 확인할 수 있다.    
+
+***
+
+## 3.5 Poissonness plots and generalized distribution plots
+
+포아송 분포는 one-way표가 포아송 분포를 얼마나 잘따르는지 볼 수 있는 **robust plot**이다.  
+데이터가 포아송에서 벗어날 때, 점들은 곡선이 된다.  
+
+### 3.5.3 The distplot() function
+
+포아송 그림은 `vcd`패키지의 `distplot`을 통해 그릴 수 있다(`type = poisson`적용).  
+`distplot`은 포아송 그림 뿐만 아니라 다른 분포에 대해서도 `Ord_plot`과 비슷하게 이산분포에 대한 진단을 해주고 적합된 점에 대한 신뢰구간을 제공한다.    
+- `distplot(data,type)`
+
+* data: distplot 함수를 적용할 데이터
+* type: 분석가가 진단하고자 하는 이산 분포("poisson", "binomial", "nbinomial"등)  
+
+*Example 3.20: Death by horse kick*
+
+```{r}
+data("HorseKicks", package = "vcd")
+dp <- distplot(HorseKicks, type = "poisson",
+               xlab = "Number of deaths",
+               main = "Poissonness plot: HorseKicks data")
+```
+
+그래프에서 **열린 원**은 계산된 관측값을 보여준다.  
+검은색으로 채워져있는 **작은 점**은 신뢰구간의 중심을 나타내며, **점선**은 신뢰구간의 범위를 나타낸다.  
+**포아송 분포를** 가정할 때, 추정되는 모수 $\lambda$ = 0.61인 것을 확인할 수 있다.  
+
+```{r}
+print(dp, digits = 4)
+```
+
+`displot`을 저장한 객체의 정보를 살펴보면, 추정값, 신뢰구간의 중심 값, 신뢰밴드의 너비, 신뢰구간의 하한과 신뢰구간의 상한 값을 알 수 있다.  
+
+```{r}
+distplot(HorseKicks, type = "poisson", lambda = 0.61,
+         xlab = "Number of deaths",
+         main = "Leveled Poissonness plot")
+```
+
+앞서 `distplot`을 통해 추정된 $\lambda$ = 0.61을 적용하고 다시 한 번 포아송 그림을 그린 결과는 위와 같다.  
+첫 번째 그림과 달리, 기울기가 양수로 바뀌고 추정선이 약간 완만해진 것을 확인할 수 있다.  
+
+두 그림 모두 적합된 선이 신뢰구간 내에 있는 것으로 보아, **포아송 분포로 가정한 후 데이터를 적합하는 것은 올바른 분포 가정**임을 알 수 있다.   
+
+### 3.5.4 Plots for other distributions
+
+*Example  3.21: Families in Saxony*
+
+```{r}
+plot(goodfit(Saxony, type = "binomial", par = list (size = 12)),
+     shade = TRUE, legend = FALSE,
+     xlab = "Number of males")
+```
+
+`Saxony`데이터에 **이항분포**를 가정한 후, **goodfit plot**을 그린 결과, 과대,과소 추정된 부분이 보이는 것을 확인할 수 있으며, 이를 통해 `Saxony`데이터는 **이항분포로 가정하는 것이 적합하지 않은 것**임을 알 수 있다.  
+
+```{r}
+distplot(Saxony, type = "binomial", size = 12,
+        xlab = "Number of males")
+```
+
+`displot`을 사용하여 **이항분포**를 가정한 후, 이산분포를 진단해 보았다.  
+추정된 $p$ = 0.519이지만, 적합된 선이 대부분의 점에서 신뢰구간을 벗어나는 것을 확인할 수 있다.  
+따라서, `Saxony`데이터가 **이항분포로 가정하기에 적절하지 않음**을 다시 한 번 살펴볼 수 있다.  
+
+*Example 3.22: Federalist Papers*
+
+```{r}
+distplot(Federalist, type = "poisson", xlab = "Occurrences of 'may'")
+```
+
+`Federalist`데이터를 **포아송 분포**로 가정하고, `displot`을 통해 이산분포 진단을 해본 결과, 추정된 모수 값 $\lambda$ = 0.656이다.  
+하지만, 적합된 선이 몇몇의 점에서 신뢰구간을 벗어나는 것을 확인할 수 있다.  
+따라서, `Federalist`데이터를 **포아송 분포로 가정하는 것은 적절하지 않은 것**을 알 수 있다.  
+
+```{r}
+distplot(Federalist, type = "nbinomial", xlab = "Occurrences of 'may'")
+```
+
+`Federalist`데이터를 **음이항 분포**로 가정하고, `distplot`을 통해 이산분포 진단을 해본 결과, 추정된 모수 $p$ = 0.644이며, 적합된 선이 하나의 점에서 약간의 신뢰구간을 벗어나지만 나머지 점들은 모두 신뢰구간 안에 속하는 것을 살펴볼 수 있다.  
+따라서, `Federalist`데이터는 포아송 분포가 아닌 **음이항 분포로 가정하는 것이 적합한 것**임을 알 수 있다.    
+
+***
+
+## 3.6 Fitting discrete distributions as generalized linear models
+
+*Example 3.23: Families in Saxony*
+
+```{r}
+data("Saxony", package = "vcd")
+Males <- as.numeric(names(Saxony))
+Families <- as.vector(Saxony)
+Sax.df <- data.frame(Males, Families)
+```
+
+`Saxony`데이터를 `glm`함수에 적합시키기 위해 데이터 프레임의 형태로 전환하였다.  
+`glm`함수는 일반화된 선형 모델을 적합하기 위해 사용되는 함수이며, 여러가지 옵션을 활용하여 다양한 일반화된 선형 모델을 적합시킬 수 있다.  
+- `glm(formula, family(link),data)`
+
+* formula: 적합시키고자 하는 변수들의 형태
+* family: 적합시키고자 하는 분포
+* link: 분포에 적용할 link function
+* data: glm 함수를 적용할 데이터
+
+```{r}
+Sax.bin <- glm(Families ~ Males, offset = lchoose(12,0:12),
+               family = "poisson", data =Sax.df)
+LRstats(Sax.bin)
+```
+
+`offset`옵션을 활용하여 `Sax.df`데이터가 갖고 있는 빈도의 사전 정보를 모델이 활용할 수 있게 만들어 주었다.  
+
+`LRstats`는 `vcdExtra`패키지에 포함된 함수로, `glm`또는 `loglm`모델의 적합도에 대한 간략한 정보만을 활용하고자 할 때 사용하거나 두 모델간의 적합도 비교를 할 때 사용되기도 한다.  
+- `LRstats(object)`
+
+* object: 적합도를 살펴볼 모델 (2개 이상이 들어가는 경우, 모델 간 비교를 진행한다.)
+
+`LRstats`를 통해 모델의 적합도 검정을 진행한 결과, 유의확률이 유의수준 0.05보다 매우 작다.  
+모델의 적합도 검정을 진행하는 경우, 귀무가설과 대립가설은 아래와 같다.  
+
+H0: 주어진 모델은 적합하다.
+H1: 주어진 모델은 적합하지 않다.
+
+따라서, 귀무가설을 기각하게 되므로, `Saxony`데이터를 포아송 분포로 가정한 후 `glm`을 통해 모델에 적합하는 것은 적절하지 않은 것임을 확인할 수 있다.  
+
+```{r}
+coef(Sax.bin)
+```
+
+추정된 선은 ` y = -0.0695 + 0.076 Males `이다.  
+
+```{r}
+Sax.df$YlogitY <-
+  Males * log(ifelse(Males ==0,1,Males)) +
+  (12 - Males) * log(ifelse(12-Males == 0,  1, 12-Males))
+
+Sax.dbin <- glm(Families ~ Males + YlogitY, offset = lchoose(12,0:12),
+                family = poisson, data = Sax.df)
+coef(Sax.dbin)
+```
+
+기존에 있던 데이터에 로그를 사용하여 하나의 모수를 더 추가한 후, 이중 이항분포의 형태로 만들어 준 후, `glm`에 다시 한 번 적합시켜 보았다.  
+추정된 선은 ` y = -3.096 + 0.066 Males + 0.140 YlogitY`이다.  
+
+
+```{r}
+LRstats(Sax.bin, Sax.dbin)
+```
+
+`LRstats`를 사용하여 포아송 분포를 가정하고 적합시킨 모델과 이중 이항분포 모델을 비교한 결과이다.  
+이중 이항 분포 모델을 적합시킨 모델의 유의확률은 유의수준 0.05보다 큰 값을 가지는 것을 확인할 수 있다.  
+따라서, 귀무가설을 기각하지 못하므로 **주어진 모델(이중 이항분포)은 적합한 모델**임을 알 수 있다.  
+
+```{r}
+results <- data.frame(Sax.df,
+                      fit.bin = fitted(Sax.bin),
+                      res.bin = rstandard(Sax.bin),
+                      fit.dbin = fitted(Sax.dbin),
+                      res.dbin = rstandard(Sax.dbin))
+print(results, digits = 2)
+```
+
+포아송 분포로 적합시킨 모델과 이중 이항분포를 적합시킨 모델의 잔차와 추정값을 확인해 보았다.  
+위에 결과에서 볼 수 있듯이, 이중 이항분포를 적합시킨 모델의 추정값이 실제 관찰값과 가깝고 이를 통해 잔차가 더 작은 것을 알 수 있다.  
+
+```{r}
+with(results, vcd::rootogram(Families, fit.dbin, Males,
+                            xlab = "Number of males"))
+```
+
+`rootogram`을 통해서도 이중 이항분포를 가정했을 때, 과대,과소 추정된 부분이 보이지 않으므로 **이중 이항분포를 가정하는 것은 적절한 이산 분포 가정**임을 확인할 수 있다.  
+
+### 3.6.1 covariates, overdispersion, and excess zeros
+
+```{r}
+data("PhdPubs", package = "vcdExtra")
+head(PhdPubs)
+```
+
+`PhdPubs`는 `vcd`패키지에 포함된 데이터로, 박사학위 연구의 마지막 3년 동안 915명의 박사 후보자들의 출판물 수에 대한 데이터를 제공한다. 
+
+* articles: 출판물 수 (Discrete variable)
+* female: 성별 (Factor variable - 0 = Male, 1 = Female)
+* married: 결혼여부 (Factor variable - = 0 married, 1 = unmarried)
+* Kid5: 5살 이하의 어린 자녀의 수 (Discrete variable)
+* phdprestige: 박사학위의 명성 수치 (Discrete variable)
+* mentor: 3년간 멘토에 의한 출판물 수 (Discrete variable)
+
+```{r}
+table(PhdPubs$articles)
+```
+
+출판물 수는 0개부터 19개까지 있으며, 출판물을 하나도 내지 못한 박사들이 275명으로 가장 많다.  
+
+```{r}
+library(vcd)
+plot(goodfit(PhdPubs$articles), xlab = "Number of Articles",
+     main = "Poisson")
+```
+
+```{r}
+plot(goodfit(PhdPubs$articles, type = "nbinomial"),
+     xlab = "Number of Articles",
+     main = "Negative binomial")
+```
+
+```{r}
+summary(goodfit(PhdPubs$articles), type = "nbinomial")
+summary(goodfit(PhdPubs$articles), type = "poisson")
+
+```
+
+`PhdPubs`데이터를 포아송분포를 가정한 후, `rootogram`그림을 살펴봤을 때, 약간의 과소적합되는 부분이 있는 것으로 보아 적절한 분포가정이 아님을 알 수 있다.  
+음이항 분포를 가정했을때의 그림은 포아송 분포를 가정했을 때보다 조금 나아 보이지만 여전히 적합한 분포라고 하기는 어렵다.  
+
+`PhdPubs`데이터에 포아송, 음이항 분포를 가정하는 것이 적절한 가정인지에 대해서 적합도 검정을 이용하여 다시 한 번 확인해 보았다.
+적합도 검정 결과, 음이항, 포아송을 가정했을 때의 유의확률이 유의수준 0.05보다 작다.  
+따라서, 귀무가설을 기각하므로 두 분포 모두 `PhdPubs`데이터에 적합한 분포 가정이 아닌 것을 확인할 수 있다.  
+
+***
+
+## Sumamry of Chapter3
+
+* 이산형 데이터를 다룸에 있어서 다양한 이산분포를 이해하고 데이터에 적합한 후, 적합시킨 분포가 데이터에 적합한지에 대한 판단을 하는 것은 중요한 과정이다.  
+* **이항분포**는 성공에 대한 이산분포로 구성되며, 총 시행횟수와 성공확률 p가 주어졌을 때 각 성공시행에 대한 확률을 추정할 수 있다.  
+* **포아송분포**는 평균 단위시간당 발생 횟수를 알 때, 특정 단위시간에 대한 발생 확률을 추정하고자 할 때 사용한다.  
+* **음이항분포**는 분석자가 정한 성공횟수까지 얼마만큼의 실패가 필요하며, 그에 대한 확률을 추정하고자 할 때 사용한다.  
+* **기하분포**는 첫 성공까지 이전까지에 대한 실패확률을 추정할 때 사용한다.  
+* 이산분포가 적합한지에 대해 진단을 하는 방법은 **적합도 검정**이라는 방법을 사용한다. 이는 특정 분포를 가정 했을 때, 데이터가 가정한 분포를 따르는 것이 적합한지에 대한 검정이며, R에서는 `goodfit()`함수를 통해 쉽게 확인할 수 있다.  
+* 이산분포 적합가정은 시각화를 통해서도 살펴볼 수 있는데, R에서는 `rootogram`, `distplot`,` Ord_plot`을 사용하여 진단을 할 수 있다.  
+
+***
+
+
+
+
+

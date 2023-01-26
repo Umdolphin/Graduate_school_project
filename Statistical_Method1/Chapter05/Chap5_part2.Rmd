@@ -1,0 +1,298 @@
+---
+title: 통계밥법론 Chap5_후반부 실습코드
+author: 202140191 엄태훈
+date: 2021-04-03(SAT)
+# runtime: shiny
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Chap5 Introductory Inference  
+174P~195P Chap5의 남은 절반 부분에 대해서 실습을 진행했습니다.  
+
+## 5.6.2 Sample Size for Hypothesis Testing
+가설검정을 진행하는 경우 우리는 Type 2 Error에 대해서 제어하는 것에 관심이있다.  
+분산이 알려져 있을 때 단측검정을 위해 적절한 표본의 수에 대해서 계산하는 방법이다.     
+
+```{r}
+## one sided
+# install.packages("HH")
+library("HH")
+alpha <- 0.05
+
+power <- 0.80
+
+beta <- 1 - power
+
+delta <- 1
+
+sd <- 2
+
+## Approximation using formula assuming normal is appropriate
+sd^2*(qnorm(1-alpha) + qnorm(1-beta))^2 / delta^2
+
+
+## n is slightly smaller with the normal assumption.
+```
+
+R에 내장돼있는 power.t.test 함수를 통해 one-sample-t, two-sample-t에 대해서 적절한 표본 수를 계산할 수 있다.  
+```{r}
+## solve using power.t.test
+PTT <- power.t.test(delta=delta, sd=sd, sig.level=alpha, power=power, type="one.sample", alternative = "one.sided")
+PTT
+
+NTplot(PTT, zaxis=TRUE)
+#NTplot (PTT, zaxis=TRUE, shiny=TRUE)
+```
+
+power.t.test 함수를 이용하지 않고 단측 표본 t검정의 크기를 수동적으로 계산할 수 있다.
+
+```{r}
+## solve manually with t distribution.  
+## Use ncp for alternative.
+
+n0 <- 30 ## pick an n0 for starting value
+# 주어진 유의수준과 자유도를 이융하여 t의 임계값을 구한다.
+t.critical <- qt(1-alpha,df=n0-1) 
+t.critical
+
+nn <- 23:30
+names(nn) <- nn
+nn
+
+## find the power for a series of n values for the specified critical value  
+pt(t.critical,df=nn-1,ncp=delta/(sd/sqrt(nn)),lower=FALSE)
+
+## recalculate critical values with new n = 26
+t.critical <- qt(1-alpha,df=26-1)
+t.critical
+
+## find the power for a series of n values for the new critical value  
+pt(t.critical,df=nn-1,ncp=delta/(sd/sqrt(nn)),lower=FALSE)
+## conclude a between 26 and 27
+
+PTT2 <- power.t.test(delta=1, sd=2, sig.level=0.05, power=0.85, type="one.sample", alternative = "one.sided")
+PTT2
+NTplot(PTT2)
+```
+
+## 5.7 Goodness of Fit  
+적합도 검정은 우리가 측정한 데이터셋이 우리가 이론적으로 지정한 특정한 분포를 따르는지 검정하는 방법이다.  
+적합도 검정의 귀무가설은 아래와 같다.  
+
+H0 : the data are from a [specified population]  
+H1 : the data are from some other population  
+
+## 5.7.2 Example - Test of Goodness-of-Fit to a Discrete Uniform Distribution  
+
+
+```{r}
+dice <- sample(rep(1:6,c(3,7,6,8,1,6)))
+dice
+table(dice)
+chi<-chisq.test(table(dice))
+chi
+```
+
+P-value는 0.2406으로 유의수준 0.05보다 크기 때문에 주어진 귀무가설을 기각하지 못한다.  
+따라서, 주어진 예제는 Chi-sqaure 분포를 따른다고 할 수 있다.  
+
+```{r}
+chisq.setup(df=5)
+chisq.curve(df=5)
+chisq.observed(6.8,shade = "right",shaded.area = 0)
+```
+그림을 통해 주어진 결과에 대해서 더 시각적으로 살펴볼 수 있다.  
+
+## 5.7.3 Example - Test of Goodness-of-Fit to a Binomial Distribution
+R 의 binom.test 함수를 이용하면 주어진 데이터셋에 대해서 이항분포의 확률이 맞는지 확인할 수 있다.  
+```{r}
+# 125번의 시행중 43번이 나왔을 때 성공확률은 0.45일 것이다.
+b<-binom.test(43,125,p=0.45)
+# P-value <0.05 이다. 즉, 성공확률은 0.45가 아니라는 것을 알 수 있다.
+# 가설검정을 진행함과 동시에 성공확률에 대한 신뢰구간까지 제공해준다.
+# 주어진 표본을 통해 성공확률은 0.344일 것이라고 추정을 해준다.
+
+```
+
+## 5.8 Normal Probability plots and Quantile pltos
+```{r}
+Observed <- c(13,18,20,18,6,5)
+names(Observed) <- 0:5
+Observed
+
+## binomial proportion p-.4 is specified
+Expected <- dbinom(0:5,size=5,p=.4)*80
+names(Expected) <- 0:5
+chisq.test(Observed,p=Expected,rescale.p=TRUE)
+```
+
+주어진 관측치와 계산한 기댓값에 대해서 chi-square 분포를 따르는지 검정을 진행한다.  
+검정을 진행한 결과, P-value가 0.05보다 매우 작으므로 주어진 데이터셋은 chi-square 분포를 따르지 않는다.  
+
+```{r}
+## binomial proportion p is calculated from the observations
+# 관측치로 부터 p값을 계산하여 다시 한 번 진행해본다.
+p <- sum(Observed * (0:5)/5) / sum(Observed)
+Expected <- dbinom(0:5,size=5,p=p)*80
+names(Expected) <- 0:5
+WrongDF <- chisq.test(Observed,p=Expected,rescale.p=TRUE)
+WrongDF
+c(WrongDF$statistic,WrongDF$parameter)
+
+## correct df and p-value
+pchisq(WrongDF$statistic,df=WrongDF$parameter-1,
+       lower=FALSE)
+
+# 관측치를 통해 p값과 기댓값을 계산해도 주어진 데이터셋은 chi-sqaure 분포를 따르지 않는다.  
+```
+
+## 5.8.1 Normal Probability Plots  
+qqplot은 분석하는 변수가 정규분포로부터 추출되었는지 확인할 수 있는 방법이다.  
+분포의 분위수를 이용하여 값을 계산하고 그 값을 plot을 통해 나타낸다.  
+plot의 패턴이 근사적으로 직선을 따르면 데이터가 정규분포로부터 추출되었다고 할 수 있다.  
+
+```{r}
+n=c(8,16,32,64,100)
+par(mfrow=c(2,3))
+for (y in n){
+  qqnorm(rnorm(y))
+  qqline(rnorm(y))
+}
+```
+
+정규분포를 이용해서 난수를 생성한 결과,  
+표본의 크기가 커질수록 패턴이 직선에 가까운 형태를 갖는 것을 알 수 있다.  
+
+```{r}
+n=c(8,16,32,64,100)
+par(mfrow=c(2,3))
+for (y in n){
+  qqnorm(rexp(y))
+  qqline(rexp(y))
+}
+```
+
+지수분포를 이용해서 난수를 생성한 결과,  
+표본의 크기가 커질수록 직선에 약간 가까워 지지만 정규분포만큼 뚜렷한 직선 패턴을 보이지는 않는다.  
+
+```{r}
+n=c(8,16,32,64,100)
+par(mfrow=c(2,3))
+for (y in n){
+  hist(rnorm(y))
+}
+```
+
+히스토그램을 통해서도 표본이 늘어날수록 정규분포의 종 모양에 가까워지는 것을 확인할 수 있다.  
+
+```{r}
+n=c(8,16,32,64,100)
+par(mfrow=c(2,3))
+for (y in n){
+  hist(rexp(y))
+}
+```
+
+지수분포를 이용해 추출한 표본에서는 크기가 늘어나도 정규분포에 가까운 종 모양이 보이지 않는다.  
+
+## 5.9 Kolmogorov–Smirnov Goodness-of-Fit Tests  
+## 5.9.1 Example—Kolmogorov–Smirnov Goodness-of-Fit Test  
+
+```{r}
+rt5 <- rt(300,df=5)
+rnn <- rnorm(300)
+ks.test(rt5,function(x) pt(x,df=2))
+ks.test(rnn,function(x) pt(x,df=2))
+
+ks.test(rt5,rnn)
+
+```
+
+## EDF GOF Tests
+- The Kolmogorov-Smirnov metric(`lillie.test`)  
+- The Cramer-von-Mises meric(`cvm.test`)  
+- The Anderson-Darling metric(`ad.test`)  
+
+`lillie.test`의 경우 `nortest`라는 패키지를 통해 불러올 수 있다.  
+`cvm.test`, `ad.test`는 `nortest`, `goftest` 두 패키지에서 모두 불러올 수 있다.  
+또한 goftest를 이용해서 cvm.test, ad.test를 진행하여 `estimated = TRUE`값을 지정할 경우,  
+파라미터에 대한 추정값과 같이 출력해준다.  
+
+
+## 필요한 패키지인 `nortest`, `goftest` 설치
+
+```{r}
+# install.packages("nortest")
+# install.packages("goftest")
+library(nortest)
+library(goftest)
+```
+
+## 정규분포에서 랜덤 난수 추출
+
+```{r}
+set.seed(10)
+X1 <- rnorm(10,mean=2,sd=1)
+X2 <- rnorm(20,mean=2,sd=1)
+X3 <- rnorm(30,mean=2,sd=1)
+```
+
+표본의 크기가 달라질 때, 변하는 정도를 확인하기 위해 3개의 랜덤 정규표본 난수를 생성하였다.   
+
+
+## The kolmogorov-Sminov metric by using nortset package
+
+```{r}
+nortest::lillie.test(X1)
+nortest::lillie.test(X2)
+nortest::lillie.test(X3)
+```
+
+## The Cramer-von-Mises meric by using nortest package
+```{r}
+nortest::cvm.test(X1)
+nortest::cvm.test(X2)
+nortest::cvm.test(X3)
+```
+
+## The Cramer-von-Mises meric by using goftest package
+```{r}
+goftest::cvm.test(X1,"pnorm",mean(X1),sd=sd(X1))
+goftest::cvm.test(X2,"pnorm",mean(X2),sd=sd(X2))
+goftest::cvm.test(X3,"pnorm",mean(X3),sd=sd(X3))
+
+goftest::cvm.test(X3,"pnorm",mean=mean(X3),sd=sd(X3),estimated = TRUE)
+
+```
+
+## The Anderson-Darling metric by using nortest package
+
+```{r}
+
+nortest::ad.test(X1)
+nortest::ad.test(X2)
+nortest::ad.test(X3)
+```
+
+## The Anderson-Darling metric by using goftest package
+
+
+```{r}
+goftest::ad.test(X1,"pnorm",mean(X1),sd=sd(X1))
+goftest::ad.test(X2,"pnorm",mean(X2),sd=sd(X2))
+goftest::ad.test(X3,"pnorm",mean(X3),sd=sd(X3))
+
+goftest::ad.test(X3,"pnorm",mean=mean(X3),sd=sd(X3),estimated = TRUE)
+```
+
+분석결과, lillie.test는 표본이 작을 때는 유의확률이 cvm.test,ad.test에 비해서는 높지만,  
+표본이 커질수록 cvm.test와 ad.test의 유의확률이 더 높아지는 것을 확인할 수 있다.  
+
+또한 goftest의 패키지를 통해 cvm.test와 ad.test를 이용할 경유 유의확률이 nortest 패키지에 비해서  
+현저히 증가하는 것을 볼 수 있다.  
+
+조금 더 엄격한 정규성 검정이 필요할 경우, goftest보다 nortest 패키지를 이용하는 것이 좋다고 판단된다.  

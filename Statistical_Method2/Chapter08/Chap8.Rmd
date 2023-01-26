@@ -1,0 +1,545 @@
+---
+title: 통계밥법론2 Chap8 실습코드
+author: 202140191 엄태훈
+date: 2021-11-06(SAT)
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Chap8 Models for Polytomous Responses
+
+Chapter7에서 우리는 binary response에 대해서 알아보았다.  
+Chapter8에서는 **binary**가 아닌 **다중 범주를 갖고있는 반응 변수**를 처리하기위한 방법들에 대해서 알아본다.  
+
+또한, 범주형 변수의 경우 명목형 변수인지 순서형 변수인지로 나누게 되는데, 변수가 명목형 변수일때와 순서형 변수일 때 서로 다른 모형을 사용할 수 있게 되므로 어떠한 모형을 적용할 수 있는지에 대해서도 알아본다.    
+
+일반적으로 다중 반응 변수는 범주형 변수의 수준이 3개 이상인 경우를 말한다.  
+EX)
+
+* 환자의 약 복용효과: "Marked", "Some", "None"
+* 학생들의 교육수준: "Middle school", "High school", "University"
+* 대한민국 성인의 소득수준: "low", "Middle", "High"
+
+다중 반응 확률을 모형화하는 방법 중 하나는 예측변수가 주어졌을 때, **그룹에 대한 반응 확률**을 구한 후, 반응에 대한 모형을 설명 변수에서 요인을 처리하는 방법과 유사한 방식으로 구성하는 것이다.  
+
+***
+
+## 8.1 Ordinal response: Proportional odds model
+
+
+가장 간단한 방법은 **Proportional odds model**이다. 
+이 모델은 반응변수가 순서형 변수이고 **proportional odds assumptions**이 성립할 때 사용이 가능하다.  
+**proportional odds assumptions**은 모형에 포함된 각 항에 대해 반응변수들의 수준에서 결과의 각 쌍 사이의 **기울기** 추정치는 우리가 고려한 분할에 관계없이 동일하다고 가정하는 것이다.  
+즉, **Proportional odds model**의 설명 변수(x)는 모든 누적logit에 대해 **동일한 기울기**를 갖도록 제한된다.    
+
+반응변수 Y의 수준이 순서형인 경우, 연속적인 범주 사이의 인접 범주 컷포인트에 기초한 로짓을 통해 순서적 특성을 고려할 수 있다.  
+
+### 8.1.1 Latent variable Interpretation
+
+이항 반응 변수의 경우, 로지스틱 회귀에 대해서 관측된 Y의 관계를 실패가 아닌 성공의 성향을 나타내면, (잠재적) 관측되지 않은 연속 반응 변수에서 발생한다고 간주한다.  
+**잠재 반응**은 예측 변수 x와 선형적으로 관련이 있다고 가정하지만, 그 잠재반응이 특정 임계값을 지날 때 볼 수 있으며, 일부 편리한 스케일링을 통해 모델에 따른 순서형 반응으로 직접 확장될 수 있다.  
+
+### 8.1.2 Fitting the proportional odds model
+
+R에서는 `MASS`패키지의 `polr`함수를 통해 **proportional odds model**을 만들 수 있다.  
+`polr`함수는 **로지스틱** 또는 **프로빗(정규분포의 누적확률의 역확률) 회귀모형**을 순서가 지정된 요인 반응변수에 대해 적합시키는 함수이다.  
+반응 변수에 숫자값이 없는 경우, 반응 변수가 순서형인지 명목형인지 확인하는 것이 중요하다.  
+- `polr(,data)`
+
+* formula: 분석가가 만들고자 하는 모델의 형태
+* data: 모델 구성에 사용할 데이터
+
+```{r warning = FALSE}
+data("Arthritis", package = "vcd")
+head(Arthritis$Improved, 8)
+```
+
+`Arthritis` 데이터셋의 반응변수 `Improved`는 수준이 None - Some - Marked의 순서로 이루어진 순서형 변수이다.  
+
+```{r warning = FALSE}
+library(MASS)
+arth.polr <- polr(Improved ~ Sex + Treatment + Age,
+                  data = Arthritis, Hess = TRUE)
+summary(arth.polr)
+```
+
+순서형 반응변수에 대해 설명변수 **Sex, Treatment, Age**를 이용하여 `polr`함수를 통해 **proportional odds model**을 적용한 결과이다.  
+독립변수들의 계수, 표준오차, t value등을 제공하며, 반응변수간 순서에 따른 Intercepts도 확인이 가능하다.  
+
+```{r warning = FALSE}
+library(car)
+Anova(arth.polr)
+```
+
+단, `polr` 함수의의 결과는 유의확률을 유의성 검정을 제공하지 않으므로, `car`패키지의 `Anova`함수를 통해 설명변수들의 유의성 검정을 진행한다.  
+설명변수 **Sex, Treatment, Age**의 유의확률이 유의수준 0.05보다 작으므로 모두 유의한 설명변수인 것을 확인할 수 있다.  
+
+### 8.1.3 Testing the proportional odds assumption
+
+**proportional odds model**은 지정된 데이터 집합에 대해 유지되는 경우에만 달성된다.  
+본질적으로 이 가정애 대한 검정에는 **proportional odds model**과 반응 범주 전체에 걸쳐 설명변수의 서로 다른 효과를 허용하는 일반화된 로짓 **NPO** 모델 간의 대조가 수반된다. 
+가장 일반적인 검정은 두 모형을 모두 적합시키고 우도비 검정을 통해 모형을 비교하는 것이다.  
+
+**partial proportional odds model**은 예측 변수의 한 부분 집합이 **proportional odds assumptions**을 만족하도록 허용하고 나머지 설명변수 X의 **NPO**는 반응 변수수준에 따라 기울기가 달라진다.  
+
+R에서 PO와 NPO모델은 `VGAM`패키지의 `vglm`함수를 사용하여 둘 다 적합시킴으로써 쉽게 대조할 수 있다.  
+`VGAM`패키지는 `glm`방법중에서도 다변량의 데이터를 고려하여 통계적 회귀 모델을 도출해야하는 경우, 유용하게 사용할 수 있는 패키지이다.  
+`vglm`함수는 벡터 일반화 선형 모형을 적합시키는 모델로 일반적으로 클래스가 매우 많은 모델에 대하여 특별한 `glm`을 적합시키고자 할때 사용한다.  
+- `vglm(,data)`
+
+* : 분석가가 만들고자 하는 모델의 형태
+* data: 모델 구성에 사용할 데이터
+
+```{r warning = FALSE}
+library(VGAM)
+arth.po <- vglm(Improved ~ Sex + Treatment + Age, data = Arthritis, family = cumulative(parallel = TRUE))
+arth.po
+```
+
+**po모델**의 경우, `parallel = TRUE`로 지정한다.  
+**po모델**은 반응변수의 모든 누적 로짓 확률에 대해서 동일한 기울기를 같게하므로, 절편을 제외하고 모두 동일한 기울기가 출력되는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+arth.npo <- vglm(Improved ~ Sex + Treatment + Age, data = Arthritis, family = cumulative(parallel = FALSE))
+arth.npo
+```
+
+**npo모델**의 경우, `parallel = FALSE`을 옵션을 추가하여 적합시킬 수 있다.  
+**npo모델**은 반응변수에 대해 설명변수들의 다른 효과를 허용하게 되므로, **po**모델과 달리 절편을 포함하여 다른 모든 설명변수들이 반응변수의 수준에 따라 다른 기울기를 갖고있는 것을 알 수 있다.   
+
+```{r warning = FALSE}
+coef(arth.po, matrix = TRUE)
+```
+
+```{r warning = FALSE}
+coef(arth.npo, matrix = TRUE)
+```
+
+`coef`를 통해 각 누적 로짓 확률에 대한 대한 변수들의 계수를 살펴볼 수 있다.  
+**po**모델의 경우, 누적 로짓 확률이 변해도 동일한 기울기를 갖지만, **npo**모델의 경우, 누적 로짓 확률이 변하면 기울기가 달라지는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+VGAM::lrtest(arth.npo, arth.po)
+```
+
+모형에 대한 우도비 검정 결과, 유의확률은 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다.  
+따라서, **두 모형(po모델, np모델)**간 차이가 없는 것을 알 수 있다.  
+
+```{r warning = FALSE}
+tab <- cbind(
+  Deviance = c(deviance(arth.npo), deviance(arth.po)),
+  df = c(df.residual(arth.npo), df.residual(arth.po))
+)
+tab <- rbind(tab, diff(tab))
+rownames(tab) <- c("GenLogit", "PropOdds", "LR test")
+tab <- cbind(tab, pvalue = 1 - pchisq(tab[,1], tab[,2]))
+tab
+```
+
+두 모델의 **Deviance** 비교를 통해서도 모델의 적합도를 확인할 수 있다.  
+모델의 잔차 차이는 1.88로 크지않고 유의확률 또한 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다.  
+따라서, 두 모델간 유의한 잔차의 차이는 존재하지 않는 것을 알 수 있다.  
+
+```{r warning = FALSE}
+arth.ppo <- vglm(Improved ~ Sex + Treatment + Age,
+                 data = Arthritis, family = cumulative(parallel =  FALSE ~ Sex))
+coef(arth.ppo, matrix = TRUE)
+```
+
+`vglm`은 또한 partial **proportional odds model**을 만들 수 있다.  
+`Arthritis` 데이터에서 **Sex**변수를 제외한 나머지 변수는 병렬을 가정하고, **Sex**변수는 병렬을 가정하지 않았다.  
+그 결과, **Sex**변수는 로짓의 누적 확률에 따라 기울기가 다르지만 **Treatment, Age**변수는 로짓의 누적 확률에 따라 기울기가 동일한 것을 확인할 수 있다.  
+
+### 8.1.4 Graphical assessment of proportional oods
+
+**proportional odds assumption**를 시각적으로 평가하기 위한 다양한 그래픽 방법이 있다.  
+한 가지 아이디어는 반응 변수 Y의 수준에서 주어진 예측 변수 X의 기대값을 표시하는 것이다.  
+
+```{r warning = FALSE}
+library(rms)
+arth.po2 <- lrm(Improved ~ Sex + Treatment + Age, data = Arthritis)
+arth.po2
+```
+
+Chapter7에서 살펴본 `lrm`함수를 통해 모형을 적합시키고, 모형에 대한 다양한 시각화를 진행할 수 있다.  
+
+```{r warning = FALSE}
+op <- par(mfrow=c(1,3))
+plot.xmean.ordinaly(Improved ~ Sex + Treatment + Age,
+                    data = Arthritis,
+                    lwd = 2, pch = 16, subn = FALSE)
+```
+
+`rms` 패키지의 `plot.xmean.ordinaly`을 통해 반응 변수 수준에 따른 X의 기대값을 확인할 수 있다.  
+`plot.xmean,ordinaly(,data)`
+
+* : 시각화를 진행할 식 (일반적으로 반응변수 ~ 독립변수 + 독립변수..)
+* data:: 식에 사용되는 데이터
+
+**실선**은 X가 주어졌을 때 Y의 계층화된 평균을 연결하고 **점선**은 X에 대해 **비례 승산 모델**이 유지되는 경우의 Y의 기대값을 나타낸다.  
+**비례 승산 모델**의 기울기는 일반적으로 완만한 것을 볼 수 있다.  
+
+**Treatment = Treated**일 때, **Improved = None**일 확률이 높고 **Improved = Marked**인 확률이 낮은 것을 볼 수 있다.  
+**Age**의 경우, **Age**가 증가함에 따라 **Marked**의 확률이 높아진다.  
+
+### 8.1.5 Visualizing result for the proportioanl odds model
+
+앞에서 살펴본 비슷한 아이디어를 통해 **PO**모델의 결과 또한 시각적으로 표현할 수 있다.  
+여기서, Chapter7에서 배운 `effect plots`는 여전히 유용하게 사용할 수 있는 함수이다.  
+
+#### 8.1.5.1 Full-model plots
+
+```{r warning = FALSE}
+arth.fitp <- cbind(Arthritis,
+                   predict(arth.polr, type = "probs"))
+head(arth.fitp)
+```
+
+적합시킨 모델 `arth.polr`을 이용하여 각 데이터가 주어졌을 때, 순서형 반응변수에 대한 예측 확률값을 `predict`함수를 이용하여 구하였다.  
+
+```{r warning = FALSE}
+library(reshape2)
+plotdat <- melt(arth.fitp,
+                id.vars = c("Sex","Treatment","Age","Improved"),
+                measure.vars = c("None","Some","Marked"),
+                variable.name = "Level",
+                value.name = "Probability")
+head(plotdat,5)
+```
+
+`melt`함수를 이용하여 시각화를 진행하기 유용한 데이터의 형태로 바꿔주었다.  
+
+```{r warning = FALSE}
+library(ggplot2)
+library(directlabels)
+gg <- ggplot(plotdat, aes(x = Age, y = Probability, colour = Level)) +
+  geom_line(size = 2.5) + theme_bw() + xlim(10,80) +
+  geom_point(color = "black", size = 1.5) +
+  facet_grid(Sex ~ Treatment,
+  )
+direct.label(gg)
+```
+
+**여성**과 **남성**의 경우, **Treated** 그룹에서 나이가 증가함에 따라 **Improved = Marked**일 확률이 높아지는 것을 확인할 수 있고 **Improved = None**일 확률이 감소하는 것을 알 수 있다.    
+**Placebo**그룹에서도 나이가 증가함에따라 **Improved = None**일 확률이 줄어들고 **Improved = Some,Marked**일 확률이 증가하는것을 확인할 수 있다.  
+하지만, **Treated**그룹에 비해 **Improved = None**일 확률이 매우 높고 **Improved = Marked**일 확률이 매우 낮은 것을 확인할 수 있다.  
+
+### 8.1.5.2 Effect plots
+
+`effects`패키지를 통해 그려지는 곡선은 예측 확률에 대한 지정된 효과의 서로 다른 반응 수준에 대해 표시해준다.  
+
+```{r warning = FALSE}
+library(effects)
+plot(Effect("Age",arth.polr))
+plot(Effect("Age",arth.polr),style = "stacked",
+     key.args = list(x = .55, y = .9))
+```
+
+기본적인 **Age effect plot**과 **Stacked plot**을 통해 나이가 증가함에 따라, **Improved = Marked**일 확률이 높아지고, **Improved = None**일 확률이 줄어드는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+plot(Effect(c("Treatment","Sex","Age"),arth.polr),
+     style = "stacked",key.arg = list(x = .8, y = .9))
+```
+
+**Treatment = Placebo**그룹의 경우 **Improved = None**이 차지하는 확률이 높지만, **Treatment = Treated**그룹의 경우 **Improved = Marked 또는 Some**이 차지하는 확률이 높고 **Improved = None**이 차지하는 확률이 작은 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+plot(Effect(c("Treatment","Age"),
+            arth.polr,latent = TRUE), lwd = 3)
+```
+
+`latent = TRUE`옵션을 지정하게 되면 각 반응변수의 수준으로 분류될 수 있는 기준점을 보여주고 각 그룹에 대하여 `Effect plot`중 변화가 가장 뚜렷한 **plot**만을 패널에 출력한다.  
+
+**Treatment = Placebo**의 경우, 나이가 증가함에도 불구하고 **Improved = None**에서 **Improved = Some**으로 가는 수준의 기준점을 넘지못한다.  
+하지만, **Treatment = Treated**의 경우, 나이가 증가함에 따라 **Improved = Marked**의 기준에 가까워지고 나아기 60세가 되는 시점에 직선이 **Improved = Marked**의 기준 점선을 넘는 것을 확인할 수 있다.  
+
+***
+
+## 8.2 Nested dichotomies
+
+반응 변수가 명목형인 경우 혹은 **proportional odds assumptions**이 성립하지 않는다.
+따라서, **nested dichotomies**이라는 모형을 사용하게 되는데, 이 방법을 사용하면 반응변수의 수준간의 차이를 분산 분석의 직교대비처럼 확인할 수 있다.  
+이 방법에는 순서형 반응변수나 특별한 소프트웨어가 필요하지 않으며, 반응 범주 간의 계층적으로 내포된 비교 집합에 대해 개별 모형을 적합시킨다.(독립가정)  
+
+*Example 8.1: Women's labor force participation*
+
+```{r warning = FALSE}
+library(car)
+data("Womenlf", package = "car")
+some(Womenlf)
+```
+
+`womenlf`데이터는 1977년 캐나다의 인구조사에 따른 데이터이며, 여성의 생활에 관련된 정보를 담고있다.  
+`womenlf`데이터는 `car`패키지에 포함돼있다.  
+
+* partic: 여성의 노동력 참여 (Factor variable - fulltime, nt.work, parttime)
+* hincome: 남편의 수입 <기준은 1000달러> (discrete variable)
+* children: 아이의 유무 (Factor variable - absent, present)
+* region: 지역 (Factor variable - Atlantic, BC, Ontario, Prairie, Quebec)
+
+```{r warning = FALSE}
+Womenlf <- within(Womenlf,{
+  working <- recode(partic, " 'not.work' = 'no'; else = 'yes' ")
+  fulltime <- recode(partic,
+                     " 'fulltime' = 'yes'; 'parttime' = 'no'; 'not.work' = NA")})
+some(Womenlf)
+```
+
+```{r warning = FALSE}
+with(Womenlf, table(partic, working))
+```
+
+```{r warning = FALSE}
+with(Womenlf, table(partic, fulltime, useNA = "ifany"))
+```
+
+`Womenlf`데이터에 대해서 `recode`함수를 이용하여 연구자가 원하는 형태로 범주를 재구성하여 데이터에 대한 전처리를 진행한다.  
+
+```{r warning = FALSE}
+mod.working <- glm(working ~ hincome + children, family = binomial, data = Womenlf)
+summary(mod.working)
+```
+
+일을하는 여성과 일을하지 않는 여성만으로 나눈 `working`을 반응변수로 하여 **로지스틱 회귀 모형**을 적합시켜 보았다.  
+설명변수 **hincome, children**모두 유의확률이 유의수준 0.05보다 작으므로 유의한 설명변수인 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+mod.fulltime <- glm(fulltime ~ hincome + children, family = binomial, data = Womenlf)
+summary(mod.fulltime)
+```
+
+일을하지 않는 여성은 결측값으로하고 알바를 할경우 **No** 정규직의 경우에는 **Yes**로 재코딩을한 변수인 `fulltime`을 반응변수로 하여 다시 한 번 로지스틱 회귀모형을 적합시켜 보았다.  
+`mod.working` 모델과 같이 **hincome, children**모두 유의확률이 유의수준 0.05보다 작으므로 유의한 설명변수임을 확인할 수 있다.  
+
+```{r warning = FALSE}
+cbind(working = coef(mod.working), fulltime = coef(mod.fulltime))
+```
+
+적합시킨 두 모형에 대한 계수를 확인해본 결과, **hincome, children** 모두 계수가 음수이므로 여성의 근로 선택에 대해서 로짓 확률을 감소 시키는 변수임을 확인할 수 있다.  
+
+```{r warning = FALSE}
+LRtest <- function(model){
+  c(LRchisq = model$null.deviance - model$deviance,
+    df = model$df.null - model$df.residual)
+}
+tab <- rbind(working = LRtest(mod.working),
+             fulltime = LRtest(mod.fulltime))
+tab <- rbind(tab, All = colSums(tab))
+tab <- cbind(tab, pvalue = 1 - pchisq(tab[,1], tab[,2]))
+tab
+```
+
+각 모형의 포화모형과의 잔차비교를 통해 모형의 적합도를 확인해 보았다.     
+계산하기 위한 함수 `LRtest`를 직접 만들고 계산한 결과, 유의확률은 유의수준 0.05보다 작으므로, 우리가 적합시킨 2개의 모델 모두 포화모형과 비교해 볼때, 유의한 잔차의 차이가 있으므로, 유의한 모형임을 확인할 수 있다.  
+
+```{r warning = FALSE}
+Anova(mod.working)
+```
+
+```{r warning = FALSE}
+Anova(mod.fulltime)
+```
+
+`Anova`함수를 통해 개별 설명변수에 대한 검정을 진행할 수 있다.  
+두 모델의 **hincome**변수를 살펴보면, 카이제곱 검정통계량은 4.826 + 8.981 = 13.807이고 자유도는 2이다.  
+이러한 통계치를 통해 설명변수의 적합 여부를 확인할 수 있다.  
+
+```{r warning = FALSE}
+predictors <- expand.grid(hincome = 1:50,
+                          children = c('absent', 'present'))
+fit <- data.frame(predictors,
+                  p.working = predict(mod.working,predictors,type = "response"),
+                  p.fulltime = predict(mod.fulltime,predictors, type = "response"),
+                  l.working = predict(mod.working,predictors,type = "link"),
+                  l.fulltime = predict(mod.fulltime,predictors, type = "link"))
+print(some(fit,5), digits = 3)
+```
+
+`predict`를 통해 만들어진 모델을 이용하여 새로운 데이터에 대한 예측을 진행한다.  
+`type = response`는 예측에 대한 확률 값을 제공해주며, `type = link`는 독립변수들의 선형 모델 결과(log-odds)를 출력해준다.  
+
+```{r warning = FALSE}
+fit <- within(fit, {
+  'full-time' <- p.working * p.fulltime 
+  'part-time' <- p.working * (1 - p.fulltime)
+  'not working' <- 1 - p.working
+})
+```
+
+**full-time**과 **part-time**에 대해서 **unconditional**한 확률을 위와 같이 계산해 주었다.  
+
+```{r warning = FALSE}
+fit2 <- melt(fit,
+             measure.vars = c("full-time","part-time","not working"),
+             variable.name = "Participation",
+             value.name = "Probability")
+```
+
+적합치를 시각화하기 위해 `melt`함수를 이용하여 데이터의 형태를 재구성하였다.  
+
+```{r warning = FALSE}
+gg <- ggplot(fit2,
+             aes(x = hincome, y = Probability,
+                 colour = Participation)) +
+  facet_grid(~ children) +
+  geom_line(size = 2) + theme_bw() +
+  scale_x_continuous(limits = c(-3,55)) +
+  scale_y_continuous(limits = c(0,1))
+direct.label(gg, list("top.bumptwice", dl.trans(y = y + 0.2)))
+```
+
+`ggplot`을 통해 **남편의 수입**에 따른 **여성의 노동형태 확률**을 시각화하였고 **아이의 유무**에 따라 패널을 구분하였다.  
+위의 그림은 `type = response`를 통해 확률을 예측한 모형이다.  
+**partic = not working**인 여성은 `hincome`이 증가함에 따라 확률이 증가하는 것을 볼 수 있는데, 자녀가 있을 경우, 확률이 더 높은 것을 확인할 수 있다.  
+반대로, **partic = full-time** 여성들은 `hincome`이 증가함에 따라 확률이 크게 감소하는 것을 살펴볼 수 있다.  
+
+
+```{r warning = FALSE}
+fit3 <- melt(fit,
+             measure.vars = c("l.working", "l.fulltime"),
+             variable.name = "Participation",
+             value.name = "LogOdds")
+levels(fit3$Participation) <- c("working", "full-time")
+
+gg <- ggplot(fit3,
+             aes(x = hincome, y = LogOdds, colour = Participation)) +
+  facet_grid(~ children) +
+  geom_line(size = 2) + theme_bw() +
+  scale_x_continuous(limits = c(-3,50)) +
+  scale_y_continuous(limits = c(-5,4))
+direct.label(gg, list("top.bumptwice", dl.trans(y = y + 0,2)))
+```
+
+`type = link`를 통해 예측한 모델의 결과에 대한 시각화를 진행해 보았다. 앞선 결과와 달리 직선의 형태를 가지는 것을 볼 수 있다.  
+**partic = fulltime, wokring**모두 `hincome`변수가 증가함에 따라 **로그오즈**가 감소하는 것을 볼 수 있는데, **partic = fulltime**이 **partic = working**보다 더욱 빠르게 감소하는 것을 확인할 수 있다.  
+
+
+***
+
+## 8.3 Generalized logit model
+
+다중의 수준을 가지는 반응변수에 대한 가장 일반적인 접근법은 일반화된 로짓 모델이라고 불리는 **다항 로짓 모델(multinomial logit model)**을 사용하는 것이다. 
+**일반화 로짓 (또는 다중 로짓)**이라 불리는 방법은 m개의 반응 범주 카테고리를 m-1개의 로짓의 집합으로 모델링한다.  
+이를 통해, 첫 번째 범주를 기준으로 나머지 반응범주와 비교를 통해 모델을 적합시키고 해석한다.  
+R에서는 `nnet`패키지의 `multinom`함수를 통해 사용할 수 있다.  
+
+`nnet`패키지는 단일 히든 레이어로 구성된 피드포워드 신경망 또는 다항 모델을 위한 함수들을 제공하는 패키지이다.  
+`multinom`함수는 주어진 데이터에 대해서 **다항 로그 선형 모델**을 적합시키고자 할때 사용하는 함수이며, `nnet`패키지에 포함돼있다.  
+- `multinom(, data)`
+
+* formula: 분석가가 만들고자 하는 모델의 형태
+* data: 모형에 적합할 데이터
+
+*Example 8.2: Women's labor force participation*
+
+```{r warning = FALSE}
+levels(Womenlf$partic)
+```
+
+```{r warning = FALSE}
+Womenlf$partic <- relevel(Womenlf$partic, ref = "not.work")
+```
+
+`womenlf`의 반응변수인 `partic`의 기준범주를 `relevel`을 통해 **not.work**변수로 재구성한다.  
+`relevel`은 범주의 기준 범주 수준을 바꿔주는 함수이다.  
+- `relevel(data,ref)`
+
+* data: 범주의 수준을 재지정할 변수
+* ref: 변수의 수준중 기준 범주 수준으로 바꿔줄 수준
+
+```{r warning = FALSE}
+library(nnet)
+wlf.multinom <- multinom(partic ~ hincome + children,
+                         data = Womenlf, Hess = TRUE)
+```
+
+```{r warning = FALSE}
+summary(wlf.multinom, Wald = TRUE)
+```
+
+반응변수는 **partic**로 설정하고, **hincome, children**는 설명변수로 하는 다중 로짓모델을 적합시켜 보았다.  
+**계수, 표준오차, 왈드 검정의 통계량**을 출력해주는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+stats <- summary(wlf.multinom, Wald = TRUE)
+z <- stats$Wald.ratios
+p <- 2 * (1 - pnorm(abs(z)))
+zapsmall(p)
+```
+
+앞서 적합시킨 모델들의 결과를 이용하여 개별 변수들에 대한 유의성 검정을 진행해 보았다.  
+**not.work**를 **partic**의 기준 수준으로 지정했기 때문에, **partic = fulltime**, **partic = parttime** 2개의 변수에 대한 추정 계수들만 출력되는 것을 확인할 수 있다.  
+**partic = fulltime**의 경우, **hincome, children**의 유의확률이 유의수준보다 작아 귀무가설을 기각하므로, 설명변수들이 유의하다고 판단된다.  
+**partic = parttime**의 경우 절편을 제외하고 **hincome, children**의 유의확률이 유의수준보다 커 귀무가설을 기각하므로, 설명변수들이 유의하지 않다고 판단된다.  
+
+```{r warning = FALSE}
+wlf.multinom2 <- multinom(partic ~ hincome * children,
+                          data = Womenlf, Hess = TRUE)
+Anova(wlf.multinom2)
+```
+
+**hincome**과 **children**의 교호작용을 살피기위해 **formula**를 수정한 후, 다시 한 번 모델을 적합시켜 보았다.  
+그 결과, 설명변수들은 여전히 유의하지만, 두 변수의 교호작용은 유의확률이 유의수준 0.05보다 작으므로 유의하지 않은 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+predictors <- expand.grid(hincome = 1:50,
+                          children = c("absent", "present"))
+fit <- data.frame(predictors,
+                  predict(wlf.multinom,predictors,type = "probs"))
+```
+
+`predict`함수를 통해 적합시킨 모델을 이용하여 새로운 데이터에 대한 예측을 진행해 보았다.  
+`type = probs`를 통해 예측결과가 확률로써 출력되게 설정해주었다.  
+
+```{r warning = FALSE}
+fit2 <- melt(fit,
+             measure.vars = c("not.work","fulltime","parttime"),
+             variable.name = "Participation",
+             value.name = "Probability")
+levels(fit2$Participation) <- c("not working", "full-time", "part-time")
+
+gg <- ggplot(fit2,
+             aes(x = hincome, y = Probability, colour = Participation)) +
+  facet_grid(~children) +
+geom_line(size = 2) + theme_bw() +
+  scale_x_continuous(limits = c(-3,50)) +
+  scale_y_continuous(limits = c(0,0.9))
+direct.label(gg, list("top.bumptwice", dl.trans(y = y + 0.2)))
+```
+
+예측된 결과에 대해 시각화를 진행해본 결과, 우리가 앞서 살펴본 **nested dichotomy models**의 결과와 거의 유사한 것을 살펴볼 수 있다.  
+`hincome`이 증가함에 따라, **partic = full-time**의 확률은 점점 감소하고 **partic =not-working**의 확률은 증가한다.  
+그러나, **일반화된 모델 로짓**은 **nested dichotomy models**과 다르게 **children = absent**인 경우, **hincome**이 증가함에 따라 **not-working**의 확률이 가파르게 증가하지만, **children = present`** 경우 완만하게 증가하다가 같은 확률로 수렴하는 것을 볼 수 있다.  
+
+```{r warning = FALSE}
+levels(Womenlf$partic)
+Womenlf$partic <- ordered(Womenlf$partic,
+                          levels = c("not.work","parttime","fulltime"))
+wlf.multinom <- update(wlf.multinom, . ~ .)
+```
+
+`effect plot`을 통해서도 모델의 결과를 시각화 할 수 있다.  
+단, 이때 반응 범주의 순서를 연구자가 분석하고자 하는 순서대로 반드시 정렬해 준 후, 모델을 적합시켜야 한다.  
+
+```{r warning = FALSE}
+plot(Effect(c("hincome", "children"), wlf.multinom),
+     style = "stacked", key.args = list(x = 0.05, y = 0.9))
+```
+
+`Effect plot`을 통해서도, `hincome`이 증가함에 따라, **partic = fulltime**의 면적이 점점 작아지고(확률이 작아지고) **partic =  notwork**의 면적이 점점 커지는 것(확률이 커지고)을 쉽게 살펴볼 수 있다.  
+
+***
+
+**Summary of chapter8**
+
+* 반응변수의 수준이 **binary**가 아닌 3개 이상 가지는 경우가 있을 수 있다. 이러한 경우, **Chapter7**에서 살펴본 모델과는 조금 다른 모델들을 사용해야한다.  
+* 특히, 반응변수의 수준이 많아지게 될때, 어떠한 수준을 기준으로 할것인지에 대해 고민하고 결정하는 것이 매우 중요하다.  
+* **Proportional odds model**은 각 설명변수들의 반응변수들에 대한 누적 로짓 확률이 같다고 가정(**proportional odds assumptions**)하여 적합시키는 모델로, 설명변수의 기울기가 각 반응변수의 수준에서 모두 같다. 반응변수가 다중 순서형 변수일때 유용하다. 
+* **partial proportional odds model**은 특정 부분 변수에는 **proportional odds assumptions**을 하여 기울기가 같게하고 나머지 부분 변수에 대해서는 **proportional odds assumptions**을 하지않아 기울기가 로그 누적 확률에 따라 변할 수 있게 적합시켜 주는 모델이다.  
+* 가장 일반적으로 사용되는 **다항 로짓모형**은 반응변수의 수준이 n개일때, 1개의 수준을 기준으로 정하고 n-1개의 반응변수에 대하여 설명변수를 이용하여 모형을 적합시키는 방법이다.  
+* 다중 반응변수를 통해 모델을 적합시키게 되면 모델의 파라미터가 많아지게 된다. 따라서, 이러한 경우 결과창을 시각화(예를 들어 `Effects`,`ggplot2`패키지를 활용)하여 요약된 결과를 살펴보는 것이 좋다.  

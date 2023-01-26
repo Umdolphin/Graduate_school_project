@@ -1,0 +1,696 @@
+---
+title: 통계밥법론 Chap13 실습코드
+author: 202140191 엄태훈
+date: 2021-05-15(SAT)
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Chap13 Design of Experiments - Factorial Desings  
+
+**삼원분산분석(Three-way ANOVA)**는 앞서 우리가 살펴본 이원분산분석(Two-Way ANOVA)과 달리 **독립변수가 3개** 이상인 분산분석을 일컫는다.  
+앞서 우리가 진행했던 이원분산분석에서는 두 독립변수간의 교호작용만을 고려했다.  
+
+하지만, 삼원분산분석의 경우, 독립변수가 3개 이상이기 때문에 두 독립변수간 교호작용이 3개 이상이 나올 수 있다.  
+또한, 독립변수 3개에 대한 교호작용도 살펴봐야한다.  
+
+주효과와 교호작용에 대한 귀무가설과 대립가설은 앞서 살펴본 분산분석들과 동일하다.  
+
+**주효과의 대립가설**  
+
+* H0: 독립변수 A에 따른 종속변수 B에 대하여 평균차이가 없다.  
+* H1: 독립변수 A에 따른 종속변수 B에 대하여 평균차이가 있다.  
+
+
+**교호작용의 대립가설**  
+
+* H0: 독립변수간 교호작용 효과가 존재하지 않는다.  
+* H1: 독립변수간 교호작용 효과가 존재한다.  
+
+
+## 13.1 A Three-Way ANOVA - Muscle Data
+
+
+
+`cc176`은 근육 데이터로 구성된 데이터로, `HH`패키지 안에 내장돼있다.  
+
+```{r}
+library(HH)
+data("cc176")
+```
+
+
+```{r}
+xyplot(wt.d~wt.n|n.treats*current,data=cc176,group=minutes,
+        panel=function(x,y,...) {
+         panel.superpose(x,y,...)
+         panel.abline(lm(cc176$wt.d ~ cc176$wt.n))})
+```
+
+`cc176`의 **group(n.treats,current)**에 대한 EDA를 진행하기 위해 `xyplot`함수를 사용하여 그림을 그렸다.  
+또한, 공변량에 대해 회귀직선을 표시했으며, 회귀직선이 양의 기울기를 가지는 것으로 보아 변수간 효과가 있는 것을 알 수 있다.  
+
+```{r}
+## y=wt.d with x=wt.n as covariate
+## (get essentially the same ANOVA as the approximate (y-bx)^2)
+## ANOVA table in Cochran and Cox)
+cc176.aov <- aov(wt.d~rep+wt.n+n.treats*minutes*current,data=cc176)
+summary(cc176.aov)
+```
+
+3개의 변수(**n.treats**,**minutes**,**current**)를 교호작용으로 지정하여 분산분석을 진행하였다.  
+
+분산분석 결과, minutes를 제외한 모든 주효과는 유의확률이 유의수준보다 작으므로, '유의한 차이가 존재하는 집단이 적어도 한 집단 이상이다.'는 결과를 얻을 수 있었다.  
+
+교호작용의 결과를 살펴본 결과, 유의한 교호작용은 존재하지 않았다.  
+
+```{r}
+interaction2wt(wt.d~n.treats*minutes*current,data=cc176)
+```
+
+
+`interaction2wt` 함수를 통해 3개의 교호작용에 대한 plotㅇ르 살펴볼 수 있다.   
+
+```{r}
+summary(cc176.aov,
+        split=list(n.treats=list(n.treats.lin=1,
+                                 n.treats.quad=2)),
+        expand.split=FALSE)
+
+```
+
+**n.treats** 변수에 대하여 2차 방정식을 적용하여 결과를 살펴보았다.  
+
+**n.treats**를 2차로 변환하게 되면 유의하지 않게 변하는 것을 알 수 있다.    
+
+```{r}
+##
+## adjust y for x
+cc176$y.adj <- cc176$wt.d -
+  (cc176$wt.n - mean(cc176$wt.n))*coef(cc176.aov)["wt.n"]
+```
+
+cc176의 y변수인 ``wt.d``에 대하여 분산분석을 통해 얻어진 평균과 회귀계수를 통해 값을 조정해주었다.  
+
+***
+
+
+```{r}
+## duplicate CC Table 5.17
+cc176.means <- tapply(cc176$y.adj,
+                      cc176[,c("current","n.treats")],mean)
+
+cc176.means
+
+apply(cc176.means,1,function(x) mean(x))
+```
+
+`tapply`를 통해 **current**, **n.treats**에 따른 조정된 y의 평균 값을 살펴볼 수 있다.  
+
+`apply`를 사용하여 옵션을 1로 지정하면 (행에 대한 함수 적용) **current**에 따른 평균만을 얻을수도 있다.  
+
+***
+
+```{r}
+interaction2wt(y.adj~current*n.treats,data=cc176)
+```
+
+조정된 y값에 대해서 **ntreats, current**의 교호작용 그림을 그려주었다.  
+
+교호작용 패널들에서 교차점이 몇 개 보이지만,  대부분 평행을 이루기 때문에 교호작용은 유의하지 않은 것을 알 수 있다. 
+
+***
+
+```{r}
+bwplot(y.adj~current,data=cc176,main="Boxplots for adjusted weights",col=c(1:4),
+       par.settings=list(box.rectangle=list(col=c(1:4)),
+                         box.umbrella=list(col=c(1:4))))
+```
+
+
+```{r}
+bwplot(y.adj~minutes|n.treats*current,data=cc176,col=c(1:4),
+       par.settings=list(box.rectangle=list(col=c(1:4)),
+                         box.umbrella=list(col=c(1:4))))
+```
+
+조정된 값 y에 대한 minutes의 boxplot을 그려주었다.  
+**ntreats,current**을 그룹변수로 하여 두 개의 그룹변수에 따라 **boxplot**을 나누어 그려주었다.  
+
+```{r}
+cc176t <- cc176
+for (i in names(cc176t))
+  if (is.factor(cc176t[[i]]))
+    contrasts(cc176t[[i]]) <-
+  contr.treatment(length(levels(cc176t[[i]])))
+sapply(cc176t,class)
+
+cc176t.aov <- aov(wt.d ~ rep + wt.n + n.treats +
+                    wt.n*current,data=cc176t)
+summary(cc176t.aov)
+```
+
+앞서 진행한 분산분석과 다르게 주효과왁 교호작용을 지정해주었다.  
+주효과는 모두 유의확률이 유의수준보다 작으므로 유의한 집단이 적어도 하나 존재하는 것을 알 수 있다.  
+교호작용인 **wt.n:current** 또한 유의확률이 0.000376으로 두 변수의 교호작용은 유의한 것을 알 수 있다.  
+
+***
+
+**current** 변수에 대한 다중비교를 진행하고 원하는 집단 간 차이를 살펴보기 위해 **contrast matrix**를 만들어 주었다.    
+
+```{r}
+cc176$current <- factor(cc176$current,levels=unique(cc176$current),ordered=FALSE)
+unique(cc176$current)
+current.lmat <-cbind("gf-cc"=c(-1,-1,1,1),
+                      "25-60"=c(0,0,-1,1),
+                      "g-f"=c(1,-1,0,0))
+dimnames(current.lmat)[[1]] <- levels(cc176$current)
+cc176_current.aov <- aov(y.adj~current,data=cc176)
+mmc(cc176_current.aov,focus="current",focus.lmat = current.lmat)
+```
+
+**current**변수에 따른 다중비교 결과와 우리가 설정한 집단 간 평균차이 결과를 볼 수 있다.  
+
+```{r}
+mmcplot(mmc(cc176_current.aov,focus="current",focus.lmat = current.lmat))
+```
+
+`mmcplolt`을 통해서 살펴본 결과 평균차이가 유의하게 나타나는 집단은 다음과 같다.  
+**25.cycle-galavnic**, **25.cycle-faradic**, **60.cycle-faradic**
+
+```{r}
+mmcplot(mmc(cc176_current.aov,focus="current",focus.lmat = current.lmat),type="lmat")
+```
+
+`type=lmat`옵션을 이용하여 우리가 설정한 집단 간 차이를 살펴본 결과, 유의한 차이가 나타나는 집단은 **gf-cc** 하나뿐 이었다.  
+
+### 13.2.1 Example - Latin Square
+
+```{r}
+data(tires)
+library(gridExtra)
+b1<-bwplot(wear~car,data=tires,main="car")
+b2<-bwplot(wear~position,data=tires,main="position")
+b3<-bwplot(wear~brand,data=tires,main="tires")
+
+
+print(b1,split=c(1,1,3,1),more=TRUE)
+print(b2,split=c(2,1,3,1),more=TRUE)
+print(b3,split=c(3,1,3,1),more=FALSE)
+```
+
+**tires**데이터에 대한 시각적 탐색을 위해 `boxplot`을 그렸다.  
+**car** 변수의 경우, 숫자가 커질수록 wear의 값이 낮아지는 것을 알 수 있다.  
+
+
+```{r}
+tires.aov <- aov(wear~ car+position+brand,data=tires)
+summary(tires.aov)
+```
+
+
+`tires`데이터에 대한 분산분석 진행결과, **position** 변수를 제외한 두 **car,brand** 주효과 변수가 유의한 것을 알 수 있다.  
+따라서, 두 주효과 집단에서는 유의한 차이가 발생하는 집단이 적어도 하나 존재한다.  
+
+
+```{r}
+tapply(tires$wear,tires$car,function(x) mean(x))
+
+tapply(tires$wear,tires$position,function(x) mean(x))
+
+tapply(tires$wear,tires$brand,function(x) mean(x))
+```
+
+`tapply`함수를 적용하여 **tires**의 각 변수에 대한 평균을 구해주었다.    
+
+
+```{r}
+tires.mmc.brand <- mmc(tires.aov,linfct=mcp(brand="Tukey"))
+
+tires.mmc.brand
+
+mmcplot(tires.mmc.brand)
+```
+
+**brand**변수에 대한 다중비교를 진행하였다.  
+1-4, 1-3집단이 신뢰구간 0을 포함하지 않고 다중비교 plot에서 붉은색으로 지정된 것으로 보아 유의한 차이가 있는 집단인 것을 확인할 수 있다.  
+
+
+```{r}
+brand.lmat <- cbind("1-43" =c(2,0,-1,-1),
+                    "4-3" =c(0,0,-1,1),
+                    "143-2" = c(1,-3,1,1))
+
+dimnames(brand.lmat)[[1]] <- levels(tires$brand)
+
+
+tires.mmc.brand2 <- mmc(tires.aov,linfct=mcp(brand="Tukey"),
+                       focus.lmat = brand.lmat)
+
+tires.mmc.brand2
+```
+
+원하는 집단 간 차이를 살펴보기 위해 contrast matrix를 만들어 주었다.  
+**1-43** 집단만이 신뢰구간 0을 포함하지 않으므로 유의한 차이가 있는 집단인 것을 알 수 있다.  
+
+```{r}
+mmcplot(tires.mmc.brand2,type="lmat")
+```
+
+`mmcplot`에서도 유의한 집단 간 차익가 있는 **1-43** 집단이 붉은색으로 지정된 것을 볼 수 있다.  
+
+
+```{r}
+tires.aov <- aov(wear ~ car + position + brand, data=tires)
+
+summary(tires.aov,split=list(brand=list("1-43"=1,rest=2:3)))
+
+```
+
+
+### 13.3.1 Example = The filemcoat Data
+
+```{r}
+data(filmcoat)
+```
+
+**filmcoat**는 다음과 같은 데이터로 구성돼있다.  
+* temprt: 3개의 수준으로 구성된 온도.  
+* pressure: 3개의 수준으로 구성된 압력.  
+* coat: 필름의 두께  
+
+## 13.3.4 Data analysis
+
+```{r}
+bwplot(coat~pressure|pressure+temprt,data=filmcoat)
+```
+
+시각적 탐색을 위해 **filmcoat**에 대한 `bwplot`을 이용하여 **boxplot**을 그려주었다.  
+
+```{r}
+library(reshape2)
+acast(filmcoat,temprt~pressure,mean,value.var="coat",margins=TRUE)
+```
+
+`acast`함수를 이용하여 **filmcoat**데이터에 대한 평균을 한 눈에 보기 쉽게 정리할 수 있다.  
+
+```{r}
+film.aov1 <- aov(coat ~ temprt*pressure,data=filmcoat)
+summary(film.aov1)
+```
+
+**filmcoat**에 대한 분산분석을 진행한 결과, 주효과와 교호작용이 모두 유의한 결과를 나타내는 것을 확인할 수 있다.  
+
+
+```{r}
+interaction2wt(coat~temprt*pressure,data=filmcoat,simple=TRUE)
+```
+
+**filmcoat**의 교호작용 패널을 살펴보면 직선이 평행하지 않으며 교차점을 가지는 것으로 보아 교호작용이 어느정도 유의함을 알 수 있다.  
+
+
+```{r}
+film.mmc1 <- mmc(film.aov1,focus="pressure")
+film.mmc1
+```
+
+```{r}
+mmcplot(film.mmc1,style="both")
+```
+
+`pressure`변수에 대한 다중비교를 진행한 결과, **p.high-p.med,p.high-p.low**의 집단 간 평균차이가 유의한 것을 알 수 있었다.  
+
+## 13.4 Nested Factorial Experiment
+### 13.4.1 Example-Gunload Data
+
+```{r}
+data(gunload)
+bwplot(rounds~method|method+group,data=gunload)
+```
+
+**gunload**데이터에 대해서 **method,group** 그룹 변수로 **rouns**를 종속변수로 지정하여 `boxplot`을 그렸다.  
+
+### 13.4.2 Example-Turkey Data (Continnued)
+
+```{r}
+gunload.aov <-
+  aov(rounds ~ method*group + Error((team %in% group)/method),data=gunload)
+summary(gunload.aov)
+model.tables(gunload.aov,type="means")
+```
+
+
+gunload데이터에 대한 분산분석을 진행하였다.  
+분산분석 진행에 대해서 Error term이 의미하는 바는, team을 제외한 주효과는 모두 **Random인자**로 설정하겠다는 의미이다.  
+
+또한, Error가 분수의 형태로 돼있으므로 metohd -> group -> team의 형태로 nested 된다는 것을 나타낸다.  
+
+
+```{r}
+data(turkey)
+turkey[c(1,7,13,19,25),]
+
+turkey$trt.vs.control <-
+  factor(rep(c("control","treatment"),c(6,24)))
+contrasts(turkey$trt.vs.control) <- c(4,-1)
+
+
+turkey$additive <- factor(rep(c("control","A","B"),c(6,12,12)),
+                          levels=c("control","A","B"))
+
+contrasts(turkey$additive) <- c(0,1,-1)
+
+turkey$amount <- factor((rep(c(0,1,2,1,2),c(6,6,6,6,6))))
+
+contrasts(turkey$amount) <- c(0,1,-1)
+turkey[c(1,7,13,19,25),]
+```
+
+`trt.vs.control`변수는 **diet**변수가 **control**이면 control, 나머지에 대해서는 **treatment**를 반환한다.  
+
+`additive`의 경우 **control** =  control, **A** = A, **B** = B를 반환한다.  
+
+`amount`변수는 **control** = 0, *diet* 변수의 마지막 숫자가 1이면 1, 2면 2를 반환한다.  
+
+```{r}
+turkey3.aov <- aov(wt.gain ~ trt.vs.control / (additive*amount),data=turkey,x=TRUE)
+summary(turkey3.aov)
+```
+
+앞서 우리가 설정한 변수와 control, treatment에 대해서 분산분석을 진행하였다.  
+control과 treatment 집단 간은 유의한 차이가 있음을 알 수 있고 **additive,amount** 또한 집단 간 유의한 차이가 있는 것을 확인할 수 있다. 
+교호작용의 유의확률은 0.0609로 유의수준 0.05보다 높으므로 유의하지 않다.   
+하지만, 0.05에 매우 가까운 값을 가지므로 유의수준에 따라 유의하다고 해석할 수도 있다.  
+
+
+```{r}
+print(na.print="",tapply(turkey$wt.gain,turkey[,c("additive","amount")],mean))
+```
+*treatment*에  따른 **amount,additive**에 대한 평균을 `tapply` 함수를 이용하여 구해주었다.  
+
+## 13.5 Specification of Model Formulas
+
+```{r}
+data(abc)
+abc
+
+abc.oneway <- with(abc,matrix(y,4,3,dimnames=list(1:4,A=unique(A))))
+
+abc.oneway
+
+abc.crossed <- with(abc,matrix(y,3,4,byrow=TRUE,
+                               dimnames=list(A=unique(A),B=unique(B))))
+
+abc.crossed
+```
+
+abc데이터에 대해서 **abc.oneway**데이터는 일원분산분석 형태의 matrix를 가지고 있다.  
+**abc.crossed**는 이원분산분석 형태의 교차 matrix 형태를 가지고 있다.  
+
+
+```{r}
+abc.nested <- with(abc,matrix(c(y[1:4],rep(NA,8),
+                                rep(NA,4),y[5:8],
+                                rep(NA,4),
+                                rep(NA,8),y[9:12],3,12,byrow=TRUE,dimnames=list(A=unique(A),BwA=BwA))))
+
+print(abc.nested,na.print="")
+
+abc.double.indexed <- abc[,"y",drop=FALSE]
+abc.double.indexed
+```
+
+**abc.nested**는 nested된 형태의 matrix를 보여준다.  
+**abc.double.indexed**는 A와 B 변수의 값 두 개를 index로 가지고 있는 것을 나타낸다.  
+
+```{r}
+## one-way
+abc.A.aov <- aov(y ~ A, data = abc)
+anova(abc.A.aov)
+coef(abc.A.aov)
+contrasts(abc$A)
+model.matrix(abc.A.aov)
+```
+
+**abc.oneway**에 대해서 분산분석을 진행한 결과, 유의확률이 유의수준보다 크므로 유의한 차이가 발생하는 집단이 없는 것을 알 수 있다.  
+
+**contrasts**를 통해 dummy변수가 어떻게 처리 됐는지 알 수 있으며, model.matrix를 통해 contrast matrix의 조합을 살펴볼 수 있다.  
+
+```{r}
+## crossed: no interaction
+abc.ApB.aov <- aov(y ~ A+B, data = abc)
+anova(abc.ApB.aov)
+coef(abc.ApB.aov)
+contrasts(abc$A)
+contrasts(abc$B)
+model.matrix(abc.ApB.aov)
+```
+
+**abc.corossed**에 대해서 분산분석을 진행한 결과, 두 변수 모두 유의확률이 유의수준보다 크므로 유의한 차이가 발생하는 집단이 없는 것을 알 수 있다.  
+
+
+```{r}
+## crossed: with interaction
+abc.AsB.aov <- aov(y ~ A*B, data = abc)
+anova(abc.AsB.aov)
+coef(abc.AsB.aov)
+contrasts(abc$A)
+contrasts(abc$B)
+contrasts(abc$AB)
+model.matrix(abc.AsB.aov)
+```
+
+crossed의 경우 뒤에 Formula에 *+*가 아닌 `*`를 사용함으로써 교호작용을 함께 살펴볼 수 있다.  
+
+```{r}
+## nested
+abc.BwA.aov <- aov(y ~ A/B, data = abc)
+anova(abc.BwA.aov)
+coef(abc.BwA.aov)
+contrasts(abc$A)
+contrasts(interaction(abc$A,abc$B))
+model.matrix(abc.BwA.aov)
+```
+
+**nested**의 경우, **/**형태의 Formula를 사용함으로써 nested된 분산분석의 결과를 살펴볼볼 수 있다.  
+
+```{r}
+## doublyindexed
+abc.AB.aov <- aov(y ~ AB, data = abc)
+anova(abc.AB.aov)
+coef(abc.AB.aov)
+contrasts(abc$B)
+model.matrix(abc.AB.aov)
+```
+
+
+```{r}
+model.matrix(~A,data=abc,
+             contrasts=list(A=contr.treatment))
+```
+
+`model.matrix`의 option인 `contr.treatment`를 사용한 결과, **ABC**데이터의 A변수에 대한 contrast matrix를 살펴볼 수 있다.  
+
+```{r}
+model.matrix(~A,data=abc,contrasts=list(A=contr.sum))
+```
+
+`contr.sum`을 지정해준 결과, 절편을 제외한 matrix의 열에 대하여 누적 합이 0이 되도록 조합을 만들어준다.  
+
+### 13.5.1 Crossing of Two Factor
+
+```{r}
+old.width <- options(width=70)
+
+mm <- model.matrix(~A*B,data=abc,
+                   contrasts=list(A=contr.helmert,
+                                  B=contr.helmert))
+mm[,]
+```
+
+`contr.helmert`을 지정해준 결과, 각 조합에 대한 contrast matrix의 행의 합이 0이 되도록 만들어진 것을 살펴볼 수 있다.  
+
+
+```{r}
+print(AA <- mm["s.y",c("A1","A2")])
+
+print(BBB <- mm["s.y",c("B1","B2","B3")])
+
+outer(AA,BBB)
+
+as.vector(outer(AA,BBB))
+
+mm["s.y",c("A1:B1","A2:B1","A1:B2","A2:B2","A1:B3","A2:B3")]
+
+options(old.width)
+```
+
+## 13.6 Sequential and Conditional Tests
+
+자료에 2개 이상의 종속변수가 존재하는 경우, 아래와 같은 분석방법을 통해서 실험을 진행할 수 있다.  
+
+```{r}
+match(dimnames(coef(summary.lm(turkey3.aov)))[[1]],dimnames(turkey3.aov$x)[[2]])
+
+turkey[c(1,7,13,19,25),]
+
+turkey3.coef <- summary.lm(turkey3.aov)$coef
+
+turkey3.x <- turkey3.aov$x
+
+term.names <- c("(Intercept)","trt.vs.control","additive","amount","additive:amount")
+
+dimnames(turkey3.coef)[[1]] <- term.names
+dimnames(turkey3.x)[[2]][c(1,2,4,8,12)] <- term.names
+
+zapsmall(turkey3.coef)
+
+turkey3.x[c(1,7,13,19,25),c(1,2,4,8,12)]
+```
+
+
+### 13.6.2 Example-Application to Clover Data
+
+
+```{r}
+data("rhiz.clover")
+
+stripplot(Npg~strain|comb,data=rhiz.clover)
+
+rhiz.clover2 <- rhiz.clover[-c(7,9,10),]
+stripplot(Npg~strain|comb,data=rhiz.clover2)
+```
+
+**rhiz.clover**대해서 **comb**를 그룹변수로 하고 **strain**과 **Npg**의 관계를 살펴보기 위해 `stripplot`함수를 사용하였다.  
+
+```{r}
+library(car)
+
+## drop two obervation to illustrate Type 2 Eand 3 sums of squares
+## I am dropping the non-outlier observations in 300k5
+cloverD <- rhiz.clover[-c(7,9,10),]
+
+old.opt <- options(show.signif.stars = FALSE, digit=3)
+
+cloverDsc.aov <- aov(Npg ~ strain*comb,data=cloverD,contrasts = list(strain=contr.sum,comb=contr.sum))
+
+anova(cloverDsc.aov)[,c(2,1,4,5)]
+```
+
+분산분석 결과, 두 개의 관측치를 제외한 *cloverD*데이터에 대해서 주효과와 교호작용이 모두 유의한 결과를 가지는 것을 확인할 수 있다.  
+***
+
+`Anova`함수에서 `type = 2` 옵션을 지정하게 되면 불균형한 데이터셋에 대해서 Method of Fitting Constants의 test 결과를 확인할 수 있다.  
+
+```{r}
+Anova(cloverDsc.aov,type=2)
+```
+
+***
+
+`type = 3` 옵션을 지정할 경우, Weighted Sqaures of Means의 test 결과를 확인할 수 있다.  
+
+```{r}
+Anova(cloverDsc.aov,type=3)
+```
+
+***
+
+아래의 분석은 위와 같은 분석이지만 교호작용에 대해서 **comb**변수가 먼저 오도록 설정하였다.  
+결과가 동일한 것으로 보아 교호작용 Formula를 지정할 때, 순서는 크게 상관없는 것을 확인할 수 있다.  
+
+```{r}
+cloverDsc.aov <- aov(Npg ~ comb*strain,data=cloverD,contrasts = list(strain=contr.sum,comb=contr.sum))
+
+anova(cloverDsc.aov)[,c(2,1,4,5)]
+
+Anova(cloverDsc.aov,type=2)
+
+Anova(cloverDsc.aov,type=3)
+
+options(old.opt)
+```
+
+### 13.6.3 Example-Application to Body Fat Data
+
+```{r}
+library(HH)
+data("fat")
+fat.lm <- lm(bodyfat ~ abdomin+biceps,data=fat)
+
+## regression coefficients
+coef(summary(fat.lm))
+
+## sequential sums of squares (Type 1)
+anova(fat.lm)
+
+## weighted squares of means (Type 3)
+Anova(fat.lm,type="3")
+
+## model sum of squares
+var(fat$bodyfat) * (nrow(fat)-1) - sum(fat.lm$residuals^2)
+```
+
+## Apendix: What is Residual?
+
+흔히, 우리는 잔차와 오차를 많이 헷갈리고 구분하지 못하는 경우가 있다.  
+
+**오차**는 모집단으로부터 회귀식을 얻었을 때, 회귀식의 예측값과 실제 관측값의 차이를 말한다.   
+**잔차**는 표본집단으로부터 회귀식을 얻었을 때, 회귀식의 예측값과 실제 관측값의 차이를 말한다.  
+
+우리가 분석을 진행함에 있어 모집단의 자료들을 이용하여 분석하는 경우는 드물다.  
+모집단이 셀 수 없이 큰 집단인 경우가 많기 때문에 대부분의 분석에서 표본을 이용한다.  
+그렇기 때문에, 우리는 오차보다 잔차라는 용어를 더 많이 접하게 되는 것이다.  
+
+이러한 잔차를 통해서도 우리는 유용한 정보를 얻을 수 있다.  
+
+![Residual plot by Anova](https://2.bp.blogspot.com/-sYvS3hNj-FA/VrS-2IE5mjI/AAAAAAAAAgM/CvRpelwTASc/s1600/2016-02-05%2B13%253B31%253B44.PNG){width=50%}
+
+사진 출처: **http://webr4statistics.blogspot.com/2016/02/1.html**  
+
+*첫 번째 패널*은 모형의 **모형의 선형성**을 살펴볼 수 있다.  
+빨간 실선은 잔차의 추세를 나타내며, 발깐 실선이 점선에서 크게 벗어난다면 예측값에 따라 잔차가 크게 달라지는 것을 말한다.  
+
+*두 번째 패널*은 **잔차의 정규성**을 살펴볼 수 있다.  
+점들이 직선형태에 가까울 수록 정규분포를 따른다고 할 수 있다.  
+
+*세 번째 패널*은 **잔차의 등분산성**을 살펴볼 수 있다.  
+등분산성은 분산이 동일하다는 가정으로 빨간색 실선이 수선을 그리면 등분산성을 만족한다고 할 수 있다.  
+
+*네 번째 패널*은 자료의 극단값을 나타내는 그래프이다.  
+숫자가 옆에 있는 점은 자료 안에서 극단값을 나타내는 행의 번호라고 할 수 있다.  
+
+
+**잔차의 독립성**의 경우 R에서 **Durbin-Watson test**를 통해 가정이 성립하는지를 살펴볼 수 있다.  
+
+# References {-}
+
+[잔차와 오차의 차이](https://bskyvision.com/642)  
+[잔차 분석](https://mindscale.kr/course/basic-stat-r/residuals/)  
+[고정효과, 임의효과](https://abluesnake.tistory.com/4)
+[nested](http://www.statedu.com/QnA/79640)
+***
+
+# Summary of Chapter13
+
+* **삼원분산분석(Three-way ANOVA)**는 우리가 살펴본 2개의 분산분석과 달리 설명변수가 3개 이상인 경우의 집단 간 평균 차이를 확인하기 위해 진행되는 분석방법을 말한다.  
+
+* 우리는 앞선 챕터에서, 이원분산분석을 진행할 때, 설명변수간 교호작용을 고려해야 한다고했다. 따라서, 삼원분산분석의 경우에도 주효과만 살펴보는 것이 아니라 설명변수 간 상호효과를 살펴보기 위해 교호작용을 확인해야 한다.
+
+* 단, **삼원분산분석**에서 설명변수가 3개일 경우의 교호작용은 3개, 4개일 경우에는 6개의 교호작용 등 설명변수가 늘어날수록 교호작용도 늘어나기 때문에, 너무 많은 설명변수를 사용하기 보다는 적절한 설명변수를 사용하는 것이 좋다.
+
+* **고정효과**는 요인의 수준을 실험자가 직접 지정한 경우를 일컫는다. 이러한 고정 요인이 포함된 모형을 **고정효과 모형(Fixed effects model)** 모델이라고 한다. 요인의 수준을 직접 지정하기 때문에 실험된 요인의 수준에 대해서만 비교가 가능하며, 통계 추론이 실험에 사용된 수준에 제한된다.
+
+* **랜덤효과**는 요인의 수준이 임의로 추출된 경우를 의미한다. 이러한 랜덤 요인이 포함된 모형을 **랟넘효과 모형(Random effectss model)**이라고 한다. 고정효과 모형과 달리 요인의 수준이 임의로 추출되기 때문에 해당 요인의 수준으 넘어 모집단으로 해석을 확대할 수 있다.
+
+* **혼합효과 모형(Mixed effcets model)**은 고정 요인과 랜덤 요인이 모두 존재하는 모형을 말한다.
+
+* **nested**는 실헙계획법의 용어 중 하나로, 2개의 설명변수가 있다고 할 때, 인자의 수준이 독립정으로 정해지는 것이 아닌, 다른 인자의 수준이 정해진 다음에 정해지는 것을 의미한다.  
+
+* `R`에서 삼원분산분석 또한 `aov`함수를 이용하여 분석을 진행할 수 있다. Formula는 `(종속변수 ~ 설명변수 + 설명변수 + 설명변수,data)`의 형태로 지정하게 되면 주효과에 대한 평균 차이 결과만을 보여주고 `(종속변수 ~ 설명변수 * 설명변수 * 설명변수,data)`의 형태로 input을 지정하게 되면 주효과와 더불어 주효과간 교호작용 효과를 확인할 수 있다.
+
+***

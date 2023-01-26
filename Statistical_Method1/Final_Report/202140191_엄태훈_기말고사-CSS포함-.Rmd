@@ -1,0 +1,5352 @@
+---
+title: "통계방법론1 실습코드 정리"
+author: "202140191 엄태훈"
+date: 2021-06-12(SAT)
+output:
+  html_document:
+    code_folding: show
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 10
+    highlight: haddock
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+  word_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+<body style="background-color:#FFFFE6">
+<style type="text/css">
+  body{
+     font-size: 16px;
+     font-family: 맑은 고딕
+  }
+  td{
+     font-size: 16px;
+     font-family: 맑은 고딕
+  }
+  code.r{
+    font-size: 16px;
+    font-weight: bold;
+    font-family: 맑은 고딕
+  }
+  pre {
+    font-size: 14px
+    font-family: 맑은 고딕
+  }
+  h1,h2,h3,h4,h5,h6{
+    font-family: 맑은 고딕;
+  }
+  h1{
+    font-size: 22pt;
+  }
+  h2{
+    font-size: 20pt;
+  }
+  h3{
+    font-size: 18pt;
+  }
+</style>
+
+<br>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+본 Markdwon은 가천대학교 일반대학원 응용통계학과 고승곤 교수님의 통계방법론1 수업(2021.03.06 ~ 2021.06.05)내용을 정리한 것이다.  
+
+설명하고자 하는 내뇽과 본 Markdown의 목차는 다음과 같다.  
+
+|챕터  | 제목|    수업날짜|
+|:----------|------------:|----------------:|
+|Chapter2|Data and Statistics|2021.03.13|
+|Chapter3|Statistics Concepts|2021.03.13|
+|Chapter4|Graphs|2021.03.20|
+|Chapter5|Introductory Inference|2021.03.27~2021.04.03|
+|Chapter15|Bivariate Statistics—Discrete Data|2021.04.10|
+|Chapter6|One-Way Analysis of Variance|2021.04.17|
+|Chapter7|Multiple Comparisons|2021.05.01|
+|Chapter12|Two-Way Analysis of Variance |2021.05.08|
+|Chapter13|Design of Experiments - Factorial Desings|2021.05.15|
+|Chapter8|Linear Regression by Least Squares|2021.05.22|
+|Chapter9|Multiple Regression - More than One Predictor|2021.05.22|
+|Chapter10|Multiple Regression - Dummy Variables,Contrasts,and Analysis of Covariacne|2021.06.05|
+
+***
+
+# Chap2 Data and Statistics  
+
+통계의 역사는 꽤나 오래된 역사를 가지고 있지만, 본격적으로 통계학이라는 분야가 생겨난 것은 약 100~200년이라고 할 수 있다.   
+과거에 통계학 분야는 따로 하나의 분야로 분류되지 않고, 통계는 대부분 수학의 일종으로 생각되었다.  
+
+이러한 통계학은 현대사회에서 가장 핫한 주제 중 하나인 빅데이터와 연관되어 중요한 학문 중 하나로 활발히 연구되고 있다.   
+
+한 정의에 따르면, 통계는 데이터로부터 결론을 모으고 분석하고 그리기 위한 기술이라고 설명되고 있다.  
+
+통계 연구는 실험, 설문조사, 과거부터 쌓여온 데이터들 등의 관측치들을 모으고 요약하는 데에 크게 관련이 있다. 이러한 요약을 통해서 조사자는 폭넓은 타당성을 가지는 결과를 그릴 수 있다.   
+
+
+## 2.1 Types of Data
+- Count data: 관측치가 음이 아닌 정수 값만 취할 수 있는 데이터이다. 
+예를 들어, 동전 던지기에서 앞면의 개수 = {0,1,2,3...} 같은 데이터를 말한다.  
+
+- Categorical data: 각각의 데이터가 뚜렷하여 범주로 나눌 수 있는 데이터이다.  
+명목형 변수, 클래스 변수, 팩터라고도 불리며, 다양한 범주 또는 범주형 변수의 클래스를 수준이라고 부른다.  
+Ex) 사람의 성별, 혈액형
+
+```{r}
+bloodtype = c("A","B","AB","O","AB","B")
+data.frame(bloodtype)
+```
+
+
+- Ordered data: 데이터를 순위, 순서로 나열할 수 있는 데이터를 말한다.  
+Ex) 대학교의 학점, 올림픽 순위
+
+
+```{r}
+country = c("KOREA","USA","UK","RUSSIA","JAPAN")
+rank = as.numeric(c(1,3,5,4,2))
+data.frame(country,rank)
+```
+
+
+- Interval Data: 데이터의 값이 그들 사이에 구간으로 나타낼 수 있지만 비율 관계는 없는 데이터를 말한다.  
+EX) 온도  
+```{r}
+temp = c(36.0,18.0,36.0,28.0,43.0)
+data.frame(temp)
+```
+
+
+- Ratio Data: 절대적 기준인 0이 존재하고 숫자 간의 비율이 산술적 의미를 가지는 데이터를 말한다.  
+EX) 키, 몸무게  
+```{r}
+Name = c("JAMES","ALICE","JOHN","JANE","ANNA")
+Height = c(175,160,183,165,185)
+Weight = c(67,45,70,50,74)
+data.frame(Name,Height,Weight)
+```
+
+
+## 2.2 R 프로그램에서 데이터 사용하기 
+
+R에서는 기본적으로 프로그램들 안에 내장돼 있는 데이터들이 있다.  이러한 데이터들은 특정 패키지를 불러오지 않고도 사용할 수 있거나, 특정 패키지를 불러와야 사용가능하다.  
+
+기본적으로 R에 내장돼 있는 데이터들은 `data(데이터명)`을 입력하고 *데이터명*을 입력하면 불러올 수 있다.  
+
+
+
+## 2.3 특정 패키지 없이 데이터 불러오기
+
+*iris* 데이터는 특정 패키지를 불러오지 않아도 기본적으로 사용 가능한 꽃의 정보에 대한 데이터이다.  
+
+```{r}
+data(iris)
+head(iris,10)
+```
+
+
+## 2.4 특정 패키지의 데이터 불러오기  
+
+특정 패키지의 데이터를 불러오고자 하는 경우, 먼저 패키지를 설치하고 로드하는 과정을 거쳐야한다.  
+`install.packages("패키지명")`을 통해 패키지를 설치한다.  
+! 이때, 반드시 *"패키지명"*으로 해야한다. 패키지명에 ""을 붙이지 않으면 패키지 이름을 글자로 인식을 못하기 때문이다.  
+
+패키지 설치를 완료하면, `library(패키지명)`을 통해 앞에서 설치한 패키지를 로드한다.  
+-> *library*의 경우 "패키지명", 패키지명 두 방법 모두 인식한다.  
+
+R에서 HH패키지에 들어있는 crime데이터를 불러와보자.    
+HH패키지의 crime데이터는 음주자와 비음주자의 범죄 빈도를 비교한 데이터이다.  
+
+
+```{r}
+#install.packages("HH")
+library(HH)
+data(crime)
+crime
+```
+
+## 2.5 reshape2 패키지의 활용  
+
+분석을 진행함에 있어 가장 시간을 많이 할애해야 하는 부분이면서 어려운 부분 중 하나가 바로 데이터를 전처리하는 것이다.  
+데이터 전처리는 분석 프로젝트의 80%를 차지할 정도로 매우 중요한 부분이다.  
+*데이터 전처리(Preprocessing)*은 데이터를 모델이 이해할 수 있는 형태로 변환 즉, 특정 분석에 적합하게 데이터를 가공하는 작업이다.   
+대부분의 데이터셋은 생각하는 것만큼 분석을 하기에 편리하게 정렬되어 있지않기 때문에, 이러한 데이터 전처리 과정은 필수적 확인사항이다.  
+
+R에서는 다양한 데이터 전처리 패키지를 제공하는데 그 중에서, `dplyr`, `reshpae2`패키지가 상당히 좋은 성능을 가지고 있다.  
+
+`reshpae2`패키지는 데이터의 모양을 변환 할 때 유용하다.  
+
+```{r}
+# reshape2 패키지를 설치하고 로드한다.
+# install.packages("reshape2")
+library(reshape2)
+
+wide <- data.frame(Names=LETTERS[1:5],x=1:5,y=6:10)
+wide
+```
+
+*reshape2* 패키지에서는 `melt`와 `dcast`함수가 가장 많이 쓰인다.  
+
+`melt`함수는 여러개의 칼럼을 한 컬럼에 세로로 정리할 때 사용된다.  
+특정 변수를 식별자로 설정하고 나머지 변수들을 측정값의 칼럼으로 바꿀 수 있다.  
+
+
+melt(데이터,id.vars,measure.vars)  
+- *데이터*: melt에 적용할 데이터를 넣는다.  
+- *id.vars*: 식별 칼럼명을 넣는다. 즉, 여러개의 칼럼이 하나로 만들어 질때 빼고싶은 칼럼명을 넣는다.  
+- *measure.vars*: 하나의 칼럼으로 만들 여러개의 칼럼을 넣는다. id.vars에 칼럼을 지정해주면, measure.vars를 지정하지 않아도 자동으로 남은 칼럼은 measure.vars에 들어가게 된다.  
+
+
+```{r}
+long <- melt(wide,id.vars="Names") 
+long 
+```
+
+
+`id.vars = "Names"`로 지정하여 Names를 식별자로 하고 나머지 *x*,*y*칼럼을 variable이라는 한 칼럼으로 정리를 하였다.  
+`id.vars`를 입력하였기 때문에, `measure.vars`에 자동으로 *x*,*y*칼럼이 들어간것을 확인할 수 있다.  
+
+
+```{r}
+melt(wide,id.vars=c("Names","x"))
+```
+
+
+식별자를 2개로 설정하는 경우, c()를 이용하여 넣어줘어야 한다.  
+식별자가 *Names*,*x* 두 개로 설정되어 *y* 칼럼에 대해서만 측정값을 나눈 것을 확인할 수 있다.  
+
+***
+
+`melt`함수가 여러개의 칼럼을 하나의 칼럼으로 좁게 변환했다면, `dcast`함수는 하나의 칼럼을 여러개의 칼럼으로 넓게 변환할 수 있다.  
+
+
+dcast(데이터,Formula,value)
+- *데이터*: dcast 함수를 적용할 데이터를 넣는다.  
+- *Formula*: *식별 칼럼명 ~ 하나로 뭉친 칼럼명*의 형태로 넣는다.  
+- *value:* 데이터의 값을 가지고있는 칼럼을 넣는다.  
+
+```{r}
+wideagain <- dcast(data=long,Names~variable,value="value") 
+wideagain
+```
+
+`dcast`함수를 통해 *Names* 변수를 식별자로 고정하고 *variable*변수를 여러개의 칼럼으로 구분되게 Formula를 설정하였다.  
+데이터의 값을 가지고 있는 *value*를 value로 설정한 것을 확인할 수 있다.  
+`melt`함수를 통해 하나의 칼럼으로 변환했던 데이터가 `dcast`함수를 통해 여러개의 칼럼으로 구분된 것을 확인할 수 있다.  
+
+## 2.6 dplyr 패키지의 활용
+
+`dplyr`패키지의 경우 데이터 전처리와 조작에서 최고의 성능을 가진다고 해도 과언이 아니다.  
+많은 R 코드를 살펴보면 *%>%*라는 표시를 심심치 않게 볼 수 있는데, 이는 dplyr 패키지에서 사용되는 것이다.  
+%>%를 통해 스텝을 정리해주기 때문에, 가독성 또한 높아지는 것을 확인할 수 있다.  
+dplyr 패키지를 사용하기 위해서는 보통 원하는 데이터를 입력한 후, %>%(파이프라인)을 해주고 전처리 작업을 진행한다.  
+
+`dplyr`의 *select* 함수를 이용하면 데이터에서 원하는 칼럼만을 추출하여 가져올 수 있다.  
+
+```{r}
+library(dplyr)
+data(iris)
+
+iris %>%
+  select(Sepal.Width,Sepal.Length)
+```
+
+`dplyr`의 *filter*함수를 이용하면 조건에 맞는 행만을 추출하여 가져올 수 있다.
+
+```{r}
+iris %>% 
+  filter(Sepal.Width >3)
+```
+
+`dplyr`의 *group_by*함수는 원하는 그룹 변수에 따라 계산을 할 수 있게 해준다.  
+그룹으로 묶은 후, *summarise* 함수를 통해, 그룹에 따른 원하는 통계량을 계산할 수 있다.  
+
+
+```{r}
+iris$Sepal.Width
+iris %>% 
+  group_by(Species) %>% 
+  summarise(Sepal_Width_m = mean(Sepal.Width),
+            Sepal_Length_m = mean(Sepal.Length))
+```
+
+*group_by*를 통해 iris 데어터의 꽃의 종류에 따라 데이터를 묶은 후, 
+*summarise*를 통해 꽃의 종류별로 평균을 구한 것을 확인할 수 있다.  
+
+
+```{r}
+iris %>% 
+  group_by(Species) %>% 
+  summarise(count=n())
+
+```
+
+*summarise(count=n())*을 지정해주면 그룹에 따른 빈도 수를 구할 수도 있다.  
+
+***
+
+## 2.7 결측치의 처리
+
+NA가 하나라도 데이터의 존재하면 수치적인 계산을 진행하지 못한다.  
+
+```{r}
+ab = c(1:6,NA)
+mean(ab)
+```
+
+이때,`na.rm =TRUE` 옵션을 통해 결측치를 제거하고 계산을 진행할 수 있다.    
+
+```{r}
+mean(ab,na.rm=TRUE)
+```
+
+`na.rm = TRUE` 옵션을 지정해준 결과, 결측치가 자동으로 제거되고 평균을 구하는 것을 알 수 있다.  
+
+***
+
+계산을 진행하기 전, NA값을 제거하고 싶은 경우, `na.omit()`함수를 이용하여 결측치를 제거할 수 있다.  
+
+```{r}
+cd = na.omit(ab)
+cd
+```
+
+***
+
+## Summary of Chapter2
+
+* 현대는 과거보다 데이터가 셀 수 없이 늘어난 **빅데이터의 시대**라고 불리고 있다. 이러한 시대에서 이론적인 지식도 상당히 중요하게 여겨지고 있지만, 이론적 지식과 얻어진 데이터를 분석하고 정리하는 능력 또한 매우 중요한 능력 중 하나로 여겨진다. 따라서, 이론적인 지식과 **R,Python,SPSS,SAS**등과 같은 통계적인 분석 프로그램의 지식을 쌓는 것도 상당히 중요한 부분을 차지하고 있다.  
+
+* 일반적으로 통계에서 측정척도는 **명목척도, 서열척도, 구간척도, 비율척도** 4가지로 나뉜다.  
+-> **명목척도**: 측정대상을 고유한 특성에따라 분류한 것.  
+-> **서열척도**: 측정대상을 순서 혹은 순위에 따라 분류한 것.  
+-> **구간척도**: 측정대상이 가지고 있는 간격으로 수치를 부여한 것. 절대0점이 존재하지 않는다.  
+-> **비율척도**: 측정대상의 비율에 대한 수치를 부여한 것. 절대0점이 존재한다.  
+
+* 분석을 진행하고자 할때, 우리가 사용할 데이터의 형태가 분석을 진행하기에 적합하지 않은 경우가 종종 발생한다. 이러한 문제를 해결하는 방법이 바로 **데이터 전처리(Preprocessing)**이다. **Preprocessing**은 데이터를 분석에 적용할 수 있게 적합한 형태로 바꾸는 과정을 말한다.  
+
+* 데이터 전처리 과정은 분석 프로젝트 시간 중, 70~80%의 시간을 소비하는 작업이라고 할 정도로 가장 중요한 작업으로 여겨진다. 전처리를 어떻게 진행하는지에 따라서 분석 결과가 달라질수도 있다.    
+
+* 데이터 전처리 중 고려해야 하는 요소 중 하나이며, 분석을 방해하는 요소로 **이상치, 결측치**가 있다. **이상치**는 데이터가 있지만 평균값보다 훨씬 높은 값을 가지거나 낮은 값을 가지는 데이터를 말한다. 이상치는 극단적인 값을 갖기 때문에 분석의 결과에 아주 큰 영향을 주기도한다. 
+
+* **결측치**는 이상치와는 다르게 어떠한 이유로 데이터가 존재하지 않는 값을 말한다. 보통 R 혹은 python 언어에서 결측치가 있는 데이터를 불러올 경우, **NA,NAN**으로 표시된다.
+
+* 결측치와 이상치의 경우 일반적으로 제거하는 것이 해결방법으로 여겨진다. 하지만, 데이터가 매우 적은 경우에는 데이터를 함부로 제거해서는 안 된다. 따라서 이러한 경우, 평균값 혹은 적절한 데이터로 대체하는 방법이 있다. R에서는 `mice`함수를 지원하는데, 이 함수는 시뮬레이션을 통해 결측치에 대해서 적절한 값을 채워 넣어준다.
+
+
+***
+
+
+# Chap3 Statistics Concepts
+
+
+*평균(Mean)*은 모든 관측값을 더해서 관측값 개수로 나눈 것이다. 특히, 조사자들이 모평균을 추정하고자 할 때 가장 흔하게 사용된다.  
+즉, 평균은 관심특성의 변수라고 할 수 있다.  
+표본평균은 다음과 같은 식을 사용하여 구할 수 있다.  
+
+***
+
+$$
+\overline{x} = \frac {\sum_{i=1}^n x_i}{n}
+$$
+
+
+*분산(Variance)*은 편차를 제곱한 후 모두 더해서 전체 자료의 개수로 나눠준 값을 말한다.  즉, 편차의 제곱합의 평균이라고 말할 수 있다.  
+
+하지만, 편차의 제곱을 평균한 값이므로 자료의 단위가 제곱으로 바뀌어 기존의 자료와 단위가 달라지는 문제가 있다.  
+표본분산은 다음과 같은 식을 사용하여 구할 수 있다.  
+
+***
+
+$$
+s_x^2 = \frac {\sum_{i=1}^n (x_i - \mu)^2}{n-1}
+$$
+
+
+*표준편차(Standard error)*는 자료의 산포도를 나타내는 수치로 분산에 제곱근을 취한 값이다.  측정값이 평균으로부터 멀리 떨어져 있을수록 표준편차는 커지게 된다.  
+분산으로 인해 달라진 단위를 해결하기 위해 등장한 개념이 바로 표준편차이다.  
+
+표준편차는 분산에 제곱근을 취하기 때문에 제곱으로 인해 변했던 단위를 원래대로 바꿔준다.  
+표본 표준편차는 다음과 같은 식을 사용하여 구할 수 있다.  
+
+***
+
+$$
+s_x = \sqrt\frac {\sum_{i=1}^n (x_i - \mu)^2}{n-1}
+$$
+
+*상관계수(Correlation)*란 두 변수 x,y 사이에 상관관계 정도를 나타내는 수치이다.  
+x가 증가할 때, y가 증가하면 양의 상관관계이고 x가 감소할 때 y가 감소하면 음의 상관관계이다.  
+
+$$
+r = \frac{S_{xy}}{\sqrt {S_{xx}}\sqrt{S_{yy}}}
+$$
+
+R에서는 `cor`함수를 통해 상관계수를 구할 수 있다.  
+`corrplot`을 통해 상관계수의 그림을 그릴수도 있다.  
+
+```{r}
+data(iris)
+cor(iris[,c(1:4)])
+```
+
+Seapl.Length와 Petal.Length, Petal.Width는 양의 상관관계를 가지며, Sepal.Length와 Sepal.Width는 음의 상관관계를 가지는 것을 확인할 수 있다.    
+
+```{r}
+library(corrplot)
+corrplot(cor(iris[,c(1:4)]),method = "number")
+```
+
+***
+
+## 3.1 Histogram
+*히스토그램*은 도수분포표를 시각적으로 표현한 막대그래프이다.  
+가로축에는 계급을, 세로축에 도수를 취한다.  
+각 막대의 높이는 해당 계급에 포함되는 자료의 개수를 의미한다.  
+
+
+R에서는 `hist(연속형 데이터)`를 통해 히스토그램을 그릴 수 있다.    
+- *xlab*: x축의 이름을 설정한다.  
+- *ylab*: y축의 이름을 설정한다.  
+- *main*: 그래프의 title을 설정한다.  
+
+
+```{r}
+library(HH)
+b = c(1:20)
+freq = sample(b,15,replace = TRUE)
+hist(freq,xlab="Age",ylab="Frequency",main="Histogram of Age")
+```
+
+
+## 3.2 Boxplots  
+
+`quantile`함수를 이용하면 데이터의 분위수를 확인할 수 있다.  
+
+```{r}
+data(tv)
+quantile(tv$male.life.exp) 
+```
+
+`quantile`함수를 이용하고 `probs`옵션을 이용하면 원하는 위치의 사분위수를 확인할 수 있다.  
+
+```{r}
+# 90% 사분위수를 찾는다.  
+quantile(tv$male.life.exp,probs=0.9) 
+```
+
+*Boxplot*은 특정한 수치 값을 기반으로 그려진, 자료 특성이 요약된 그래프이다.  
+Q1, 중앙값, Q3, 최댓값, 최솟값의 정보를 한 그림 안에 보여준다.  
+박스안의 가운데 실선은 중앙값을 나타내며, 박스 위의 선과 아래 선은 각각 Q3, Q1을 나타낸다.  
+위쪽 아래쪽 수염은 각각 최댓값 최솟값을 나타낸다.  
+
+`Boxplot(연속형 데이터)`를 이용하여 그릴 수 있다.  
+
+
+```{r}
+boxplot(iris$Sepal.Length)
+```
+
+
+`horizontal = T`옵션을 이용하면 Boxplot을 회전시켜 나타낼 수 있다.  
+
+```{r}
+boxplot(iris$Sepal.Length,horizontal = T) 
+```
+
+또한, R에서는 다중 boxplot을 그릴수도 있다. 
+이러한 경우에는 `boxplot(그룹 데이터 ~ 연속형 데이터)`의 Formula 형태를 지정해주면 다중 boxplot이 그려진다.  
+
+
+```{r}
+data(mtcars)
+boxplot(mtcars$mpg~mtcars$cyl)
+```
+
+Formula의 형태로 지정해준 결과, cyl의 갯수에 따라서 mpg에 대한 boxplot을 그리는 것을 확인할 수 있다.  
+
+***
+col옵션을 이용하여 box의 색깔 또한 지정해줄 수 있다.  
+
+```{r}
+data(mtcars)
+boxplot(mtcars$mpg~mtcars$cyl,col=c("red","blue","green"))
+```
+
+***
+
+## 3.3 The Binomial Distribution
+
+*베르누이* 시행은 결과가 두 가지 중 하나로만 나오는 실험이나 시행을 일컫는다.  
+성공확률이 p인 베르누이 시행을 n번 반복하는 경우, 성공한 횟수를 확률 변수 X라고 해보자.  
+이 확률변수 X의 확률변수를 모수가 (n,p)인 *이항분포*라고 한다.  
+
+
+$$
+X \sim B(n,p)
+$$
+
+`pbinom(size,prob,q)` 함수를 이용하면 이항분포의 누적확률 값을 계산할 수 있다.  
+- *size*: n의 크기를 나타낸다.    
+- *prob*: 성공 확률을 나타낸다.  
+- *q*: 구하고 싶은 누적 성공 횟수  
+
+
+`dbinom(size,prob,x)` 함수는 이항분포의 확률값을 계산한다.  
+- *size*: n의 크기를 나타낸다.    
+- *prob*: 성공 확률을 나타낸다.  
+- *x*: 성공 횟수를 나타낸다.    
+
+
+```{r}
+pbinom(size=15,prob=.4,q=6)
+
+
+dbinom(size=15,prob=.4,x=6) 
+```
+
+## 3.4 NTplot  
+
+`NTplot`함수는 정규분포 및 t분포에 대한 검정과 신뢰 구간을 나타내는 그림을 그린다.  
+`shiny = TRUE`옵션을 지정하면 모델의 파라미터를 변경에 따른 검정과 신뢰구간의 변화를 살펴볼 수 있다.  
+
+
+```{r}
+NTplot(shiny=FALSE)
+```
+
+- *mean0*: 모평균의 값을 지정한다.  
+- *xbar*: 표본평균의 값을 지정한다.    
+- *sd*: 모표준편차를 설정한다. (표본의 크기를 설정하면 자동으로 표준오차를 구해준다.)  
+- *n*: 표본의 크기를 설정한다.  
+
+
+```{r}
+NTplot(mean0=0,xbar=1,sd=1)
+```
+
+```{r}
+NTplot(mean0=0,xbar=1,sd=2,n=30)
+```
+
+
+## 3.5 Simple Random Sampling
+단순 무작위 추출법은 유한모집단에서 n개의 추출단위로 구성된 모든 부분집합들이 표본으로 선택될 확률이 같도록 설계된 표본추출방법이다.  
+R에서는 `sample` 함수를 통해 쉽게 단순 무작위 추출법을 진행할 수 있다.  
+
+`sample(데이터, 원하는 표본 수, replace)`
+`replace=FALSE`를 지정하면 비복원 추출을 진행한다.  
+
+```{r}
+a <- c(1:20)
+sample(a,10,replace=FALSE) 
+```
+
+`replace=TRUE`를 지정하면 비복원 추출을 진행한다.  
+```{r}
+sample(a,10,replace=TRUE)
+```
+
+
+## 3.6 Stratified Random Sampling
+모집단을 비슷한 성질을 갖는 2개 이상의 동질적인 층을 구분하고, 각 층으로부터 단순무작위추출방법을 적용하여 표본을 추출하는 방법이다.  
+단순 무작위 추출법과 달리 층화추출을 위해서는 sampling 패키지를 설치해야 한다.  
+`sampling` 패키지의 `strata` 함수를 통해 층화추출법을 할 수 있다.  
+
+`strata(data,startnames,size,method)`의 형태이다.  
+- *data*: 표본 추출을 원하는 데이터  
+- *startnames*: 표본 추출을 위해 나누고자 하는 층  
+- *size*: 각 층에서 뽑을 표본의 수  
+- *method*: 층화 추출에 이욜할 방법  
+
+*srswor*은 비복원 단순임의추출, *srswr*은 복원 단순임의 추출, *Poisson*은 포아송 추출, *Systematic*은 계통 추출방법을 의미한다.  
+
+`getdata(데이터,strata를 저장한 객체)`를 이용하여 데이터 프레임으로부터 그 표본의 데이터를 가져온다.  
+
+```{r}
+library(sampling)
+Sex <- c("M","F","M","M","M","F","F","M","F","M","M","F","F")
+Height <- c(177,160,180,182,183,170,165,172,186,181,167,159,155)
+Age <- c(20,22,23,21,22,24,20,28,24,23,21,24,26)
+dat <- as.data.frame(cbind(Age,Height,Sex))
+strat_sample<-strata(data=dat,stratanames = "Sex",size=c(3,3),method="srswor")
+
+strat_data <- getdata(dat,strat_sample) 
+strat_data
+```
+
+지정해준 옵션에 따라 층화추출이 적절하게 적용된 것을 확인할 수 있다.  
+
+*Prob*는 각 층에서 뽑힐 확률을 의미하고 *Stratum*은 층번호를 의미한다. (여기서 "M"은 1, "F"은 2)  
+
+
+## 3.7 Cluster Random Sampling  
+모집단을 조사단위 또는 집계단위를 모은 군집으로 나누고, 이들 군집들 중 일부의 군집을 추출한 후 추출된 군집에서 일부 또는 전부를 표본으로 추출하는 방법이다.  
+R에서는 집락랜덤추출법에 대한 패키지를 제공하지 않아 간단한 예제를 통해 방법을 코드로 구현해 보았다. 
+
+
+```{r}
+# AirPassengers 데이터는 1949~1960년대 까지의 월 별 비행기 탑승객 데이터이다.
+data(AirPassengers)
+
+
+AirPassengers <- data.frame(matrix(as.numeric(AirPassengers), ncol = 12, byrow = TRUE))
+colnames(AirPassengers) <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+rownames(AirPassengers) <- 1949:1960
+
+# 시계열 데이터를 데이터 프레임 형태로 바꾸어 주었다.
+
+df_1950s <- AirPassengers[c(1:4),]
+df_1955s <- AirPassengers[c(5:8),]
+df_1960s <- AirPassengers[c(9:12),]
+```
+
+
+집락추출법은 집단 내에서 이질적이고 집단 간 차이는 동질적이다.  
+1950년대 초반, 1950년대 중반, 1950년대 후반으로 데이터를 나누어 집단내에 1~3월:봄, 4~6월:여름, 7~9월:가을, 10~12:월:겨울로 들어가게 하였다.  
+
+따라서, 집단 내에서는 계절 별로 데이터가 있으므로 이질적이고 다른 집단과는 동질적이다.  
+
+```{r}
+# 나눠진 군집별로 각 2개의 데이터를 추출하였다.
+cluster<-sample(df_1950s,2,replace=FALSE)
+cluster1<-sample(df_1955s,2,replace=FALSE)
+cluster2<-sample(df_1960s,2,replace=FALSE)
+
+```
+
+
+## 3.8 Systematic Random Sampling  
+첫 번째 요소는 무작위로 선정하고 목록의 매번 k번째 요소를 표본으로 선정하는 표본추출 방법이다.  
+계통추출은 `doBy` 패키지의 `sampleBy` 함수를 이용한다.
+
+
+```{r}
+library(doBy)
+sampleBy(formula=~Species,frac=0.2,data=iris,systematic = TRUE)
+# formula를 통해 그룹 데이터를 지정한다.
+# frac을 통해 표본 추출의 비율을 정하고 systematic = TRUE를 통해 계통추출 여부를 결정한다.
+```
+
+
+## 3.9 density plot
+
+밀도함수의 그래프는 갖고 있는 데이터(x,y)를 이용해 plot을 그리면 쉽게 나타낼 수 있다.  
+
+```{r}
+x <- seq(-2,2,length=50)
+y <- dnorm(x)
+plot(x,y,type="l")
+```
+
+
+원하는 확률 구간을 색칠하고 싶은 경우 *xlim*,*ylim*에 대한 전처리를 진행한다.  
+그 이후에, `polygon` 함수를 이용하여 다각형으로 채워 넣으면 된다.  
+*polygon*함수의 *density*옵션은 색칠을 얼마나 진하게 할지의 정도를 나타낸다.  
+
+```{r}
+
+xlim <- x[x >= -1 & x <= 1] 
+ylim <- y[x >= -1 & x <= 1]
+
+
+xlim <- c(xlim[1],xlim,tail(xlim,1))
+ylim <- c(0,ylim,0)
+
+plot(x,y,type="l")
+polygon(xlim,ylim,density=25)
+
+```
+
+이산형 확률변수의 density plot은 다음과 같이 그릴 수 있다.  
+
+```{r}
+binom <- dbinom(0:8,size=8,prob=0.5)
+names(binom) <- c(0:8)
+barplot(binom,ylab="Probability",xlab="확률변수 X",main="Binomial Dist density plot",col="#FFA7A7")
+lines(binom)
+```
+
+***
+
+이항분포에서 n의 크기가 커짐에 따라 어떻게 모양이 변하는지 살펴보자.  
+
+```{r}
+b1 <- dbinom(0:30,10,0.2)
+b2 <- dbinom(0:30,20,0.2)
+b3 <- dbinom(0:30,30,0.2)
+b4 <- dbinom(0:30,40,0.2)
+b5 <- dbinom(0:30,50,0.2)
+b6 <- dbinom(0:30,60,0.2)
+
+
+plot(b1,type="l",xlab='확률변수 X',ylab="Probability",col=1)
+lines(b2,type="l",col=2)
+lines(b3,type="l",col=3)
+lines(b4,type="l",col=4)
+lines(b5,type="l",col=5)
+lines(b6,type="l",col=6)
+legend("topright",c('n=10','n=20','n=30','n=40','n=50','n=60'),col=1:6,pch=1)
+```
+
+이항분포의 경우, 반복횟수가 커질수록 정규분포와 같은 종모형에 가까워지는 것을 확인할 수 있다.  
+
+***
+
+## Summary of Chapter3
+
+* 우리가 분석을 진행하는 경우, 분석하고자 하는 모든 데이터를 이용할 수는 없다. 따라서 전체 데이터 중, 대표성을 가지는 일부 데이터만 추출하여 분석을 진행하는 경우가 많다. 이렇게 전체 모집단으로 부터 추출한 임의의 데이터를 **샘플**이라고 한다.
+
+* **샘플**의 경우 모집단의 데이터를 대표할 수 있는 데이터로 구성이 되어있어야 한다. 따라서, 이러한 샘플을 추출하는 과정이 매우 중요한데, 이러한 과정을 **샘플링**이라고 한다. 대부분 샘플링은 모집단으로 부터 임의로 랜덤하게 추출하는 **단순무작위추출**방법이 가장 많이 쓰인다. 그 외에 **집락추출법**,**계층추출법**,**층화추출법**이 있다.
+
+* 데이터로 부터 **샘플**을 얻게 되면 샘플을 통해서 데이터의 특성을 알아보고 모수에 대한 추정이 필요하다. 이때, 많이 쓰이는 통계적 개념들이 바로 **평균, 분산, 표준편차**이다. **평균**은 관심변수의 특성으로 모든 관측값을 관측값의 갯수로 나눈것이며, **분산, 표준편차**는 데이터가 얼마만큼 퍼져있는지에 대한 산포를 나타낸다. **표준편차**는 산포의 단위를 동일하게 만들기 위해 제곱근을 해주는 것이 **분산**과 다른 점이다.
+
+* **히스토그램(Histogram)**은 도수의 분포를 그래프로 나타낸 것이다. 보통 가로는 계급, 세로는 도수를 뜻한다. 히스토그램은 도수가 어느 계급값에 집중되어 있는지 확인하는데에 쓰이기도 하지만, 데이터의 정규성을 확인하고자 할 때 쓰이기도한다. 데이터가 정규성을 따르게 되면 종모양을 띄게 되는데, 히스토그램을 통해 이러한 정보를 확인해 볼 수 있다. **
+
+* **박스그림(Boxplot)**은 연속형 자료로부터 최소값,Q1,Q2,Q3,최대값의 요약 수치를 표현하는 그래프이다. 또한, 이상치로 판단되는 점들에 대해서 출력해주기 때문에 연속형 데이터를 탐색함에 있어서 상당히 유용한 그래프 중 하나라고 할 수 있다.
+
+* **정규분포(Normal distribution)**은 연속 확률 분포 중 하나로, **가우시안 분포**라고도 불리며, 통계학에서 가장 널리쓰이는 연속 확률 분포 중 하나이다. 정규분포는 수집된 자료의 분포를 근사하는데에 자주 사용되는데, 이는 **중심극한정리**에 의하여 표본의 평균은 정규분포에 가까워지는 성질에 의한 것이다. **표준정규분포**는 평균이 0이고 표준편차가 1인 정규분포를 일컫는다.
+
+* 데이터의 표본의 수가 커질수록 평균쪽 데이터가 많아지기 때문에 가운데가 큰 종모양이되어 평균을 기준으로 대칭인 모양을 이루게 된다. 이렇게 종모양을 이루게 되면 데이터가 어느정도 한 쪽으로 쏠리지않고 대표성을 띄는 표본임을 알 수 있기 때문에 통계학에서 정규성을 중요하게 여기는 것이라고 할 수 있다.
+
+***
+
+# Chap4 Graphs  
+
+본격적으로 데이터를 분석하고 모델링을 진행하기에 앞서 데이터의 전처리는 가장 중요한 작업이다.  
+전처리와 더불어 중요한 작업이 바로 *EDA(Exploratory Data Analysis, 탐색적 자료 분석)*이다.  
+
+복잡한 데이터를 접했을 때 평균, 표준편차, 상관관계 같은 수치적인 값 보다는 항상 시각적인 요소를 통해 데이터를 살펴보는 것이 중요하다.  
+
+이번 Chapter4의 내용을 통해 다양한 시각화 기법을 알아보자.  
+
+## 4.1 What Is a Graph?
+- pch: 포인트의 모양  
+- col: 색깔 지정  
+- legend: 범례 지정 (*범례로 쓰이는 변수의 범주의 수만큼 색깔, 포인트 모양을 지정해야 한다.*)  
+legend의 경우 x,y축을 통해 위치를 지정할 수도 있지만, `bottom`,`topleft`,`corner`등의 명령어를 사용하여 간편하게 지정할 수도 있다.    
+
+```{r}
+library(HH)
+data(mtcars)
+# type="n"을 지정하면 비어있는 산점도를 그릴 수 있다.
+
+plot(x=mtcars$mpg,y=mtcars$qsec,xlab="mpg",ylab="qsec",main="Mtcars scatter plots",type="n")
+points(mtcars$mpg[mtcars$mpg<mean(mtcars$mpg)],mtcars$qsec[mtcars$mpg<mean(mtcars$mpg)],pch=3,col="blue")
+points(mtcars$mpg[mtcars$mpg>=mean(mtcars$mpg)],mtcars$qsec[mtcars$mpg>=mean(mtcars$mpg)],pch=1,col="red")
+legend("topright",legend=c("Under Avg","Up Avg"),pch=c(1,3),col=c("red","blue"))
+```
+
+## 4.2 R의 pch 옵션 종류
+R은 다양한 pch 옵션을 제공하고 있는데 숫자별 옵션은 다음과 같다.  
+![Pch option](https://t1.daumcdn.net/cfile/tistory/992957475DE7778C16){ width=40% }  
+
+출처: (https://rvisuall.tistory.com/18)  
+makhimh R 시각화 블로그  
+
+## 4.3 xyplot(조건부 산점도 그래프) 이용  
+
+위에서는 plot을 이용하여 산점도를 그려보았다.  
+R에서 제공하는 다양한 시각화 함수 중 xyplot을 이용해 그림을 그려보자.   
+xyplot은 lattice 패키지의 내장된 함수로 lattice 패키지를 설치해야 사용이 가능하다. `install.pacakges("lattice")`  
+xyplot은 plot 함수와 다르게 더 많은 옵션을 가지고 있고 조금 더 세심하고 부드럽게 그릴 수 있다.  
+
+- groups: 지정한 변수를 기준으로 그룹을 나눈다.  
+- auto.key: 범례의 위치를 알맞은 곳에 자동으로 생성한다. *(옵션을 TRUE로 지정할 경우)*
+
+```{r}
+library(lattice) 
+
+# 범례를 지정할 group 변수를 생성한다.
+mtcars$lable <- ifelse(mtcars$mpg>=mean(mtcars$mpg),"UP Avg","Under Avg")
+
+xyplot(mtcars$qsec~mtcars$mpg,main="Mtcars xyplots",
+       xlab="mpg",ylab="qsec",pch=c(3,1),col=c("#7685C8","#E16A92"),groups=mtcars$lable,
+       auto.key=TRUE)
+```
+
+
+Auto.key를 사용하지 않고 Key를 통해 직접 범례를 만들 수 있다.  
+`key=list((x,y,corner=(...),text=list(...),points=list(pch=...,col=...)))`  
+
+- (x,y,corner): 범례의 위치를 직접 지정한다.  
+- text=list(...): 범례에 들어갈 텍스트를 지정한다.  
+- points: 범례를 표시할 포인트의 종류, 색깔을 지정한다.  
+
+
+```{r}
+xyplot(mtcars$qsec~mtcars$mpg,main="Mtcars xyplots",
+       xlab="mpg",ylab="qsec",pch=c(3,1),col=c("#7685C8","#E16A92"),groups=mtcars$lable,
+       key=list(x=0.95,y=1.05,corner=c(1.1,0),
+         text=list(c("Under Avg","Up Avg")),
+            points=list(pch=c(3,1),col=c("#7685C8","#E16A92"))))
+
+```
+
+key를 통해 직접 지정한 위치에 범례가 표시된 것을 확인할 수 있다.  
+
+
+***
+
+## 4.4 Scatterplot Matrix
+xyplot(조건부 산점도 그래프)는 지정한 조건에 따라 plot을 분리하여 그릴 수 있다.  
+`xyplot(formula | condition...)`에서 `condition`부분에 변수를 넣어주면 지정한 변수에 따라 plot을 분리한다.  
+`layout`은 subplot들의 행과 열을 지정해준다.  
+
+
+```{r}
+
+xyplot(mtcars$qsec~mtcars$mpg|mtcars$cyl,main="Mtcars xyplots",
+       xlab="mpg",ylab="qsec",pch=c(3,1),col=c("#7685C8","#E16A92"),groups=mtcars$lable,
+       auto.key=TRUE)
+```
+
+| 조건부를 이용하여 실린더의 갯수에 따라 그래프를 그려주었다.  
+맨 왼쪽의 경우가 cyl=4, 가운데 패널이 cyl=6, 오른쪽 패널이 cyl = 8인 경우이다.  
+
+
+```{r}
+# factor 변수의 범주가 문자형인 경우
+data(njgolf)
+xyplot(lotsize~sprice|grid*basemtf,data=njgolf)
+```
+
+가능한 모든 조건에 대한 plot을 그려준다.  
+
+
+R에서 다차원 데이터의 산점도를 비교하는 경우 Pairs함수를 통해서도 그릴 수 있다.    
+Pairs 함수는 내장함수이기 때문에 따로 패키지 설치가 필요하지 않다.  
+아래와 같이 간단한 formula를 적어주면 그릴 수 있다.  
+
+
+```{r}
+pairs(~mpg+hp+qsec+wt+disp,data=mtcars)
+```
+
+lattice 패키지의 `splom`함수를 이용하면 조건부 산점도 행렬 그래프를 그릴 수 있다.  
+xyplot과 같이 조건에 따라 plot을 분리해주는 역할을 하기도한다.  
+
+```{r}
+library(dplyr) 
+df <- iris %>% 
+  select(Sepal.Width,Sepal.Length,Petal.Length,Petal.Width)
+```
+
+
+`splom`의 경우 xyplot 함수와 사용이 거의 비슷하다.  
+산점도 행렬을 그릴 formula를 지정해주고 그룹, 색깔 등 부가적인 옵션을 지정해주면 된다.  
+
+
+```{r}
+splom(~df,pch=c(3,1,6),col=c("#7685C8","#E16A92","#A9D18E"),groups=iris$Species,
+      key=list(title="Scatter plot matirx of iris",
+               text=list(c("setosa","versicolor","virginica")),
+               points=list(pch=c(3,1,6),col=c("#7685C8","#E16A92","#A9D18E"))))
+
+```
+
+pairs 함수에 비해서 축이 더 세밀한 것을 알 수 있고 조금 더 부드럽게 그려지는 것을 확인할 수 있다.  
+
+***
+
+## 4.5 split을 통한 subplot 그리기
+`gridExtra` 패키지를 이용하지 않고 print의 `split`,`more`을 통해 여러 개의 plot을 그릴 수 있다.  
+`print(plot을 저장한 객체,split=c(a,b,c,d),more)`
+split을 통해 subplot을 나누고 more을 통해 subplot을 더 그릴 것인지 확인한다.   
+- a,b: plot을 그릴 행,열을 지정한다.  
+- c,d: subplot을 그릴 행,열(차원) 생성한다.  
+more: subplot을 더 그려야하면 TRUE, 마지막 plot이면 FALSE로 지정한다.   
+
+```{r}
+data(tv)
+p1<-xyplot(ppl.per.phys~male.life.exp,data=tv,
+       pch=19,col="#7685C8",
+       ylab="physician",xlab="Female",main="# of physician & Female lifespan")
+p2<-xyplot(ppl.per.phys~fem.life.exp,data=tv,
+           pch=15,col="#F4B183",
+           ylab="physician",xlab="Female",main="# of physician & male lifespan")
+
+print(p1,split=c(1,1,1,2),more=TRUE)
+print(p2,split=c(1,2,1,2),more=FALSE)
+
+```
+
+
+## 4.6 Data Transformations 
+
+종종 plot을 그리다 보면 특정 데이터들의 패턴이 비슷하거나 관찰이 어려운 경우가 있다. 
+
+```{r}
+df2 <- tv %>% 
+  select(life.exp,ppl.per.tv,ppl.per.phys)
+splom(~df2,pch=19,col="#7685C8",main="Televisions,Physicians,and Life Expectancy")
+```
+ 
+tv 데이터의 경우 ppl.per.phys, ppl.per.tv 데이터의 산점도 행렬이 L자 형태로 상당히 비슷하고 패턴 관찰이 어려운 것을 확인할 수 있다.  
+이러한 경우 log를 취하게 되면 관찰이 어려운 데이터를 조금 더 자세히 볼 수 있고 패턴이 비슷한 데이터 들의 문제를 해결할 수 있다.  
+
+```{r}
+splom(~log(df2),pch=19,col="#7685C8",main="log(Televisions,Physicians,and Life Expectancy)")  
+```
+
+log를 취하고 그래프를 그린 결과, 기존에 그린 산점도 행렬보다 조금 패턴을 보기 쉽게 변한 것을 확인할 수 있다.  
+
+
+## 4.7 Life Expectancy Example-Continued
+
+lattice 패캐지 안에는 boxplot을 그릴 수 있는 `bwplot` 함수가 포함돼 있다.  
+`bwplot`은 기본 `boxplot`함수 보다 더 부드러운 *boxplot*을 그릴 수 있는 장점이 있다.  
+`Formula`의 형태로 bwplot을 진행하면 범주형 변수에 따라 데이터를 나눠서 boxplot을 그려준다. 
+
+```{r}
+# Bwplot
+data(iris)
+
+# Sepal.Length에 대한 boxplot을 출력해준다.
+bwplot(iris$Sepal.Length,xlab = "Sepal.Length" ,main = "Boxplot of iris")
+
+bwplot(Sepal.Length~Species,data=iris,main = "Boxplot of iris by using group")
+
+iris$class <- ifelse(iris$Sepal.Length>mean(iris$Sepal.Length),"High","LOW")
+```
+
+
+Formula 뒤에 |을 이용하여 조건 변수를 넣어주면 조건 변수에 따라 boxplot을 구분하여 그릴 수 있다.  
+
+
+```{r}
+bwplot(Sepal.Length~Species|class,data=iris,main = "Boxplot of iris by using condition")
+
+```
+
+
+`stripplot`은 1차원 산점도를 그리는 함수로, sample size가 작을 때 boxplot을 대신하기 좋다.  
+lattice 패키지는 stripplot 또한 제공하며 함수의 구조는 앞선 xyplot, bwplot과 유사하다.  
+`Formula`의 형태로 stripplot을 진행하면 범주형 변수에 따라 데이터를 나눠서 stripplot을 그려준다.  
+
+
+```{r}
+stripplot(iris$Petal.Length,xlab = "Petal.Length",main = "stripplot of iris")
+
+
+stripplot(Petal.Length~Species,data=iris,main = "stripplot of iris by using group")
+
+
+
+iris$class2 <- ifelse(iris$Petal.Length>mean(iris$Petal.Length),"High","LOW")
+# Formula 뒤에 조건 변수를 넣어주면 조건 변수에 따라 stripplot을 구분하여 그릴 수 있다.
+stripplot(Petal.Length~Species|class2,data=iris,main = "stripplot of iris by using conditionr")
+
+```
+
+
+## 4.8 Radar chart
+
+다변량 데이터를 사용하는 경우 시각화에 대한 어려움이 존재할 수 있다.  
+특히, 우리가 배웠던 히스토그램, 산점도, 박스그림으로 나타내는데에는 한계가 존재한다.  
+*Radar Chart*는 이러한 다변량 데이터를 효과적으로 시각화할 수 있는 방법 중 하나이다.  
+
+
+```{r}
+library(doBy)
+library(vcd)
+
+data(Hitters)
+# 내야수에 대한 Radar Chart를 그리기 위해 OF와 UT는 제거하였다.  
+
+Rader_dat <- Hitters %>% 
+  filter(Positions!="OF" & Positions!="UT")
+```
+
+
+*Radar Chart*에서는 데이터의 평균을 통한 그림을 그릴 것이므로 *doBy*패키지의 *summaryBy* 함수를 사용한다.  
+
+```{r}
+position_mean <- summaryBy(Putouts+Assists+Errors~Positions,data=Rader_dat,FUN=c(mean))
+position_mean
+```
+
+*Radar chart*를 그리기 위해서는 1번째 행은 열에 대한 최대값, 2번째 행은 열에 대한 최솟값을 놓아야 한다.  
+따라서, rader_df라는 함수를 통해 조건에 맞는 데이터 변환과정을 진행할 수 있도록 하였다.  
+
+
+```{r}
+library(fmsb)
+
+rader_df <- function(df){
+  df <- data.frame(df)
+  dfmax <- apply(df,2,max)
+  dfmin <- apply(df,2,min)
+  as.data.frame(rbind(dfmax,dfmin,df))
+}
+
+Rader_dat <- rader_df(position_mean[,c(2:4)])
+Rader_dat
+```
+
+원하는대로 데이터 구조가 변환된 것을 확인할 수 있다.  
+
+***
+
+`radarchart(데이터,seg,plty,title)`을 통해 radar chart를 그린다.  
+- *데이터*: radar chart에 맞게 데이터 구조가 변환된 데이터를 넣어준다.  
+- *seg*: 요약된 변수들의 갯수  
+- *plty*: 선의 모양 
+- *title*: radarchart의 제목  
+
+
+```{r}
+radarchart(Rader_dat,
+           seg=3,
+           plty=1:5,
+           title=c("Radar chart by Position"))
+legend("topleft",legend = position_mean$Positions,col=c(1:5),lty=c(1:5))
+```
+
+radarchart를 위와 같이 그릴 수 있다.  
+변수를 3가지만 요약해서 사용했기 때문에 오각형이 아닌 삼각형의 모양을 띄고있다.  
+유격수의 경우 수비 부담이 큰 포지션이기 때문에 그에따라 에러의 평균이 높은 것을 살펴볼 수 있다.  
+
+### 4.8.1 오각형의 radarchart
+
+
+다음은, Cars93데이터를 이용해 오각형의 radarchart를 그리는 코드이다.
+
+```{r}
+library(MASS)
+data(Cars93)
+Cars93_mean <- summaryBy(Min.Price + Max.Price + RPM + Length + Width ~ Type,data=Cars93,
+                         FUN = c(mean))
+
+Rader_data_car <- rader_df(scale(Cars93_mean[,c(2:6)]))
+Rader_data_car
+
+radarchart(Rader_data_car,
+           seg=5,
+           plty=1:6,
+           title=c("Radar chart by Type"))
+legend("bottomright",legend = Cars93_mean$Type,col=c(1:6),lty=c(1:6))
+```
+
+Type이 Large인 경우 차의 폭과 너비의 평균이 제일 높은 것을 알 수 있다.  
+
+
+## 4.9 Lollipop chart
+
+Lollipop chart는 막대 그래프의 변형으로 보다 더 좋은 가독성을 가진다.  
+막대그래프 대신 막대 사탕의 모양을 가지고 있어서 Lollipop chart라는 이름을 가지고 있다.  
+
+*Lollipop chart*는 `ggplot2`의 `geom_segment`를 이용하여 그릴 수 있다.  
+
+```{r}
+library(ggplot2)
+data(mtcars)
+mtcars$am <- as.factor(mtcars$am)
+
+ggplot(mtcars,aes(mpg,rownames(mtcars),col=am))+
+  geom_segment(aes(hp,y=rownames(mtcars),xend=mpg,yend=rownames(mtcars)))+
+  ylab("Car")+
+  geom_point()+
+  theme_bw()
+```
+
+위 그림의 point가 찍혀있는 곳은 각 자동차의 mpg 값을 나타낸다.  
+그룹의 구분은 gear가 수동인지 자동인지에 따라 구분을 진행해주었다.  
+
+
+
+## 4.10 Parallel coordinate plot  
+
+
+평행좌표그림은 선 그래프 형태로 다변량에 대한 시각화를 진행할 수 있는 그래프이다.  
+
+```{r}
+library(doBy)
+data("Hitters")
+
+# 내야수에 대한 Radar Chart를 그리기 위해 OF와 UT는 제거하였다.  
+
+dat <- Hitters %>% 
+  filter(Hitters$Positions!="OF" & Hitters$Positions!="UT")
+
+unique(dat$Positions)
+dat$Position_Type <- ifelse(dat$Positions=="1B",1,
+                            ifelse(dat$Positions=="2B",2,
+                                   ifelse(dat$Positions=="3B",3,
+                                          ifelse(dat$Positions=="C",4,5))))
+```
+
+데이터는 *Hitters*데이터를 사용하였는데, 포지션별로 선 모양과 선 색깔을 다르게 하기 위해서 전처리를 진행하였다.  
+
+***
+
+평행좌표그림은 R의 *MASS* `parcoord`함수를 이용하여 그림을 그릴 수 있다.  
+함수의 입력은 다음과 같다.  
+`parcoord(data,lty,col,var.label,main)`  
+- *data*: 평행좌표그림을 그릴 데이터
+- *lty*: 선의 모양  
+- *col*: 선의 색깔  
+- *var.label=TRUE*: 각 컬럼의 최댓값 최솟값을 표시한다.  
+- *main*: 제목을 설정한다.  
+
+```{r}
+library(MASS)
+parcoord(dat[,c("Putouts","Assists","Errors")],
+         lty=dat$Position_Type,
+         col=dat$Position_Type,
+         var.label=TRUE,
+         main = "Hitter's parallel coordinate plot ")
+
+legend(1.4,1,legend=c("1B","2B","3B","C","SS"),
+       lty=c(1:5),
+       col=c(1:5),
+       cex=0.6)
+```
+
+Hitters데이터의 평행좌표그림을 그린 결과는 위와 같다.  
+포수와 1루수의 Errors는 낮은 반면, 2루수와 유격수의 Errors는 현저히 높은 것을 볼 수 있다.  
+
+***
+
+## 4.11 3차원 산점도 (3 dimensional scatter plot)  
+
+3차원 산점도는 2차원에서 차원을 더 넓혀 3차원에 표현할 수 있는 산점도이다.  
+`scatterplot3d`패키지의 `scatteplot3d`함수를 이용하여 시각화를 할 수 있다.  
+
+
+```{r}
+library(scatterplot3d)
+scatterplot3d(mtcars$mpg,mtcars$hp,mtcars$qsec,xlab="mpg",ylab="hp",zlab="qsec")
+```
+
+단순히 점이 나열돼있는 것만으로는 시각화가 약간은 부족해 보인다.  
+
+```{r}
+library(scatterplot3d)
+scatterplot3d(mtcars$mpg,mtcars$hp,mtcars$qsec,type="h",xlab="mpg",ylab="hp",zlab="qsec",highlight.3d = TRUE,
+              mar=c(2,4,4,2),main="3D scatterplot of mtcars")
+```
+
+point만 놓여있는 것에 비해서 조금 더 상대적으로 크기가 잘보이는 것을 확인할 수 있다.  
+
+
+***
+
+## Summary of Chapter4
+
+* 데이터의 분석과정, 분석결과 등을 단순히 표 혹은 지표로 나타내는 것보다 더욱 효과적인 방법은 시각적인 **그래프**로 표현하여 나타내는 것이다. 도출된 결과들을 아무리 정리한다 한들, 시각적으로 정리된 그래프를 이길 수는 없다. 따라서, 적절한 시각화 방법을 익히고 항상 분석의 결과를 시각적으로 표현할 수 있어야 한다.
+
+* **탐색적 자료 분석(Exploratory data analysis)**은 기존의 통계학이 가설 검정같은 정보의 추출 등에 치우쳐 데이터가 가지고 있는 의미를 찾기 어려워 보완하고자 나온 방법이다. 본격적인 분석을 진행하기 전에 데이터들을 시각화하여 데이터가 어떤 특징들을 갖고 있는지 살펴보는 것이다. 대표적인 방법으로는 Boxplot, Histogram 등을 예시로 들 수 있다.
+
+* **EDA(탐색적 자료 분석)** 방법이 개발되고 시대가 지날수록 EDA는 선택적이 아니라 필수적인 방법론이 되고 있다. 빅데이터는 수많은 데이터와 변수를 내포하고 있기 때문에 이러한 정보에 대해서 사전에 탐색을 하지 않고 분석을 진행하게 되면 변수 선택에 대한 어려움, 데이터 이해의 부족 등의 문제가 발생하여 적절한 분석결과를 얻지 못할수도 있다. 따라서, 데이터 분석을 시작하기 전에 전처리 과정을 거친 후의 데이터를 가지고 EDA를 진행하여 데이터가 가지고 있는 의미를 파악하고 분석을 진행하는 것이 바람직하다.
+
+* 그래프를 그릴 때 주의할 점은 축과 데이터에 대한 이해가 필요하다. 본인이 산점도 같은 그림을 그릴 때, x축에 어떤 변수를 지정할 것이며, y축은 어떤 변수로 지정할 것인지, 축에 적절한 변수와 적절한 범위로 나누어져 있는지에 대한 확인을 꼭 진행해야 한다. 또한, 본인이 그리고자 하는 데이터가 어떠한 특성의 데이터인지 정확이 이해하고 진행해야 한다. 예를 들어, boxplot같은 연속형 자료를 수치적으로 요약해주는 plot을 그릴 때 범주형 데이터를 input값으로 넣게 되면 당연히 오류가 발생할 것이다. 이같은 오류를 사전에 방지하기 위해 항상 그래프를 그리기 전, 꼼곰하게 확인하는 습관이 필요하다.
+
+
+* R은 통계적인 분석을 시각화 하는데 굉장히 유용한 패키지라고 할 수 있다. 현존하는 다른 컴퓨팅 프로그램과 비교해봤을 때, 분석결과를 적절하게 나타내고 시각적으로도 한 눈에 보이는 그래프를 코드 몇 줄로 그려낼 수 있기 때문이다. 특히, R의 `ggplot2`패키지는 시각화 패키지 중 손에 꼽을 정도로 쉬운 문법과 수많은 그래프를 그릴 수 있는 패키지이다.
+
+* 기본적으로 plot을 그릴 때 필요한 input값은 x변수, y변수, 변수를 내포하고 있는 데이터이다. 추가적으로, plot에 더 많은 정보를 담고 싶다면 group변수, 색상정보, point의 type 등을 고려하여 많은 정보를 가지고 있는 멋진 그래프를 그릴 수 있다. 색상 혹은 point, line의 type같은 정보들은 한 번 정리해놓으면 분석을 진행할 때 마다 편리하게 사용할 수 있다. 
+
+
+***
+
+
+# Chap5 Introductory Inference 
+
+## 5.1 Test of a Hypothesis Concering the Mean of a Population Having Known Standard Deviation    
+
+`NTplot`을 이용하여 기각역, 신뢰구간 등 가설검정에 대한 다양한 시각화를 진행할 수 있다.  
+- *alpha.right*: 우측의 유의수준을 설정한다.  
+- *alpha.left*: 좌측의 유의수준을 설정한다.  
+- alpha.left, alpha.right를 동시에 설정하면 좌측검정, 우측검정의 결과값을 동시에 보여준다.    
+- *distribution.name*을 통해 분포의 형태를 지정할 수 있다.(normal, z,t,binomial)  
+`type = "confidence`로 지정하게 되면 신뢰구간의 하한 상한을 구할 수 있다.  
+
+```{r}
+library(HH)
+NTplot(mean0=0,xbar=1.8,sd=1,alpha.right=0.05,alpha.left=0,shiny=FALSE,n=1,distribution.name="normal")
+
+NTplot(mean0=0,xbar=-1.8,sd=1,alpha.left=0.05,alpha.right=0,shiny=FALSE,n=1,distribution.name="normal")
+
+NTplot(mean0=0,xbar=1.8,sd=1,alpha.left=0.025,alpha.right=0.025,shiny=FALSE,n=1,distribution.name="normal")
+
+
+NTplot(mean0=0,xbar=1.8,sd=1,type="confidence",alpha.left=0.05,alpha.right=0,shiny=FALSE,n=1,distribution.name="normal")
+
+NTplot(mean0=0,xbar=-1.8,sd=1,type="confidence",alpha.right=0.05,alpha.left=0,shiny=FALSE,n=1,distribution.name="normal")
+
+NTplot(mean0=0,xbar=1.8,sd=1,type="confidence",alpha.left=0.025,alpha.right=0.025,shiny=FALSE,n=1,distribution.name="normal")
+
+```
+
+## 5.1.1 t.test function  
+
+R의 `t.test` 함수를 통해 단일 모집단 평균에 대한 검정을 진행한다.  
+`alternative = greater` 혹은 `alternative = less`를 지정하면 단측검정을 진행한다.  
+
+`alternative =two.sided`를 지정하면 양측검정을 진행한다.  
+
+```{r}
+data("shrimp")
+shrimp.t <- t.test(shrimp,mu=30,alternative = "greater")
+shrimp.t
+```
+
+t-test를 진행하게 되면 집단에 대한 가설검정 결과, 신뢰구간까지 추정을 하여 결과를 도출한다.  
+t-test 결과 P-value는 0.00035로 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서 모평균은 30보다 크다다는 결과를 도출할 수 있다.  
+
+
+```{r}
+data("shrimp")
+shrimp.t <- t.test(shrimp,mu=30,alternative = "two.sided")
+shrimp.t
+```
+
+양측검정을 진행한 결과, 역시 P-value가 0.05보다 작으므로 모평균은 30이 아니라는 결과를 도출할 수 있다.  
+
+***
+
+NTplot의 `distribution.name = "t"`로 지정함으로써 정규분포가 아닌 t분포에 대해서도 시각화를 진행할 수 있다.  
+t분포를 지정했을 경우, df를 통해 자유도 또한 지정해줘야 한다.    
+
+```{r}
+
+NTplot(xbar=31.79,sd=1.84,type="confidence",
+       alpha.right=.025,alpha.left=0.025,distribution.name="t",n=18,df=17)
+```
+
+
+t.test의 결과를 한 객체에 저장하고 NTplot을 그릴 수 있다.  
+이는 t.test의 결과를 시각적으로 도출해준다.  
+
+
+```{r}
+NTplot(shrimp.t)
+```
+
+## 5.2 chisq-distribution을 기본 plot을 통해 그리기  
+dchisq를 통해 카이제곱분포의 확률밀도함수를 쉽게 풀 수 있다.  
+```{r}
+x <- seq(0,30,by=0.2)
+y1 <- dchisq(x,df=1)
+y2 <- dchisq(x,df=3)
+y3 <- dchisq(x,df=5)
+y4 <- dchisq(x,df=10)
+
+plot(x,y1,type="n",main="chi-squared-distribution",xlab='x',
+     ylab='prob')
+lines(x,y1,col="red",lwd=1.5)
+lines(x,y2,col="green",lwd=1.5)
+lines(x,y3,col="blue",lwd=1.5)
+lines(x,y4,col="skyblue",lwd=1.5)
+legend('topright',lwd=c(1,1,1,1),col=c("red",'green','blue','skyblue'),
+       legend=c('df=1','df=3','df=5','df=10'))
+
+
+```
+
+자유도가 커질수록 종 모양에 가까워지는 것을 확인할 수 있다.  
+
+
+## 5.3 Using HH Package  
+
+HH패키지는 chisq, f분포에 대한 시각화 함수 또한 제공한다.  
+*chisq.setup*: 자유도에 해당하는 카이제곱 분포의 틀을 잡는다.  
+*chisq.curve*: 자유도에 해당하는 카이제곱 분포를 그린다.
+- *col*을 통해 색깔을 지정할 수 있다.  
+- *xlim.in*을 통해 x의 범위를 지정할 수 있다.  
+- *xlim.in*의 qchisq.intermediate를 통해 유의 확률에 따라서 조절할 수도 있다.  
+- *ylim.in*을 통해 y의 범위를 지정할 수 있다.  
+
+
+```{r}
+chisq.setup(df=12,xlim.in=c(0,30))
+chisq.curve(df=12, col='blue')
+chisq.observed(22, df=12)
+```
+
+
+```{r}
+chisq.setup(df=12,xlim.in=c(0,qchisq.intermediate(p=1-.025,df=12)),ylim.in=c(0,0.2))
+chisq.curve(df=12, col='RED')
+chisq.observed(22, df=12)
+```
+
+type=**"confidnce"**을 통해 신뢰구간을 추정할 수 있다.  
+
+```{r}
+chisq.setup(df=12)
+chisq.curve(df=12,col='blue',alpha=c(.025,.025),type="confidence")
+chisq.observed(22, df=12)
+```
+
+
+F분포는 chisq 분포와 달리 2개의 자유도를 입력해야 한다.  
+*F.setup*: 자유도에 해당하는 F 분포의 틀을 잡는다.  
+*F.curve*: 자유도에 해당하는 F 분포를 그린다.
+- *col*을 통해 색깔을 지정할 수 있다.
+- *xlim.in*을 통해 x의 범위를 지정할 수 있다.  
+- *ylim.in*을 통해 y의 범위를 지정할 수 있다.
+- *main.in*을 통해 title을 설정할 수 있다.  
+*alpha*: 설정한 유의수준에 대한 기각역을 보여준다. 
+- 하나의 값을 입력하면 자동으로 우측 검정으로 실행된다.  
+
+
+```{r}
+F.setup(df1=5, df2=30)
+F.curve(df1=5, df2=30, col='blue', alpha=c(.05, .05))
+
+```
+
+
+```{r}
+F.setup(df1=5, df2=30,)
+F.curve(df1=5, df2=30, col='Orange',xlim.in=c(0,5))
+F.observed(3, df1=5, df2=30)
+```
+
+
+## 5.4 Tests Comparing Two Population Means When the Samples Are Independent
+
+R에 내장돼있는 power.t.test 함수를 통해 one-sample-t, two-sample-t에 대해서 적절한 표본 수를 계산할 수 있다.  
+
+```{r}
+## solve using power.t.test
+PTT <- power.t.test(delta=1, sd=2, sig.level=0.05, power=0.8, type="one.sample", alternative = "one.sided")
+PTT
+
+NTplot(PTT, zaxis=TRUE)
+#NTplot (PTT, zaxis=TRUE, shiny=TRUE)
+```
+
+## 5.5 Goodness of Fit  
+
+적합도 검정은 우리가 측정한 데이터셋이 우리가 이론적으로 지정한 특정한 분포를 따르는지 검정하는 방법이다.  
+적합도 검정의 귀무가설은 아래와 같다.  
+
+H0 : the data are from a [specified population]  
+H1 : the data are from some other population  
+
+## 5.6 Example - Test of Goodness-of-Fit to a Discrete Uniform Distribution  
+
+```{r}
+dice <- sample(rep(1:6,c(3,7,6,8,1,6)))
+dice
+table(dice)
+chi<-chisq.test(table(dice))
+chi
+```
+
+P-value는 0.2406으로 유의수준 0.05보다 크기 때문에 주어진 귀무가설을 기각하지 못한다.  
+따라서, 주어진 예제는 Chi-sqaure 분포를 따른다고 할 수 있다.  
+
+```{r}
+chisq.setup(df=5)
+chisq.curve(df=5)
+chisq.observed(6.8,shade = "right",shaded.area = 0)
+```
+
+그림을 통해 주어진 결과에 대해서 더 시각적으로 살펴볼 수 있다.  
+
+***
+
+## 5.7 Test of Goodness-of-Fit to a Binomial Distribution
+R 의 binom.test 함수를 이용하면 주어진 데이터셋에 대해서 이항분포의 확률이 맞는지 확인할 수 있다.  
+
+'125번의 시행중 43번이 나왔을 때 성공확률은 0.45일 것이다'라는 가설검정을 진행해보자.  
+
+```{r}
+b<-binom.test(43,125,p=0.45)
+b
+```
+
+P-value = 0.01914로 유의수준 0.05보다 작다. 즉, 성공확률은 0.45가 아니라는 것을 알 수 있다.  
+가설검정을 진행함과 동시에 성공확률에 대한 신뢰구간까지 제공해준다.  
+주어진 표본을 통해 성공확률은 0.344일 것이라고 추정을 해준다.  
+
+
+```{r}
+Observed <- c(13,18,20,18,6,5)
+names(Observed) <- 0:5
+Observed
+
+## binomial proportion p-.4 is specified
+Expected <- dbinom(0:5,size=5,p=.4)*80
+names(Expected) <- 0:5
+chisq.test(Observed,p=Expected,rescale.p=TRUE)
+```
+
+주어진 관측치와 계산한 기댓값에 대해서 chi-square 분포를 따르는지 검정을 진행한다.  
+검정을 진행한 결과, P-value가 0.05보다 매우 작으므로 주어진 데이터셋은 chi-square 분포를 따르지 않는다.  
+
+
+## 5.8 Normal Probability Plots  
+
+`qqplot`은 분석하는 변수가 정규분포로부터 추출되었는지 확인할 수 있는 방법이다.  
+분포의 분위수를 이용하여 값을 계산하고 그 값을 plot을 통해 나타낸다.  
+plot의 패턴이 근사적으로 직선을 따르면 데이터가 정규분포로부터 추출되었다고 할 수 있다.  
+
+```{r}
+n=c(30,50,200,400,1000)
+par(mfrow=c(2,3))
+for (y in n){
+  qqnorm(rnorm(y))
+  qqline(rnorm(y))
+}
+```
+
+정규분포를 이용해서 난수를 생성한 결과,  
+표본의 크기가 커질수록 패턴이 직선에 가까운 형태를 갖는 것을 알 수 있다.  
+
+```{r}
+n=c(30,50,200,400,1000)
+par(mfrow=c(2,3))
+for (y in n){
+  qqnorm(rexp(y))
+  qqline(rexp(y))
+}
+```
+
+지수분포를 이용해서 난수를 생성한 결과,  
+표본의 크기가 커질수록 직선에 약간 가까워 지지만 정규분포만큼 뚜렷한 직선 패턴을 보이지는 않는다.  
+
+```{r}
+n=c(30,50,200,400,1000)
+par(mfrow=c(2,3))
+for (y in n){
+  set.seed(3)
+  da <- rnorm(y)
+  hist(da,freq=FALSE)
+  lines(density(da))
+}
+```
+
+히스토그램을 통해서도 표본이 늘어날수록 정규분포의 종 모양에 가까워지는 것을 확인할 수 있다.  
+
+```{r}
+n=c(30,50,200,400,1000)
+par(mfrow=c(2,3))
+for (y in n){
+  da <- rexp(y)
+  hist(da,freq=FALSE)
+  lines(density(da))
+}
+```
+
+지수분포를 이용해 추출한 표본에서는 크기가 늘어나도 정규분포에 가까운 종 모양이 보이지 않는다.  
+처음에는 확률이 크게 나왔다가 오른쪽으로 갈수록 감소하는 모양, 즉 오른쪽으로 꼬리가 긴 형태인 것을 살펴볼 수 있다.  
+
+## 5.9 EDF GOF Tests
+- The Kolmogorov-Smirnov metric(`lillie.test`)  
+- The Cramer-von-Mises meric(`cvm.test`)  
+- The Anderson-Darling metric(`ad.test`)  
+
+`lillie.test`의 경우 `nortest`라는 패키지를 통해 불러올 수 있다.  
+`cvm.test`, `ad.test`는 `nortest`, `goftest` 두 패키지에서 모두 불러올 수 있다.  
+또한 goftest를 이용해서 cvm.test, ad.test를 진행하여 `estimated = TRUE`값을 지정할 경우,  
+파라미터에 대한 추정값과 같이 출력해준다.  
+
+
+### 5.9.1 install.pacakges `nortest`, `goftest`
+
+```{r}
+#install.packages("nortest")
+#install.packages("goftest")
+library(nortest)
+library(goftest)
+```
+
+### 5.9.2 정규분포에서 랜덤 난수 추출
+
+```{r}
+set.seed(10)
+X1 <- rnorm(10,mean=2,sd=1)
+X2 <- rnorm(20,mean=2,sd=1)
+X3 <- rnorm(30,mean=2,sd=1)
+```
+
+표본의 크기가 달라질 때, 변하는 정도를 확인하기 위해 3개의 랜덤 정규표본 난수를 생성하였다.   
+
+
+## 5.10 The kolmogorov-Sminov metric by using nortset package
+
+```{r}
+nortest::lillie.test(X1)
+nortest::lillie.test(X2)
+nortest::lillie.test(X3)
+```
+
+### 5.10.1 The Cramer-von-Mises meric by using nortest package
+
+```{r}
+nortest::cvm.test(X1)
+nortest::cvm.test(X2)
+nortest::cvm.test(X3)
+```
+
+### 5.10.2 The Cramer-von-Mises meric by using goftest package
+
+```{r}
+goftest::cvm.test(X1,"pnorm",mean(X1),sd=sd(X1))
+goftest::cvm.test(X2,"pnorm",mean(X2),sd=sd(X2))
+goftest::cvm.test(X3,"pnorm",mean(X3),sd=sd(X3))
+
+goftest::cvm.test(X3,"pnorm",mean=mean(X3),sd=sd(X3),estimated = TRUE)
+
+```
+
+## 5.11 The Anderson-Darling metric by using nortest package
+
+```{r}
+
+nortest::ad.test(X1)
+nortest::ad.test(X2)
+nortest::ad.test(X3)
+```
+
+### 5.11.1 The Anderson-Darling metric by using goftest package
+
+
+```{r}
+goftest::ad.test(X1,"pnorm",mean(X1),sd=sd(X1))
+goftest::ad.test(X2,"pnorm",mean(X2),sd=sd(X2))
+goftest::ad.test(X3,"pnorm",mean(X3),sd=sd(X3))
+
+goftest::ad.test(X3,"pnorm",mean=mean(X3),sd=sd(X3),estimated = TRUE)
+```
+
+분석결과, lillie.test는 표본이 작을 때는 유의확률이 cvm.test,ad.test에 비해서는 높지만,  
+표본이 커질수록 cvm.test와 ad.test의 유의확률이 더 높아지는 것을 확인할 수 있다.  
+
+또한 goftest의 패키지를 통해 cvm.test와 ad.test를 이용할 경유 유의확률이 nortest 패키지에 비해서  
+현저히 증가하는 것을 볼 수 있다.  
+
+조금 더 엄격한 정규성 검정이 필요할 경우, goftest보다 nortest 패키지를 이용하는 것이 좋다고 판단된다.  
+
+
+
+***
+
+## Summary of Chapter5
+
+* **가설검정(Hypothesis Test)**는 증명된 바 없는 주장이나 가설을 표본 데이터를 이용하여 가설의 진위여부를 판단, 증명, 검정하는 통계적 추론 방식이다. 가설검정에는 비교하는 값과 차이가 없다는 것을 가설로하는 **귀무가설(Null Hypothesis)**, 새로운 주장 또는 실제로 입증하고자 하는 가설인 **대립가설(Alternative hypothesis)**로 나뉜다.
+
+* **유의수준**은 제 1종 오류 즉, 귀무가설이 옳음에도 불구하고 귀무가설을 기각하는 오류의 최대 허용 한계를 의미한다. **유의확률**은 귀무가설이 옳음에도 불구하고 귀무가설을 기각할 확률을 의미한다. 보통, 통계적인 분석을 할 때 유의수준은 5%로 설정하고 유의확률이 0.05보다 작을 때 통계적으로 유의하다고 말한다. 설정한 유의수준보다 유의확률이 낮기 때문에 연구자가 설정한 1종 오류의 허용한계를 넘지 않으므로 유의하다고 말하는 것이다.
+
+* **신뢰구간**은 표본을 통해 모수가 어느 범위 안에 있는지를 확률적으로 보여주는 방법이다. 예를 들어, '95% 신뢰수준에서 S제품의 불량품은 1%~2%이다'라고 할 때, 95%는 신뢰수준이고 1%~2%는 신뢰구간이라고 말한다. 이를 통해, 우리는 모수가 어느 정도의 범위에 속하고 있는지를 알 수 있다.
+
+* 앞선 챕터에서 살펴봤듯이, 통계적인 데이터를 사용함에 있어서 정규성은 상당히 중요한 가정이라고 할 수 있다. **히스토그램**을 통해서도 살펴볼 수 있고 **qqplot**을 통해서도 정규성을 검정할 수 있다. `qqplot`은 **분위수(Quantile)**을 통해 두 확률 분포를 비교하는 것이다. 비교 중인 두 분포가 비슷하면 선형적으로 나타나고 이러한 모양을 가지면 정규성을 가지는 데이터라고 판단할 수 있다.
+
+* 시각화를 통해 정규성을 검정하는 방법 외에도 R 프로그램에서는 특정 함수를 입력하게 되면 자동으로 정규성 검정을 진행해준다. 대표적인 함수로는 **shapiro.test,ad.test**등의 함수가 있다. 단, `shaprio.test`같은 경우 표본수가 3~5000사이의 범위를 가질때에만 검정을 진행할 수 있다. 위의 두 함수를 제외하고, 이번 챕터에서는 꽤 많은 정규성 검정에 대한 함수에 대해 알아보았다. 그래프의 모양을 통해 대략적인 분포를 유추하고 데이터에 따른 적절한 정규성 검정을 사용하면 데이터의 분포를 알 수 았을 것이다.
+
+* R에서 평균차이를 검정하고자 할 때 자주 언급되는 **t.test**외에도 `NTplot`이라는 함수를 사용할 수 있다. `NTplot`은 `t.test`의 결과에 더불어 결과에 대한 시각화까지 도출해준다. 진행한 분석 결과에 대한 기각역, 검정 통계량, 유의확률, 신뢰구간 등을 시각적으로 그려주기 때문에 `t.test`보다 조금 더 시각적인 결과 정리를 원한다면, 유용한 함수가 될 수 있다.
+
+***
+
+
+
+# Chap6 One-Way Analysis of Variance
+
+앞서, 우리는 집단 간의 차이를 알아보고자 할 때 T-test 방법을 사용하였다.  
+하지만 비교하고자 하는 집단의 수가 2 개의 집단이 아니라 3개, 4개 등 3집단 이상일 경우 t-test는 사용할 수 없다.  
+
+이렇게 집단이 3개 이상일 때 집단간의 평균의 차이를 알아보기위해 사용하는 방법이 바로 *ANOVA*방법이다.  
+*ANOVA*는 Analysis Of Variance의 약자로 분산분석이라고 일컫는다.   
+
+One-way ANOVA는 분산분석에서 사용되는 독립변수의 갯수가 하나일때를 말한다.  
+Two-way ANOVA는 분산분석에서 사용되는 독립변수의 갯수가 두 개일때를 말한다.  
+
+분산분석의 귀무가설은 다음과 같다.
+
+H0: 모든 집단의 평균은 같다.  
+H1: 적어도 한 집단의 평균은 다르다.  
+
+
+R에서 분산분석을 실행하는 함수는 aov와 anova 함수가 있다.  
+aov의 경우, (종속변수 ~ 독립변수) Formula의 형태로 지정을 해줘야 한다.  
+그 다음, 실험결과를 한 객체에 저장한 뒤, summary를 통해 요약된 결과를 볼 수 있다.  
+
+또는, aov를 이용해 객체에 저장을 한 후, anova 함수를 사용하여 분산분석의 결과를 확인할 수도 있다.  
+
+## 6.1 Example - Catalyst Data
+
+```{r}
+library(HH)
+data(catalystm)
+
+catalystmi.aov <- aov(concent~catalyst,data=catalystm)
+catalystmi.aov
+```
+
+aov 함수를 이용해 분산분석을 진행하였다.  
+summary를 따로 해주지 않으면 분석에 대한 P-value는 출력되지 않고,  
+처리와 오차에 대한 제곱합과 자유도, 잔차의 standard error 값을 확인할 수 있다.  
+
+
+```{r}
+summary(catalystmi.aov)
+```
+
+summary 함수를 이용하면 기존의 얻은 정보와 더불어 모형에 대한 검정을 할 수 있는  P-value 값 까지 확인할 수 있다.  
+또한, 분석에 대한 MSE, F-value도 확인할 수 있다.    
+P-value는 0.00144로 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+즉, 주어진 집단의 평균중, 적어도 하나는 다르다고 할 수 있다.  
+
+```{r}
+anova(catalystmi.aov)
+```
+
+anova함수를 이용하면, aov에 summary를 지정한 것 처럼 분산분석에 대한 자세한 결과를 얻을 수 있다.  
+
+
+데이터에 대해서 aov 함수를 지정하여 분산분석을 실행한 후 각 집단의 평균을 보고싶을 때가 있다.  
+이러할 때에는 model.tables를 통해 집단별 평균과 전체 집단의 평균을 살펴볼 수 있다.  
+
+
+```{r}
+table_mean <- model.tables(catalystmi.aov,"means")
+
+table_mean
+```
+
+집단별 평균의 차이를 수치적으로 비교하면 한 눈에 살펴보기 어려울 수 있다.  
+이러한 경우 시각적으로 데이터를 표현하여 조금 더 쉽게 집단간 평균의 차이를 살펴볼 수 있다.  
+`lattice`패키지의 `bwplot`함수를 이용하여 그룹별 boxplot을 그린다.  
+Formula 형태로 표현하여 하나의 boxplot이 아닌 여러개의 boxplot을 그릴 수 있다.  
+Formula는 (수치적 자료 ~ 그룹)의 형태로 표현한다.  
+
+```{r}
+bwplot(concent~catalyst,data=catalystm)
+```
+
+집단별로 그려진 boxplot에 따라 box의 형태를 변경할 수도 있다.  
+`bwplot`의 `par.settingsg`옵션을 이용하여 box의 형태를 직접 지정할 수 있다.
+- box.umbrella: 최대값, 최소값에 대한 옵션을 결정한다.  
+- box.dot: 중앙값에 대한 옵션을 결정한다.  
+- box.retangle: 1사분위수, 3사분위수와 데이터의 분포의 정보를 가지고 있는 사각형에 대한 옵션을 결정한다.  
+
+```{r}
+
+bwplot(concent~catalyst,data=catalystm,par.settings=list(box.umbrella=list(col=c("red","blue","green","orange")),
+                                                         box.dot=list(col=c("red","blue","green","orange")),
+                                                         box.rectangle=list(col=c("red","blue","green","orange"))))
+```
+
+## 6.2 Random Effects  
+
+분산분석을 통해 우리는 집단간 차이가 있는지 없는지를 확인할 수 있다.  
+만약, 모든 집단의 평균은 같다. 라는 귀무가설을 기각하게 되면, 적어도 한 집단에서 차이가 있다는 것을 알 수 있다.  
+그렇다면, 이러한 차이가 있는 집단을 확인하고 싶을 것이다.  
+이렇게 집단간에 차이가 어디에서 생겼는지 알고싶을 때 사용하는 것이 바로 사후검정 또는 다중비교(multiple comparison)이다.  
+
+R에서는 `mmc`함수를 통해 분산분석의 결과를 저장한 객체의 다중비교를 s진행할 수 있다.  
+
+mmc함수를 실행하게 되면 아래와 같은 결과를 얻을 수 있다.  
+
+```{r}
+catalystm.mmc <-
+  mmc(catalystmi.aov,linfct=mcp(catalyst="Tukey"))
+catalystm.mmc
+```
+
+집단간의 평균 차이 추정치, 표준오차, 평균차이의 하한과 상한 등 다양한 정보를 얻을 수 있다.  
+
+집단간의 차이에 대한 사후검정 뿐만아니라, 각 집단에 대한 평균, 표준오차, 평균 추정치의 하한과 상한에 대한 정보 또한 제공한다.  
+
+
+
+다중비교 역시 수치적으로 확인하는 것 보다는 시각적으로 한 눈에 살펴보는 것이 좋을 것이다.  
+다중비교를 진행한 분석결과를 특정객체에 저장하고 R의 `mmcplot`을 이용하게 되면 다중비교의 결과를 한 눈에 살펴볼 수 있다.  
+
+```{r}
+mmcplot(catalystm.mmc)
+```
+
+mmcplot을 통해 다중비교의 결과를 시각적으로 나타내었다.  
+각 집단의 평균의 값과 집단간 평균의 차이가 한 눈에 보이는 것을 확인할 수 있다.  
+A-D, B-D의 집단간 차이의 신뢰구간이 0을 포함하지 않으므로 유의한 차이를 보이고 있는 집단이라고 할 수 있으며,  
+집단간 차이가 유의하면 빨간색 실선, 유의하지 않으면 검은색 점선인 것을 확인할 수 있다.   
+
+
+```{r}
+mmcplot(catalystm.mmc,style="both")
+```
+
+`mmcplot`에서 `style = 'both'`라는 옵션을 지정하게 되면 기존에 MMCplot과 더불어 Tiebreaker라는 그림을 그릴 수 있다.  
+Tiebreaker의 경우, 집단 별 차이만을 그림에 나타내며, 두 집단의 평균값 또한 나타내준다.  
+MMCplot과 더불어 유의한 집단간 차이를 보이면 빨간색 실선으로 표시한다.  
+
+
+## 6.3 Example-Batch Data  
+
+```{r}
+data(batch)
+
+bwplot(Calcium~Batch,data=batch)
+
+batch1.aov <- aov(Calcium~Batch,data=batch)
+anova(batch1.aov)
+```
+
+batch 데이터에 대한 분산분석을 진행한 결과 P-value는 0.003626으로 유의수준 0.05보다 작으므로, 적어도 하나의 집단에서 평균의 차이가 있다는 것을 알 수 있다.  
+
+
+분산분석의 기본 가정 중 하나는 등분산성을 만족하는 것이다. 여기서, 등분산이란 그룹간의 분산이 서로 같다는 것을 의미한다.  
+등분산 검정의 귀무가설과 대립가설은 다음과 같다.  
+H0: 모든 분산이 동일하다. (등분산성을 만족한다.)
+H1: 모든 분산이 동일하지않다. (등분산성을 만족하지 않는다.)
+
+```{r}
+hovBF(Calcium~Batch,data=batch)
+```
+
+batch 데이터에 대한 등분산 검정을 진행한결과, P-value는 0.9978 유의수준 0.05보다 매우 큰 값을 가지는 것을 볼 수 있다.  
+따라서, 귀무가설을 기각하지 못하므로 분산의 차이가 없다는 것을 알 수 있으며, 이를 통해, 등분산성을 만족하는 것을 알 수 있다.   
+
+
+```{r}
+hovplotBF(Calcium~Batch,data=batch)
+```
+
+hovplotBF 함수를 통해 등분상성에 대한 정보를 시각적으로 표현할 수 있다.  
+왼쪽 패널의 경우, 집단간 데이터에 대한 boxplot을 보여주고,  
+중앙 패널의 경우, 집단간 데이터와 데이터의 중앙값의 편차를 boxplot으로 나타내며,  
+오른쪽 패널의 경우, 중앙 패널에 절대값을 씌운 boxplot을 나타낸다.  
+
+
+## 6.4 Data Description
+
+```{r}
+data(turkey)
+turkey.aov <- aov(wt.gain ~ diet, data=turkey)
+summary(turkey.aov)
+```
+
+turkey 데이터에 대한 분산분석(ANOVA)를 진행한다.  
+P-value는 5.6e-14로 거의 0에 가까운 값을 가지며, 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+즉, turkey 데이터의 diet 집단에 따라 차이 비교를 했을때, 적어도 한 집단 간 평균 차이가 존재한다고 할 수 있다.  
+
+
+```{r}
+model.tables(turkey.aov,type="means",se=TRUE)
+```
+
+`se=TRUE` 옵션을 지정하게 되면 평균의 차이에 대한 표준오차 값까지 얻을 수 있다.  
+
+```{r}
+bwplot(wt.gain~diet,data=turkey)
+```
+
+
+R에서는 범주형 변수들에 대해서 더미변수를 어떻게 인코딩하는지 확인할 수 있는데, 이러한 경우 `contrasts`함수를 이용한다.  
+
+## 6.5 Interpretation  
+
+```{r}
+contrasts(turkey$diet)
+```
+
+단순히 R에서 자동으로 인코딩 된 더미변수를 이용하는 것이 아니라, 연구자가 직접 설정할수도 있다.  
+
+
+```{r}
+contrasts(turkey$diet)<-
+  cbind(control.vs.treatment=c(1,-.25,-.25,-.25,-.25),
+        A.vs.B = c(0,.5,.5,-.5,-.5),
+        amount = c(0,.5,-.5,.5,-.5),
+        A.vs.B.by.amount = c(0,.5,-.5,-.5,5))
+contrasts(turkey$diet)
+```
+
+
+```{r}
+library(dplyr)
+tapply(turkey$wt.gain,turkey$diet,mean) %*% 
+  contrasts(turkey$diet)
+```
+
+```{r}
+turkey2.aov <- aov(wt.gain~diet,data=turkey)
+summary(turkey2.aov)
+```
+
+
+앞서 설정한 contrasts(대비)에 대한 검정또한 진행할 수 있다.  
+split을 통해 보고자 하는 대비 검정을 지정해준다.  
+
+
+```{r}
+old.width <- options(width=67)
+
+summary(turkey2.aov,
+        split=list(diet=list(
+          control.vs.treatment=1,
+          A.vs.B=2,
+          amount=3,
+          A.vs.B.by.amount=4
+        )))
+```
+
+
+## 6.A Appendix: Computation for the Analysis of Variance  
+
+```{r}
+data(catalystm)
+catalystm.aov <- aov(concent ~ catalyst,
+                     data=catalystm)
+anova(catalystm.aov)
+
+model.tables(catalystm.aov)
+
+Proj <- proj(catalystm.aov)
+Proj <- cbind(Proj,Sum=apply(Proj,1,sum))
+Proj
+apply(Proj,2,function(x) sum(x^2))
+```
+
+
+```{r}
+
+contrasts(catalystm$catalyst)
+
+X <- model.matrix(catalystm.aov)[,2:4]
+X
+
+
+catalystm.lm <-
+  lm(concent ~ X[,"catalystB"]+X[,"catalystC"]+
+       X[,"catalystD"],data=catalystm)
+
+anova(catalystm.lm)
+```
+
+`par(mfrow=c())`함수를 이용해 subplot의 차원을 지정해 준 후, anova결과가 저장된 객체를 plot으로 나타낼 수 있다.  
+
+```{r}
+old.par <- par(mfrow=c(1,4))
+par(old.par)
+plot(catalystm.aov)
+```
+
+
+***
+
+## Summary of Chapter6
+
+* 통계적인 분석에서 집단 간 평균 차이가 있는지를 볼 때, 가장 많이 쓰이는 방법은 `T-test`방법이다. 하지만, `T-test`의 경우, 비교 하고자 하는 집단이 2개의 집단일때만 가능하고 3개 이상일 경우에는 사용할 수 없다. 이러한 경우 쓰는 통계적 방법이 **ANOVA**이다.
+
+* **ANOVA**는 Analysis Of Variance의 약자로 두 개 이상 다수의 집단을 비교하고자 할 때, 집단 간 분산 비교를 통해 만들어진 F분포를 이용하여 평균의 차이에 대한 가설검정을 하는 방법이다. **ANOVA**는 두 개 이상 집단을 비교할 때, 쓰인다고 하지만 대부분 두 개 이상의 집단을 가질때는 **T-test**를 많이 사용하고 **ANOVA**는 집단이 세 개 이상일 때 많이 쓰이는 분석방법이다.
+
+* **ANOVA**의 기본가정은 각 집단의 데이터들은 정규분포를 따른다는 **정규성**, 모든 집단의 분산은 서로 동일한 분산을 가진다는 **등분산성**, 집단 간 서로 영향을 미치지 않는다는 **독립성** 3가지 이다.
+
+* **ANOVA**의 총제곱합 SST는 처리 제곱합 SSA, 오차의 제곱합 SSE로 변동분해 할 수 있다. 즉, *SST = SSA + SSE*로 변동분해가 가능하다.
+
+* R에서 **ANOVA**분석은 `aov`함수를 이용하여 쉽게 분석을 진행할 수 있다. 이 때, 반드시 Formula를 수치적 자료 ~ 그룹의 형태로 input을 지정해 주어야한다. **ANOVA**분석을 진행하기 전에, EDA를 통해 사전에 데이터 탐색을하고 어떠한 집단을 기준으로 수치적 자료를 비교할 것인지를 이해하는 과정이 반드시 필요하다.
+
+* `aov`함수를 이용하여 분산분석의 결과를 살펴 볼때, 우리가 비교하고자 하는 그릅분수(처리)의 P-value가 유의수준 보다 작다면, 유의한 평균차이를 보이는 집단이 적어도 하나 존재한다고 할 수 있다.
+
+
+***
+
+
+# Chap7 Multiple Comparisons  
+
+우리는 앞서 분산분석(ANOVA)을 진행해보고 집단간 평균 차이에 유무에 대한 결과를 얻을 수 있었다.  
+만약, 분산분석의 결과로 '적어도 한 집단간 차이가 존재한다'라는 결과를 도출하면, 우리는 어느 집단에서 차이가 존재하고, 어느 정도의 차이가 존재하는지에 대한 궁금증이 생길것 이다.  
+
+이러한 경우 진행하는 분석이 바로 다중 비교(사후 분석이라고도 한다.)이다.  
+다중비교의 경우 실험 조건의 평균들을 대상으로 여러번 비교를 수행하는 것이다.  
+
+즉, 집단이 A,B,C 3개라면 3번의 비교를 진행하는 것이다.  
+*A-B, A-C, B-C*  
+
+다중비교에서 가장 많이 사용되는 분석은 *Bonferroni*, *Dunnett*, *Tukey*, *scheffe*가 있다.  
+
+*Bonferroni*는 T 검정을 사용하여 그룹 평균 간 쌍대 비교를 수행하는 것이다.  
+- 집단의 수가 동일하지 않아도 사용이 가능하다.  
+- 유의수준을 1/n으로 낮추어 다중 비교에서 생기는 오류를 보정한다.  
+Ex) 유의수준 = 0.05, 평균 쌍 비교 개수 = 5,  
+사후검정에서의 유의수준 alpha는 다음과 같이 계산된다.  
+
+
+$$
+Bonferroni\; \alpha = {0.05\div5 } = 0.01  
+$$
+
+
+*Dunnett*은 하나의 집단을 기준으로 다른 집단들과 차이에 대하여 분석하는 방법이다.    
+- 유의성이 작은 집단에 대한 차이를 검정할 정도로 검정력이 뛰어나다.  
+- 하나의 집단을 기준으로 하기 때문에, 모든 집단 조합에대한 검정을 하지 않는다.  
+
+
+
+*Tukey*는 비교되는 모든 집단의 표본 수가 동일한 경우 평균차를 비교하는 방법이다.  
+- 비교 대상 표본수가 반드시 동일해야 한다.  
+- 표본수가 동일할 경우 가장 많이 쓰이는 방법이다.  
+- 표본수가 적을수록 정확도가 낮아진다.  
+
+
+
+*scheffe*는 단순하게 집단간 비교하는 것 외에도 모든 경우의 수를 비교하며, 집단간 표본의 수가 달라도 사용이 가능한 방법이다.  
+- 집단을 소극적으로 분리시킨다.  
+- 하지만, 통계적으로 유의한 차이를 도출하기 쉽지않다.  
+
+
+## 7.1 Multiple Comparison Procedures
+### 7.1.1 The Dunnett Procedure for Comparing One Mean
+with All Others
+
+```{r}
+library(HH)
+data(weightloss)
+bwplot(loss~group,data=weightloss,xlab="group")
+```
+
+
+R에서의 `aov`함수를 이용하여 분산분석을 진행할 수 있다.  
+`aov(자료변수~집단변수,data=데이터명)`  
+- *자료변수*: 자료들의 정보를 갖고있는 변수를 넣는다.  
+- *집단변수*: 집단의 정보를 갖고있는 변수를 넣는다.  
+- *data*: 변수들을 갖고있는 데이터를 넣는다.  
+
+
+```{r}
+library(HH)
+data(weightloss)
+
+weightloss.aov <- aov(loss ~ group,data=weightloss)
+
+summary(weightloss.aov)
+```
+
+
+분산분석 결과, P-value는 유의수준 0.05보다 작으므로 *적어도 한 집단간에서 평균 차이가 존재한다.*는 결론을 도출할 수 있다.  
+
+***
+
+집단간 평균차이가 존재하므로 다중비교(사후분석)을 통해 어느 집단에서 차이가 발생했는지를 분석한다.  
+
+R에서는 `glht`함수를 통해 일반화된 선형 가설 검정과 다중비교를 진행할 수 있다.  
+
+다중비교를 진행하는 것이기 때문에 분산분석을 진행한 결과를 넣어줘야한다.  
+
+
+이번예제에서는 우측검정을 기반으로한 dunnett 방법을 이용하기 위해 mcp를 통해 linfct의 옵션을 세부적으로 설정해 주었다.  
+
+
+
+```{r}
+mcp(group=contrMat(
+    table(weightloss$group),base=4),
+    alternative = "greater")
+```
+
+
+앞선 boxplot에서 D그룹이 가장 작은 평균값을 가졌기 때문에, *Dunnet*방법을 이용하기 위해 `base=4`를 통해 D그룹을 기준변수로 지정해주었다.  
+
+첫 번째 줄의 (1,0,0,-1,0)은 기준변수인 D로 A를 비교하겠다.    
+두 번째 줄의 (0,1,0,-1,0)은 기준변수인 D로 B와 비교하겠다.  
+라는 의미이다.  
+
+가설검정은 `greater`를 통해 우측검정으로 지정해주었다.  
+
+*** 
+
+`glht(model,linfct=mcp(그룹변수=다중비교방법))`  
+- *model*: 분산분석의 결과가 저장된 객체를넣는다.  
+- *linfct*: 다중비교 방법을 지정해준다.  
+
+
+### 7.1.2 Computing Note—Specifying the Alternative Hypothesis  
+
+```{r}
+weightloss.dunnett <-
+  glht(weightloss.aov,linfct=mcp(group=contrMat(
+    table(weightloss$group),base=4)),
+    alternative = "greater")
+confint(weightloss.dunnett)
+```
+
+
+우측검정을 기준으로 하였기 때문에, 기각역의 상한 band는 inf임을 알 수 있다.  
+추정값이 모두 기각역안에 들어가므로 귀무가설을 기각함을 알 수 있다.  
+따라서, D그룹변수와 나머지 그룹변수 간에 모두 유의한 차이가 존재함을 알 수 있다.  
+
+***
+
+`summary`함수를 이용해 유의확률을 통해서도 사후검정 결과를 살펴볼 수 있다.  
+
+
+
+```{r}
+summary(weightloss.dunnett)
+```
+
+```{r}
+mmcplot(weightloss.dunnett,lwd=2)
+```
+
+사후검정의 결과를 그림으로 나타낸 결과, 모두 빨간색으로 지정되어 D그룹과 나머지 그룹간 평균차이가 존재하는 것을 시각적으로 살펴볼 수 있다. 
+
+
+***
+
+`DescTools`패키지의 `DunnettTest`함수를 통해서도 *DunnettTest*를 진행할 수 있다.  
+앞서 진행한 분석의 경우, 분산분석을 진행한 후 분산분석의 결과를 객체에 저장해야 됐었지만, `DunnettTest`함수의 경우에는 Formula형식으로 입력을 해주면 자동으로 사후분석을 진행해준다.  
+
+`DunnettTest(자료변수~그룹변수,데이터,control)`  
+- *자료변수*: 자료의 정보를 갖고있는 변수를 넣어준다.  
+- *그룹변수*: 그룹의 정보를 갖고있는 변수를 넣어준다.  
+- *데이터*: 변수들의 정보를 갖고있는 데이터를 넣어준다.  
+- *control*: 기준변수를 지정해준다.  
+
+
+```{r}
+library(DescTools)
+DunnettTest(loss~group,data=weightloss,control="D")
+```
+
+
+분산분석의 객체 저장을 진행하지 않고도 바로 사후분석의 결과를 얻는것을 확인할 수 있다.  
+
+***
+
+`HH`패키지의 `mmc`함수를 통해서도 다중비교 분석을 진행할 수 있다.  
+`mmc`함수의 경우의 입력방법은 앞서 살펴본 `glht`함수와 상당히 유사하다.  
+
+```{r}
+weightloss.mmc <-
+  mmc(weightloss.aov,
+      linfct=mcp(group=
+                   contrMat(table(weightloss$group),
+                            base=4)),
+      alternative = "greater")
+weightloss.mmc
+```
+
+```{r}
+mmcplot(weightloss.mmc,style="both",lwd=2)
+```
+
+***
+
+
+### 7.1.3 The Scheff´e Procedure  
+*scheffe*방법에는 tukrey 데이터를 이용하여 진행한다.  
+
+```{r}
+data(turkey)
+turkey.aov <- aov(wt.gain ~ diet, data=turkey)
+
+#scheffe method에 calpha을 구한다.  
+
+scheffe.quantile <- sqrt(4*qf(.95,4,25))
+```
+
+
+사후분석을 진행하기에 앞서, 비교할 대상에 대한 contrast matrix를 만들어준다.  
+첫 번째의 경우 control과 나머지 그룹을 비교하기 위해 (1,-.25,-.25,-.25,-.25)로 설정한 것을 확인할 수 있다.  
+나머지 contrast matrix들도 비교하고자 하는 집단에 따라 구성됐다.  
+
+```{r}
+turkey.lmat <-
+  cbind(control.vs.treatment = c(1,-.25,-.25,-.25,-.25),
+        A.vs.B = c(0,.5,.5,-.5,-.5),
+        amount = c(0,.5,-.5,.5,-.5),
+        A.vs.B.by.amount = c(0,.5,-.5,-.5,.5))
+row.names(turkey.lmat) <- row.names(contrasts(turkey$diet))
+```
+
+
+앞서 설정한 *contrast matrix*를 비교군으로 설정하고, calpha 또한 앞에서 quantile을 이용해 구했던 객체를 지정해주었다.  
+
+```{r}
+turkey.mmc <- mmc(turkey.aov,calpha=scheffe.quantile,focus = "diet",focus.lmat=turkey.lmat,
+                  estimate.sign=0,
+                  order.contrasts = FALSE)
+```
+
+우리가 설정한 contrast matrix별 비교는 turkey.mmc$lmat에 저장된 것을 확인할 수 있다.  
+
+A. vs.B.by.amount는 신뢰구간이 0을 포함하므로 집단간 차이가 유의하지 않은 것을 알 수 있다.  
+
+나머지 그룹의 경우 신뢰구간이 0을 포함하지 않으므로 집단간 차이가 발생하며, 신뢰구간과 추정치를 통해 어느정도의 차이가 나는지 확인할 수 있다.  
+
+***
+
+*mmcplot*을 통해서도 A.vs.B.by.amount를 제외한 나머지 그룹이 빨간색으로 지정된 것을 통해 유의한 차이가 있음을 확인할 수 있다.  
+*mmcplot*에서 `type='lmat`를 지정하면 우리가 설정한 contrast matrix에 대한 차이만을 그림으로 나타낼 수 있다.  
+
+```{r}
+mmcplot(turkey.mmc,type="lmat",style="both")
+```
+
+`style = confint`을 지정하면 신뢰구간에 대한 그림만을 보여준다.  
+
+```{r}
+mmcplot(turkey.mmc,type="lmat",style="confint",lwd=2)
+```
+
+***
+
+lmat(contrast matrix)에 대한 설정을 하지 않고 turkey.mmc를 객체로 입력하면 전체의 그룹간 차이를 살펴볼 수 있다.  
+
+```{r}
+mmcplot(turkey.mmc,style="both")
+```
+
+***
+
+## 7.2 The Mean-Mean Multiple Comparisons Display (MMC Plot)  
+### 7.2.1 Difficulties with Standard Displays  
+
+
+```{r}
+data(catalystm)
+catalystm1.aov <- aov(concent~catalyst,data=catalystm)
+catalystm.glht <- glht(catalystm1.aov,
+                       linfct=mcp(catalyst="Tukey"))
+confint(catalystm.glht)
+```
+
+catalystm의 데이터를 이용하여 사후분석을 진행하였다.  
+사후분석의 경우 *Tukey*방법을 이용하였다.  
+*Tukey*의 경우 비교하는 집단 간 표본의 수가 같아야 사용할 수 있지만, 프로그램에서는 표본의 수가 달라도 사용할 수 있도록 만들어져있다.  
+
+A-D, B-D를 제외하고 모두 신뢰구간에 0이 포함된다. 따라서, A-D, B-D의 집단만이 유의한 차이를 가지고 있다고 할 수 있다.  
+
+```{r}
+mmcplot(catalystm.glht,style="confint",lwd=1.5)
+```
+
+```{r}
+boxplot(concent~catalyst,data=catalystm)
+```
+
+***
+
+앞서 진행한 *Tukey*분석의 경우 표본의 수가 동일하지 않을때, 사후검정을 진행하였다.  
+그렇다면 *Tukey*분석에서 집단 간 표본의 크기를 같게하고, 표본의 크기가 클 때와 작을 때를 비교하면 어떤 결과가 나오는지 알아보자.  
+
+`aovSufficient`함수는그룹에 대한 충분통계량을 이용하여 분산분석을 진행하는 방법이다.  
+
+```{r}
+group <- factor(LETTERS[1:4])
+n <- c(5,100,100,5)
+ybar <- c(2,2.1,2.8,3)
+inconsistent.aov <- aovSufficient(ybar ~ group, weight=n, sd=.8)
+anova(inconsistent.aov)
+```
+
+분산분석 결과, 유의확률은 유의수준 0.05보다 작으므로 적어도 한 그룹 이상에서 유의한 차이를 보인다고 할 수 있다.  
+
+```{r}
+
+# Tukey의 확률값을 이용하여 임계값을 구한다.  
+crit.point <- qtukey(.95,4,206)/sqrt(2)
+
+inconsistent.glht <-
+  glht(inconsistent.aov, linfct=mcp(group="Tukey"),
+       vcov=vcovSufficient,df=inconsistent.aov$residuals)
+
+confint(inconsistent.glht,calpha=crit.point)
+
+```
+
+*Tukey*를 이용한 사후분석 결과 신뢰구간에서 0을 포함하지 않는 그룹은 C-B 하나 뿐인 것을 확인할 수 있다.  
+따라서, C-B는 유의한 차이가 존재하는 것을 확인할 수 있다.  
+
+여기서, C-B의 경우 표본의 수가 100으로 상당히 큰 표본의 수를 가지며, 비교대상끼리 같은 표본의 수를 가지는 것을 확인할 수 있다.  
+A,D의 경우에는 비교 대상간 표본의 수가 같지만 표본의 수가 5개로 매우 작은 것을 확인할 수 있다.  
+
+이를 통해, 우리는 *Tukey* 사후분석의 경우, 집단간 표본의 수가 같고 클수록 더 정확한 검정을 진행하는 것을 알 수 있다.  
+
+
+```{r}
+boxplot(ybar~group)
+```
+
+```{r}
+mmcplot(mmc(inconsistent.aov,calpha=crit.point))
+```
+
+```{r}
+mmcplot(mmc(inconsistent.aov,calpha=crit.point),style="confint")
+```
+
+C-B의 그룹간 차이만이 유의하기 때문에 빨간색으로 표시되어 나타나는 것을 확인할 수 있다.  
+
+```{r}
+inconsistent.mmc2 <- mmc(inconsistent.aov,calpha=crit.point)
+mmcplot(inconsistent.mmc2$none)
+```
+
+mmc에 내포돼있는 none을 불러오게 되면 각 그룹에 대한 정보만을 볼 수 있다.  
+B와 D의 평균이 모두 A와 D사이에 있는것을 확인할 수 있다.  
+A와 D는 표본의 수가 매우 작기때문에 평균에 대한 신뢰구간이 높게 나왔고 B와 C는 그에 반해 표본의 수가 훨씬 많아 신뢰구간이 줄어든 것을 알 수 있다.  
+
+### 7.2.2 Construction of the Mean-Mean Scatterplot  
+
+```{r}
+catalystmi.aov <- aov(concent~catalyst,data=catalystm)
+catalystm.mmc <-
+  mmc(catalystmi.aov,linfct=mcp(catalyst="Tukey"))
+mmcplot(catalystm.mmc)
+```
+
+***
+
+`interaction2wt` 함수는 주효과와 교호작용을 시각화 시켜줌으로써 한 눈에 살펴볼 수 있는 함수이다.  
+
+```{r}
+data(display)
+interaction2wt(time ~ emergenc * panel.ordered, data=display)
+```
+
+
+### 7.2.3 Display of an Orthogonal Basis Set of Contrasts  
+
+```{r}
+## aov contrast matrix for catalyst factor. The columns are
+## constructed by contr.treatment with the default base = 1
+contrasts(catalystm$catalyst)
+```
+
+Base를 설정해주지 않을경우, 자동으로 첫 번째 그룹변수가 base가 된다.  
+catalyst의 경우 A가 첫 번째 그룹변수이기 때문에 기준 그룹변수로 지정되는 것을 확인할 수 있다.   
+
+```{r}
+## Linear function used internaily by glht for pairwise contrasts
+## The rows of linfct are the difference of the columns
+## of the contrast matrix
+
+catalystmi.aov <- aov(concent~catalyst,data=catalystm)
+catalystm.mmc <-
+  mmc(catalystmi.aov,linfct=mcp(catalyst="Tukey"))
+catalystm.mmc$mca$glht$linfct
+```
+
+mmc의 분석결과에서도 base에 대한 기준이 지정되지 않아 catalystA라는 변수가 아닌 (Intercept)로 지정이 되는 것을 확인할 수 있다.  
+
+```{r}
+## Contrasts in lmat format, each column sums to zero.
+## The last three rows are the transpose of the last three columns
+## of the linfct matrix.
+## The first row is prepended to make the column sum be zero.
+catalyst.pairwise <- lmatPairwise(catalystm.mmc)
+catalyst.pairwise
+```
+
+`lmatPairwise`를 이용하여 contrast matrix를 살펴본 결과, 비교 하는 대상간(열을 기준으로)은 항상 합이 0이 되는 것을 확인할 수 있다.  
+예를 들어, A와 B를 비교할때, A를 기준으로 하므로 A=1, B는 비교대상이므로 B= -1 이고 두 개의 합은 0이다.  
+
+```{r}
+## An orthogonal set of ($4-1$) contrasts for the catalyst factor.
+## user-spcified contrasts
+catalystm.lmat <- cbind("AB-D" = c(1,1,0,-2),
+                        "A-B" = c(1,-1,0,0),
+                        "ABD-C" = c(1,1,-3,1))
+
+dimnames(catalystm.lmat)[[1]] <- levels(catalystm$catalyst)
+catalystm.lmat
+```
+
+정확히 두 집단만 비교하는 것이 아니라 원하는 다중 집단을 비교할수도 있다.  
+첫 번째 열의 *AB-D*의 경우, A와B를 기준으로 비교를 하기 때문에 A,B를 각각 1,1, 비교대상 D를 -2로 설정하였다.  (합은 항상 0이어야 한다.)  
+세 번째 열의 *ABD-C*의 경우, A,B,D를 기준으로 비교를 하기 때문에 A,B,D에 각각 (1,1,1), 비교대상 C를 -3으로 설정하였다.  
+
+```{r}
+crossprod(catalystm.lmat)
+
+catalyst.pairwise
+
+resid(lm(catalystm.lmat ~ catalyst.pairwise))
+```
+
+
+```{r}
+catalystm.mmc <-
+  mmc(catalystm1.aov,linfct=mcp(catalyst="Tukey"),
+      focus.lmat=catalystm.lmat)
+catalystm.mmc
+```
+
+다중비교 결과, 우리가 설정한 3가지의 집단에 대해서도 결과가 알맞게 출력된 것을 확인할 수 있다.  
+AB-D는 신뢰구간에서 0을 포함하지 않으므로 집단간 유의한 차이가 존재하는 것을 알 수 있다.  
+
+
+```{r}
+mmcplot(catalystm.mmc,type="lmat",style="both")
+```
+
+*mmcplot*함수에서 *type = "lmat"*옵션을 지정하게 되면 우리가 설정한 *contrast matrix*에 대한 `mmcplot`을 그릴 수 있다.  
+AB-D의 집단간 차이가 유의하여 빨간색으로 지정된 것을 알 수 있다.  
+
+
+***
+
+
+### 7.2.4 Hsu and Peruggia's Pulmonary Example  
+
+Pulmonary 데이터셋은 smokers를 특정한 그룹으로 나누고 폐활량에 대한 정보가 담겨있는 데이터이다.  
+반응변수의 의미는 다음과 같다.  
+- NS: 비흡연자    
+- PS: 간접흡연자  
+- NI: 흡입담배를 피지않는 흡연자   
+- LS: 지난 20년동안, 하루에 핀 담배의 개수가 1~10개비인 흡연자  
+- MS: 지난 20년동안, 하루에 핀 담배의 개수가 11~39개비인 흡연자  
+- HS: 지난 20년동안, 하루에 핀 담배의 개수가 40개비이상인 흡연자  
+
+
+```{r}
+data("pulmonary")
+head(pulmonary,5)
+pulmonary.aov <-
+  aovSufficient(FVC ~ smoker, data=pulmonary,
+                weights = pulmonary$n, sd=pulmonary$s)
+```
+
+그룹에 따라 표본의 갯수가 지정돼있으므로 충분통계량을 이용햐는 `aovSufficient`함수를 사용하였다.  
+
+```{r}
+summary(pulmonary.aov)
+```
+
+분산분석결과, P-value가 유의수준 0.05보다 작으므로 적어도 한 그룹 간 집단차이가 존재하는 것을 알 수 있다.  
+
+```{r}
+crit.point <- qtukey(.95,4,206)/sqrt(2)
+pulmonary.glht <-
+  glht(pulmonary.aov, linfct=mcp(smoker="Tukey"))
+summary(pulmonary.glht)
+```
+
+사후분석 결과, PS-NS, NI-NS, PS-NI, PS-LS, NI-LS 그룹을 제외한 모든 그룹에서 집단간 차이가 존재하는 것을 확인할 수 있다.  
+
+```{r}
+mmcplot(pulmonary.glht)
+```
+
+*mmcplot* 또한 5가지의 집단 간 차이를 제외한 나머지 집단 간 차이가 모두 유의하므로 빨간색으로 지정한 것을 살펴볼 수 있다.  
+
+## 7.3 *Bonferroni Test*
+
+*Bonferroni Test*는 `agricolae`패키지의 `LSD.test` 함수를 이용하여 분석을 진행할 수 있다.  
+`LSD.test(model,trt,p.adj)`
+
+- *model*: ANOVA 결과의 모델을 넣는다.  
+- *trt*: group변수를 넣어준다.  
+- *p.adj*: 유의확률을 어떤 방법으로 조정할지를 넣는다.  
+
+
+여기서는 *Bonferroni Test*를 진행하므로 p.adj에 bonferroni를 넣는다.  
+
+
+```{r}
+library(agricolae)
+data("catalystm")
+catalystm.aov <- aov(concent~catalyst,data=catalystm)
+compare <- LSD.test(catalystm.aov,"catalyst",p.adj="bonferroni",group=F)
+compare
+```
+
+*Bonferroni*방법을 이용한 사후분석결과와 각 그룹변수에 대한 정보까지 한 번에 얻을 수 있다.  
+A-D, B-D 그룹을 제외하고 모두 집단 간 차이가 유의하지 않음을 알 수 있다.  
+
+***
+
+## Summary of Chapter7
+
+* 분산분석을 통해 적어도 한 집단 간 유의한 차이가 존재하는 것을 알았다면, 어떤 집단끼리 유의한 차이가 발생했는지에 대해 알아야한다. 이 때, 사용되는 방법을 **다중비교(Multiple Comparison)**라고 한다.
+
+* **다중비교(사후검정)**은 실험 집단의 평균을 이용하여 여러번 비교를 수행하여 평균 차이가 존재하는 집단을 찾을 때 사용되는 방법이다.
+
+* **다중비교**의 종류는 Bonferroni, Dunnett, Tukey, Scheffe 등 많은 분석 방법이 있다. 다중비교 방법마다 적용되는 방법과 유의 수준이 다르기 때문에, 데이터에 맞는 적절한 다중비교 방법을 적용하어야 한다.
+
+* **contrast**는 집단간 평균들을 비교하기 위해서 각 집단들의 평균을 하나의 직선식으로 표현한 것이다. 이때, 행의 합은 항상 0이 되도록 만들어줘야한다. 예를 들어, A,B,C 집단에서 A와 C를 비교하기를 원한다면, (1,0,-1) or (2,0,-2)... 등 다양한 방식으로 표현을 할 수 있다. 하지만, 일반적으로 1을 통해 많이 표현을 한다.
+
+* R에서는 다중비교의 결과를 볼 때, P-value와 유의수준을 통해 볼수도 있지만, 신뢰구간을 통해서 집단 간 평균차이 유무를 알 수 있는데, 바로 신뢰구간이 0을 포함하는 경우이다. 0은 집단 간 평균차이가 없다는 뜻이기 때문에 다중비교 결과의 신뢰구간이 0을 포함한다면, 그 집단의 차이는 유의하지 않다고 판단할 수 있다. 
+
+* 또한, 앞서 우리가 지속적으로 살펴보고 강조했던 것 처럼, 분석의 결과를 시각적으로 요악하는 작업은 상당히 중요시 된다. R에서는 다중비교의 결과를 `mmcplot`이라는 함수를 통해 시각화를 진행할 수 있다.
+
+***
+
+# Chap8 Linear Regression by Least Squares
+
+우리는 일상에서 수많은 일들을 경험하면서 살아간다. 이러한 경우, 인과관계는 하나의 원인이 하나의 결과에 영향을 미치는 것을 의미한다. 예를 들어, 소득이 높아질수록 세금을 많이 낸다거나 하루 총 칼로리가 높아질수록 몸무게가 커진다 등 우리는 수많은 인과관계 안에서 살아가고 있다.  
+
+**회귀분석**은 이렇게 관찰된 연속형 변수들에 대해 두 변수 사이의 모형을 구한뒤 적합도를 측정해 내는 분석 방법이다.   
+시간에 따라 변화하는 데이터나, 어떤 영향, 인과관계의 모델링 등의 통계적인 예측에 이용될 수 있다.  
+
+**단순회귀분석(Linear Regression)**은 하나의 독립변수와 종속변수를 이용하여 회귀분석을 진행하는 것을 말한다.   
+
+**독립변수**는 종속변수에 영향을 주는 변수를 의미하고 즉, 원인을 나타내는 변수이고 **종속변수**는 독립 변수에 의해 영향을 받는 변수로 결과를 나타내는 변수이다.  
+
+이번 챕터에서는 통계에서 가장 중요하게 여기는 분석방법 중 하나인 회귀분석에 대해서 알아본다.  
+
+다양한 회귀 중에서도, 최소제곱법을 통한 선형회귀에 대해서 배워본다.  
+
+
+
+## 8.1 Example-Body Fat Data
+
+```{r}
+library(HH)
+data(fat)
+```
+
+**fat** 데이터의 변수는 다음과 같다.  
+* bodyfat: Siri의 방정식을 이용한 체지방 비율  
+* abdomin: 복부 둘레
+* biceps: 확장된 이두근 둘레
+
+
+```{r}
+splom(~fat,main="Fat data")
+```
+
+**fat** 산점도 행렬을 그리면 위와 같다.  
+양의 상관관계를 가지고 있는 몇몇 변수가 보이는 것을 알 수 있다.  
+
+## 8.2 Simple Linear Regression
+
+### 8.2.1 Algebra
+
+```{r}
+A <- regrresidplot(fat$abdomin, fat$bodyfat, fit.line=FALSE,
+                   xlim=c(70,185), ylim=c(0,50))
+
+B <- regrresidplot(fat$abdomin, fat$bodyfat,
+                   xlim=c(70,185), ylim=c(0,50), resid.plot="line")
+
+C <- regrresidplot(fat$abdomin, fat$bodyfat,
+                   xlim=c(70,185), ylim=c(0,50), resid.plot="square")
+
+fat$shallow <- 20 + .1*fat$abdomin
+fat.shallow.lm <- lm(shallow ~ abdomin, data=fat)
+
+D <- regrresidplot(fat$abdomin, fat$bodyfat,
+                   xlim=c(70,185), ylim=c(0,50), resid.plot="line",
+                   lm.object=fat.shallow.lm)
+
+E <- regrresidplot(fat$abdomin, fat$bodyfat,
+                   xlim=c(70,185), ylim=c(0,50), resid.plot="square",
+                   lm.object=fat.shallow.lm)
+
+ALL <-
+  update(c(C, E, A, B, D, layout=c(3,2)),
+         skip=c(TRUE, rep(FALSE, 5)),
+         scales=list(alternating=FALSE),
+         between=list(x=2, y=2),
+         xlab="abdomin", ylab="bodyfat",
+         xlab.top=c("\n",
+                    "least-squares fit:\ny = -28.56 + .505 x",
+                    "too shallow:\ny = 20 + .1x"),
+         ylab.right=list(c("squared\nresiduals","residuals"), rot=0))
+ALL
+```
+
+fat 데이터에 대한 잔차를 그래프로 표현하였다.  
+첫 번째 행 패널은 잔차, 두 번째 행 패널은 표준화된 잔차를 의미한다.  
+첫 번째 행 패널의 두 번째 그림은 최소제곱법을 통해 잔차를 구한 그림을 나타낸다.  
+
+### 8.2.2 Calculations
+
+R에서의 선형회귀분석은 내장함수인 `lm`함수를 이용하여 분석을 진행할 수 있다.  
+
+```{r}
+data(fat)
+fat.lm <- lm(bodyfat~abdomin,data=fat)
+anova(fat.lm)
+summary(fat.lm)
+```
+
+선형회귀분석 결과, **abdomin**변수의 유의확률이 유의수준 0.05보다 작으므로 유의한 변수임을 알 수 있다.  
+선형회귀식 또한 살펴볼 수 있다.  
+
+```{r}
+par(mfrow=c(2,2))
+plot(fat.lm)
+```
+
+
+잔차분석 결과, 모델의 선형성이 어긋나고 등분산성이 만족하지 않는 것처럼 보인다.  
+또한, 12번, 36번, 39번 데이터가 이상치임을 알 수 있다.  
+특히, 39번 데이터는 이상치 중에서도 모델에 심각한 영향을 끼치는 이상치로 보인다.  
+
+```{r}
+par(mfrow=c(2,3))
+plot(fat.lm,which=1:6)
+```
+
+`which`옵션을 이용해 잔차분석에 대한 추가적인 그래프를 더 볼 수 있다.  
+
+```{r}
+B <- regrresidplot(fat$abdomin, fat$bodyfat,
+                   ylim=c(0,50), resid.plot="line")
+
+F <- regrresidplot(fat$abdomin, fat$bodyfat,
+                   ylim=c(0,50), resid.plot="line",
+                   lm.object=lm(bodyfat ~ 1, data=fat))
+
+update(c(F, B, layout=c(2,1)), between=list(x=1),
+       xlab="abdomin", ylab="bodyfat",
+       scales=list(alternating=FALSE),
+       xlab.top=c("Variance about\nmean of y", "Variance about\nleast-squares line"))
+```
+
+첫 번째 패널은 표본평균 y와 관측값 y에 대한 잔차를 나타낸 그래프이다.   
+두 번째 패널은 최소제곱법을 이용한 잔차를 나타낸 그래프이다. (관측값 - 회귀선)의 제곱의 합  
+
+
+```{r}
+library("lattice")
+
+bWA <- read.table(text="
+ color   x       y
+ red	1	6
+ blue	2	2
+ green	3	10
+ orange	4	5
+ brown	5	18
+ purple	6	12
+ ", header=TRUE, stringsAsFactors=FALSE)
+
+betaWeightedAverageLattice <-
+   function(x, y,
+            xbar=mean(x), ybar=mean(y),
+            beta1.hat, beta0.hat,
+            col=seq(length=length(x))+1,
+            color.summary=1,
+            summary=TRUE,
+            summary.text=TRUE,
+            cex=1.5, pch=19,
+            ...) {
+       if (missing(beta1.hat) || missing(beta0.hat)) {
+             beta.hat <- coef(lm(y ~ x))
+             beta1.hat <- beta.hat[2]
+             beta0.hat <- beta.hat[1]
+           }
+         xyplot(y ~ x, col=col,
+                             xbar=xbar,
+                             ybar=ybar,
+                             beta1.hat=beta1.hat,
+                             beta0.hat=beta0.hat,
+                             col=col,
+                             color.summary=color.summary,
+                             summary=summary,
+                             summary.text=summary.text,
+                             cex=cex, pch=pch,
+                             ...,
+                             panel=function(x, y, ...) {
+                                 panel.points(x=xbar, y=ybar, pch=8, cex=2, lwd=2, col=color.summary)
+                                 panel.axis("bottom", at=xbar, labels=expression(bar(x)), rot=0, outside=TRUE)
+                                 panel.axis("bottom", at=xbar, labels="")
+                                 panel.axis("top", at=xbar, labels="")
+                                 panel.axis("top", at=xbar, labels="", outside=TRUE)
+                                 panel.axis("left", at=ybar, labels=expression(bar(y)), outside=TRUE)
+                                 panel.axis("left", at=ybar, labels="")
+                                 panel.axis("right", at=ybar, labels="")
+                                 panel.axis("right", at=ybar, labels="", outside=TRUE)
+                                 if (summary)
+                                    panel.abline(a=beta0.hat, b=beta1.hat, lwd=2, col=color.summary)
+                                 if (summary.text) {
+                                     ## panel.text(x=xbar-1, y=ybar+2,
+                                       ##            expression((bar(x) * ',' * bar(y))),
+                                       ##            col=color.summary, cex=2)
+                                       panel.text(x=6.6, y=14.2,expression(y = hat(beta)[0] + hat(beta)[1] * x),
+                                                                              col=color.summary, cex=1.4,
+                                                                              xpd=NA, adj=0)
+                                     panel.text(x=8, y=14.2,paste("  =", round(beta0.hat, 3), "+", 
+                                                                  round(beta1.hat, 3), "x"),col=color.summary,
+                                                cex=1.4,xpd=NA, adj=0)
+                                   }
+                                panel.segments(x, y,    x,    ybar, col=col, lty=2, lwd=1)
+                                 panel.segments(x, ybar, xbar, ybar, col=col, lty=2, lwd=1)
+                                 panel.segments(x, y,    xbar, ybar, col=col, lty=1, lwd=3)
+                               },
+                             par.settings=list(clip=list(panel=FALSE))
+                             )
+   }
+
+## betaWeightedAverageLattice(bWA$x, bWA$y, col=bWA$color, xlim=c(-.2, 12.2))
+
+dx <- bWA$x-mean(bWA$x)
+dy <- bWA$y-mean(bWA$y)
+betas <- dy / dx
+wts <- dx^2 / sum(dx^2)
+
+Six <- do.call(c,lapply(1:nrow(bWA),function(i)
+                                  betaWeightedAverageLattice(bWA$x[i],bWA$y[i],col=bWA$color[i],xbar=mean(bWA$x),
+                                                             ybar=mean(bWA$y),summary=FALSE,xlim=c(0,7),ylim=c(0,20), xlab=NULL, ylab=NULL,summary.text=FALSE)))
+
+ print(position=c(0, .6, 1, 1), more=TRUE,
+        update(Six,
+                         strip=strip.custom(factor.levels=paste(
+                                                "slope = ", round(betas, 3), "\n",
+                                                "weight = ", round(wts, 3),
+                                                sep="")
+                             ),
+                         par.strip.text=list(lines=2.5, cex=.7),
+                         scales=list(alternating=0),
+                         between=list(x=1, y=1),
+                         as.table=TRUE,
+                         layout=c(6,1)
+                         )
+               )
+
+beta.hat <- coef(lm(y ~ x, data=bWA))
+print(position=c(.2, 0, .8, .6), more=FALSE,
+         update(betaWeightedAverageLattice(bWA$x, bWA$y, col=bWA$color, xlim=c(-2, 9), summary.text=FALSE, xlab=NULL, ylab=NULL),
+                         strip=strip.custom(factor.levels=paste("slope =", as.character(round(beta.hat[2], 3)))))
+         )
+```
+
+
+기울기와 가중치에 따른 직선의 변화를 살펴볼 수 있다.  
+
+### 8.2.3 New Observations
+
+```{r}
+h <- hat(model.matrix(fat.lm))
+
+pred <- predict(fat.lm, se.fit=TRUE)
+
+res <- resid(fat.lm)
+
+# anova(fat.lm)['Residuals','Mean Sq']를 지정하면 anova에 저장된 MSE값을 객체에 저장할 수 있다.  
+sigma.hat.sequare <- anova(fat.lm)["Residuals","Mean Sq"]
+
+fat.predvalues <- data.frame("y=bodyfat"=fat$bodyfat,"x=abdomin"=fat$abdomin, h=h, mu.hat=pred$fit, e=res, var.mu.hat=h*sigma.hat.sequare, var.resid=(1-h)*sigma.hat.sequare, se.fit=sqrt(h*sigma.hat.sequare),se.resid=sqrt((1-h))*sigma.hat.sequare)
+
+fat.predvalues[1:3,1:7]
+
+## linear identity
+all.equal(rowSums(fat.predvalues[,c("mu.hat","e")]),fat$bodyfat,check.names=FALSE)
+```
+
+```{r}
+## quadratic identity
+(SSqReg <- sum((fat.predvalues$mu.hat-mean(fat$bodyfat))^2))
+
+(SSqRes <- sum(res^2))
+
+(SSqTot <- sum((fat$bodyfat - mean(fat$bodyfat))^2))
+
+all.equal(SSqReg + SSqRes, SSqTot)
+```
+
+
+**SST,SSR,SSE**를 ``fat``데이터를 이용하여 직접 계산하였다.   
+그 후, R의 `all.equal`함수를 이용하여 SST(총변동) = SSR + SSE이 식대로 정말 같은지 확인하였다.  
+결과값은 TRUE로, 주어진 식이 성립하는 것을 알 수 있다.  
+
+
+```{r}
+set.seed(42)
+old.data <- data.frame(y=rnorm(50),x1=rnorm(50),x2=rnorm(50),x3=rnorm(50))
+
+example.lm <- lm(y~x1+x2+x3,data=old.data)
+
+(example.coef <- coef(example.lm))
+
+(new.data <- data.frame(x1=3,x2=2,x3=45))
+
+predict(example.lm,newdata = new.data,se.fit=TRUE,interval="confidence")
+
+predict(example.lm,newdata=new.data,se.fit=TRUE,
+        interval="prediction")
+
+c(1,data.matrix(new.data)) %*% example.coef
+```
+
+난수를 통해 회귀식을 세우고 새로운 데이터에 대해서 선형회귀식을 적합시켰다.  
+`predict`함수를 통해 새로운 데이터에 대한 예측을 진행할 수 있다.  
+`se.fit` 옵션을 통해 잔차를 계산할 수 있고 `interval`옵션을 통해 신뢰구간을 구할 수 있다.  
+
+***
+
+`ci.plot`함수를 사용하면 앞선 분석을 통해 얻었던 관찰값, 회귀식, 신뢰구간 등을 시각적으로 나타낼 수 있다.  
+
+```{r}
+ci.plot(fat.lm)
+```
+
+`lmplot`함수를 사용하면 회귀모형을 진단하기 위한 정보를 얻을 수 있다.  
+
+```{r}
+lmplot(fat.lm)
+```
+
+```{r}
+colB <- likertColor(2)[2]
+pp <- ppoints(101)
+x <- qnorm(pp)
+xyplot(pp ~ x, pch=19, xlab.top=list("Cumulative Distribution of N(0,1)\n", cex=1.3), col=colB,
+       xlab=list(cex=1.3), ylab=list(cex=1.3), ylab.right=list(cex=1.3),
+       scales=list(x=list(alternating=FALSE, tck=c(1,0))))
+
+n <- nrow(fat)
+f <- (1:n)/n
+diag2a <- xyplot(f ~ sort(predict(fat.lm)), pch=19,
+                 main="empirical cdf of\nfitted values\n", col=colB)
+diag2b <- xyplot(f ~ sort(resid(fat.lm)), pch=19,
+                 main="empirical cdf of\nresiduals\n", col=colB)
+
+update(c(diag2a, diag2b, layout=c(2,1)),
+       xlab=list(c(diag2a$xlab, diag2b$xlab), cex=1.3),
+       xlab.top=list(c(diag2a$main, diag2b$main), cex=1.3),
+       ylab=list(cex=1.3), ylab.right=list(cex=1.3),
+       main=NULL,
+       scales=list(x=list(alternating=FALSE, tck=c(1,0))),
+       between=list(x=1))
+
+mean.bodyfat <- mean(fat$bodyfat)
+diag3a <- xyplot(f ~ sort(predict(fat.lm) - mean.bodyfat), pch=19,
+                 main="empirical cdf of\ncentered fitted values\n", col=colB)
+diag3b <- xyplot(f ~ sort(resid(fat.lm)), pch=19,
+                 main="empirical cdf of\n residuals\n", col=colB)
+tmp3 <- update(c(diag3a, diag3b, layout=c(2,1)),
+               xlab=list(c(paste0(diag3a$xlab, "       "), diag3b$xlab), cex=1.3),
+               xlab.top=list(c(diag3a$main, diag3b$main), cex=1.3),
+               ylab=list(cex=1.3), ylab.right=list(cex=1.3),
+               main=NULL,
+               scales=list(x=list(alternating=FALSE, tck=c(1,0))),
+               between=list(x=1))
+tmp3c <-
+  combineLimits(as.matrix(row=TRUE, tmp3), margin.x=1)
+tmp3c
+
+diag4a <- xyplot(sort(predict(fat.lm) - mean.bodyfat) ~ f, pch=19,
+                 main="transposed empirical cdf of\ncentered fitted values", col=colB)
+diag4b <- xyplot(sort(resid(fat.lm)) ~ f, pch=19,
+                 main="transposed empirical cdf of\nresiduals", col=colB)
+
+tmp4 <- update(c(diag4a, diag4b, layout=c(2,1)),
+               xlab.top=list(c(diag4a$main, diag4b$main), cex=1.3),
+               xlab=list(cex=1.3), ylab=list(cex=1.3),
+               main=NULL,
+               ylab.right=list(diag4b$ylab, cex=1.3),
+               scales=list(x=list(alternating=FALSE, tck=c(1,0)), y=list(rot=0)),
+               between=list(x=1))
+combineLimits(as.matrix(row=TRUE, tmp4))
+
+```
+
+회귀모형에 대한 empricial distribution을 plot을 통해 나타내었다.  
+
+
+```{r}
+x <- rnorm(100)
+e <- rnorm(100)
+
+y1 <- sqrt(.1) * x + sqrt(1-.1) * e
+y5 <- sqrt(.5) * x + sqrt(1-.5) * e
+y9 <- sqrt(.9) * x + sqrt(1-.9) * e
+
+rr <- data.frame(x, e, y1, y5, y9)
+ThreeR2 <-
+  c(
+    diagplot5new(lm(y1 ~ x, data=rr), ylim=c(-3.2, 3.2)),
+    diagplot5new(lm(y5 ~ x, data=rr), ylim=c(-3.2, 3.2)),
+    diagplot5new(lm(y9 ~ x, data=rr), ylim=c(-3.2, 3.2))
+  )
+## ThreeR2
+TM <- update(matrix.trellis(ThreeR2, byrow=TRUE, nrow=3, ncol=2), between=list(y=1))
+## TM
+
+TMn <- update(TM,
+              xlab.top=c(expression(hat(y)-bar(y)), expression(y-hat(y))),
+              ylab="", ylab.right=NULL)
+## TMn
+
+print(position=c(0, 0, .4, 1), more=TRUE,
+      update(strip=FALSE, xlab.top=expression(phantom(hat(y))*y*phantom(hat(y))),
+             ylab=NULL,
+             ylab.right=list(c(
+               expression(R^2==.1),
+               expression(R^2==.5),
+               expression(R^2==.9)), rot=0),
+             ylim=c(-3.2, 3.2),
+             xyplot(y1 + y5 + y9 ~ x, data=rr, outer=TRUE, pch=19,
+                    panel=function(...) {
+                      panel.lmline(...)
+                      panel.points(...)
+                    },
+                    layout=c(1,3),
+                    scales=list(alternating=FALSE), between=list(y=1))
+      ))
+
+print(position=c(.39, 0, 1, 1), more=FALSE,
+      update(TMn, ylim=c(-3.2, 3.2))
+)
+```
+
+임의의 난수를 생성하여 산점도를 살펴보고 그에 따른 결정계수를 구해보았으며, empricial distribution을 오른쪽 패널에 나타내었다.  
+
+
+***
+
+## Summary of Chapter8
+
+* **회귀분석**이란 인과관계를 맺고 있는 변수들간의 함수 관계를 규명하여 최적회귀모형을 도출하기위한 통계적 분석방법이다. 다시 말해서, 우리가 가지고 있는 원인변수가 결과변수에 얼만큼의 영향을 미치고 원인변수를 통해 결과변수를 예측하는 것을 목표로한다.
+
+* **단순회귀분석**은 하나의 독립변수와 하나의 종속변수를 이용하여 회귀모형에 적합시키는 것을 말한다. **종속변수**는 우리가 예측하고자 하는 변수로 인과관계에서 결과의 의미를 가지고 있는 변수를 말하며, **독립변수**는 종속변수에 대해 영향을 미치는 변수를 말하며 원인의 의미를 가지고 있는 변수이다.
+
+* **최소제곱법**은 근사적으로 구하려는 해와 실제 해의 오차의 제곱의 합이 최소가 되는 해를 구하는 방식이다. 일반적으로 단순회귀분석에서는 이러한 최소제곱법을 이용하여 회귀모형에 대한 가장 적합한 직선을 찾게 된다.
+
+* 회귀분석은 일반적으로 4가지의 기본 가정을 가지고 있는데 ANOVA와 동일한 기본 가정인 **독립성**, **등분산성**, **정규성**과 **선형성**의 가정을 가지게 된다. **선형성은** 종속변수와 독립변수간 선형성을 만족한다는 가정을 말한다. 이러한 가정들은 변수들을 모형에 적합시킨 후, 잔차분석을 통해 기본가정이 성립하는지 확인할 수 있다.
+
+* **결정계수**는 독립변수와 종속변수를 통해 우리가 추정한 회귀 모형이 얼마 만큼 적합한지를 나타내는 척도로, 최대값은 1이며 높을수록 적합도가 높다는 의미이다.
+
+* R에서는 `lm`함수를 이용하여 회귀분석을 쉽게 진행할 수 있다. `lm`의 기본적인 Formula는 (종속변수 ~ 독립변수,data)의 형태로 지정하여 분석을 할 수 있다. `lm`을 통해 회귀모형을 만들게 되면, 독립변수가 유의한지, 주어진 회귀모형의 적합도와 회귀모형이 유의한지, 잔차분석 등 많은 유용한 정보를 확인할 수 있다.  
+
+***
+
+
+***
+
+# Chapter 9 Multiple Regression - More than One Predictor
+
+앞선 챕터에서 우리는 하나의 독립변수를 가지는 **단순선형회귀**분석에 대해서 알아보았다.  
+정확히 하나의 결과에만 영향을 미치는 독립변수가 하나만 있다면 예측력도 좋고 간단한 모델을 만들 수 있을 것이다.  
+
+하지만, 우리의 일상에서는 하나의 결과에 대하여 수많은 원인을 갖고 있는 경우가 대부분이다.  
+따라서, 이러한 경우에는 하나의 독립변수만을 사용하는 **단순선형회귀분석**을 이용할 수가 없다.  
+
+독립변수가 하나가 아닌 두 개 이상의 독립변수를 갖는 경우, **다중회귀분석**을 이용하여 회귀모형을 만들어야 한다.  
+**다중회귀분석**은 하나의 종속변수에 대하여 독립변수가 두 개이상 있을 때 사용하는 분석기법으로, 종속변수에 영향을 미치는 유의한 독립변수를 찾을 때, 유용한 분석 방법이다. 
+
+이번 챕터에서는 **다중회귀분석**에 대하여 알아보도록 한다.  
+
+
+
+## 9.1 Multiple Regression - Two X Analysis
+
+`car`패키지의 `scatter3d`함수를 이용하여 3차원의 산점도를 그릴 수 있다.  
+
+```{r}
+fat2.resid <- resid(lm(bodyfat ~ abdomin + biceps, data=fat))
+car::scatter3d(bodyfat ~ abdomin + biceps, data=fat, fit="linear",
+               residuals="squares",
+               bg="white", axis.scales=TRUE, grid=TRUE, ellipsoid=FALSE,
+               square.color = "gray80", surface.col="#a6cafe",
+               surface.alpha=.3, sphere.size=.7,
+               point.col=c("red","green")[1+(fat2.resid >= 0)])
+```
+
+
+
+```{r}
+fat2.lm <- lm(bodyfat ~ abdomin + biceps, data=fat)
+anova(fat2.lm)
+
+summary(fat2.lm)
+```
+
+`fat`데이터에 대해서 다중회귀분석을 진행하였다.    
+회귀식에 사용된 **abdomin,biceps**변수 모두 유의확률이 유의수준 0.05보다 작은 것으로 보아 유의한 변수임을 확인할 수 있다.  
+
+***
+
+
+**fat2.lm**의 회귀모형을 진단하기 위해 `lmplot`함수를 사용하였다.  
+
+
+```{r}
+lmplot(fat2.lm)
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+plot(fat2.lm)
+```
+
+잔차분석 결과, 36,39,41번 데이터가 이상점인 것을 확인할 수 있었다.  
+선형성과 정규성, 등분산성은 약간 만족하지 않는 것 처럼 보인다.  
+
+## 9.2 Example - Albuquerque Home Price Data
+
+### 9.2.1 Data Description
+
+```{r}
+data("houseprice")
+splom(~houseprice)
+```
+
+**houseprice**데이터의 변수별 관계를 살펴보기 위해 산점도 행렬을 그려보았다.  
+**price-sqft**,**price-taxes**는 양의 상관관계를 가지고 있는 것 처럼 보인다.  
+
+## 9.3 Partial F-Tests
+
+```{r}
+houseprice.lm2 <- lm(price ~ sqft + taxes + custom + corner, data=houseprice)
+
+anova(houseprice.lm2)
+
+summary(houseprice.lm2)
+```
+
+**price**를 종속변수로 하고 **sqft, taxes, custom, corner **을 독립변수로 하는 회귀분석을 진행하였다.  
+회귀분석 결과, 모든 변수의 유의확률이 유의수준 0.05보다 작으므로 모든 독립변수는 유의하다.  
+또한, 회귀모형의 P-value가 0.05보다 작으므로 회귀모형은 유의한 모형임을 확인할 수 있다.  
+
+
+```{r}
+library(dplyr)
+house_dat <- houseprice %>% 
+  select(price,sqft,taxes)
+houseprice$group <- 
+ifelse(houseprice$corner==0,"middle","corner")
+
+splom(~house_dat|houseprice$group,pch=c(2,1),col=c("#7685c8","#E16A92"),groups=houseprice$custom,key=list(text=list(c("regular","custom")),
+      points=list(pch=c(2,1),col=c("#7685C8","#E16A92"))))
+
+```
+
+그룹에 따른 데이터 탐색을 위해 회귀모형에 사용한 연속형 변수에 대한 산점도 행렬을 그려보았다.  
+산점도 행렬은 **corner**변수에 따라 구분하였고 **custom**변수에 따라 포인터의 형태와 색깔을 다르게 지정하였다.  
+**regular**일 때보다, **custom**일 떄 연속형 변수들이 조금 더 높은 값을 가지는 것을 알 수 있다.  
+
+
+```{r}
+houseprice.lm1 <- lm(price ~ sqft +taxes, data=houseprice)
+
+anova(houseprice.lm1, houseprice.lm2)
+```
+
+기존 모델과 변수를 하나 제거한 모델의 **Anova**를 진행하였다.  
+분석결과, 유의확률이 유의하게 나온 것을 알 수 있었고 이는 회귀모형간 평균차이가 있다는 것을 의미한다.  
+즉, **Houseprice**의 회귀모형에서 **custom**변수 유무에따른 평균차이가 존재한 다는 것을 알 수 있다.  
+
+## 9.4 Polynomial Models
+
+```{r}
+data(hardness)
+
+hardness.lin.lm <- lm(hardness ~ density, data=hardness)
+
+anova(hardness.lin.lm)
+
+hardness.quad.lm <- lm(hardness ~ density + I(density^2),data=hardness)
+
+anova(hardness.quad.lm)
+
+coef(summary.lm(hardness.quad.lm))
+```
+
+**hardness**데이터를 이용하여 1차 회귀식과 2차 회귀식을 비교해보았다.  
+1차, 2차 회귀식 모두 변수에 따른 평균 차이가 있음을 확인할 수 있었다.  
+하지만, 계수를 확인해본결과, 절편과 **1차 density**는 유의하지 않은 것을 확인할 수 있다.  
+여기서의 2차는 단순 2차식이 아닌 `I`함수를 이용하여 직교 2차를 이용하였다.  
+
+
+```{r}
+h2 <- data.frame(density=hardness$density, poly(hardness$density,2))
+
+xyplot(X1 + X2 ~ density, data=h2)
+```
+
+이번에는 `poly`함수를 이용하여 단순 제곱을 구하여 다시 한 번 분석을 진행해본다.  
+**density**에 대한 1차식, 2차식을 plot으로 나타내었다.  
+파란점이 1차식, 빨간점이 2차식의 데이터를 나타낸다.  
+
+***
+
+`regrresidplot`함수를 통해 최소제곱법을 이용한 잔차의 계산 과정을 시각화하여 살펴볼 수 있다.  
+
+
+```{r}
+SQ <- regrresidplot(hardness$density, hardness$hardness, xlim=c(20, 85),
+                    resid.plot="square")
+QU <- regrresidplot(hardness$density, hardness$hardness, xlim=c(20, 85),
+                    resid.plot="square", lm.object=hardness.quad.lm)
+update(c(SQ, QU, layout=c(2, 1)), xlab="density", ylab="hardness",
+       between=list(x=1), scales=list(alternating=FALSE))
+
+```
+
+
+```{r}
+hardness.quad.orth.lm <- lm(hardness ~ density + h2$X2, data=hardness)
+anova(hardness.quad.orth.lm)
+coef(summary.lm(hardness.quad.orth.lm))
+```
+
+단순 제곱을 이용하여 분석을 진행한 결과, 변수에 따른 평균적인 차이가 있음을 알 수 있다.  
+또한, 앞선 분석과 달리 **1차,2차,절편**의 모든 계수가 유의해진 것을 확인할 수 있다.  
+
+## 9.5 Models Without a Constant Term
+
+```{r}
+data(fat)
+
+## usual model with intercept
+xy.int.lm <- lm(bodyfat ~ biceps, data=fat)
+summary(xy.int.lm)
+
+anova(xy.int.lm)
+```
+
+**fat**데이터에 대해서 회귀분석을 진행한 결과, 절편은 유의하지 않고 **biceps**는 유의한 변수임을 확인할 수 있다.  
+또한, `anova`분석을 통해 **biceps**에 따라 평균 차이가 있음을 알 수 있다.  
+
+```{r}
+data(fat)
+
+## model without a constant term
+xy.noint.lm <- lm(bodyfat ~ biceps -1, data=fat)
+summary(xy.noint.lm)
+
+anova(xy.noint.lm)
+```
+
+유의하지 않은 절편을 제거하고 분석을 다시 진행한 결과, 이전 분석보다 회귀모형의 설명력과 유의확률이 더 좋아진 것을 알 수 있다.  
+
+
+```{r}
+A <-
+  xyplot(bodyfat ~ biceps, data=fat, pch=19, col=likertColor(2)[2],
+         key=list(title="model",
+                  space="right",
+                  text=list(c("intercept", "no intercept")),
+                  lines=list(lty=c(1,2), lwd=2),
+                  col=c("black","red"),
+                  border=TRUE))+
+  latticeExtra::layer(panel.abline(xy.int.lm, col="black", lty=1)) +
+  latticeExtra::layer(panel.abline(xy.noint.lm, col="red", lty=2))
+
+B <-
+  update(A, xlim=c(-5,46), ylim=c(-22,35)) +
+ latticeExtra::layer(panel.abline(h=0, v=0, col="gray40", lty=2))
+
+c(A, B, layout=c(2,1))
+```
+
+
+`xyplot`을 이용하여 앞서 진행한 분석을 시각적으로 나타내었다.  
+
+
+## 9.6 Prediction
+
+```{r}
+fat2.lm <- lm(bodyfat ~ abdomin + biceps, data=fat)
+
+pi.fit <- predict(fat2.lm,
+                  newdata=data.frame(abdomin=93:94,biceps=33:34),
+                  se.fit=TRUE, interval="prediction")
+
+ci.fit <- predict(fat2.lm, newdata=data.frame(abdomin=93:94,biceps=33:34),
+                  se.fit=TRUE,interval="confidence")
+```
+
+
+`predict``함수를 이용하여 회귀식을 통해 예측을 진행해보았다.  
+`interval`옵션을 이용하여 `prediction`을 입력하면 예측구간, `confidence`를 입력하면 신뢰구간에 대한 정보를 얻을 수 있다.  
+
+
+## 9.7 Example - Longley Data
+
+### 9.7.2 Data Description
+
+```{r}
+data(longley)
+splom(~longley)
+```
+
+**longley**함수의 데이터 탐색을 위해 산점도 행렬을 그려보았다.  
+대부분의 변수간 양의 상관관계가 존재하는 데이터임을 알 수 있다.  
+
+
+```{r}
+longley.lm <- lm(Employed ~. , data=longley)
+
+summary(longley.lm)
+
+anova(longley.lm)
+vif(longley.lm)
+```
+
+**longley**의 모든 변수를 이용하여 회귀분석을 진행하였다.  
+회귀모형 안에서, **절편,Unemployed,Armed.Forces,Year**의 변수가 유의한 변수임을 확인할 수 있었다.  
+하지만, `vif`함수를 이용하여 다중공선성을 검사해본 결과, **Armed.Forces** 변수를 제외한 모든 변수들의 다중공선성이 매우 심각한 것을 확인할 수 있었다.  
+따라서, 적합한 회귀모형을 찾기 위해서는 적절한 변수 선택이 필요한 것으로 보인다.  
+
+## 9.8 Variable Selection
+
+### 9.8.1 Manual Use of the Stepwise Philosophy
+
+```{r}
+longley3.lm <- lm(Employed ~ GNP.deflator + GNP + Unemployed + Armed.Forces + Year, data=longley)
+
+summary(longley3.lm)
+
+anova(longley3.lm)
+vif(longley3.lm)
+```
+
+**Population** 변수를 제거한 후, 다시 한 번 다중공선성 검사를 진행해본 결과, 여전히 **Armed.Forces** 변수를 제외한 변수에서 다중공선성이 있는 것을 확인할 수 있다.  
+
+```{r}
+longley4.lm <- lm(Employed ~ GNP + Unemployed + Armed.Forces + Year, data=longley)
+
+summary(longley4.lm)
+
+anova(longley4.lm)
+vif(longley4.lm)
+```
+
+**GNP.deflator** 변수를 제거한 후에도 **Armed.Forces**변수를 제외한 변수들은 여전히 다중공선성이 있는 것처럼 보인다.  
+
+```{r}
+longley5.lm <- lm(Employed ~ Unemployed + Armed.Forces + Year, data=longley)
+
+summary(longley5.lm)
+
+anova(longley5.lm)
+
+vif(longley5.lm)
+```
+
+**vif**지수가 제일 높은 **GNP** 변수를 제거한 결과, 남은 3개의 변수 모두 다중공선성이 없는 것을 확인할 수 있었다.  
+
+### 9.8.2 Automated Stepwise Modeling of the Longley Data
+
+```{r}
+longley.subsets <-
+  leaps::regsubsets(Employed ~ GNP.deflator + GNP + Unemployed + Armed.Forces + Population + Year,
+                    data=longley, nbest=2)
+
+longley.subsets.Summary <- summaryHH(longley.subsets)
+
+longley.subsets.Summary
+```
+
+`summaryHH`함수를 이용하여 변수선택에 따른 회귀모형의 성능지표 변화를 확인할 수 있다.  
+
+```{r}
+tmp <- (longley.subsets.Summary$cp <= 10)
+longley.subsets.Summary[tmp,]
+```
+
+선별된 변수들 중, **cp**지수가 10보다 작은 변수선택 방법들만을 추출하였다.  
+
+## 9.9 Example - U.S.Air Pollution Data
+
+```{r}
+data(usair)
+splom(~usair)
+```
+
+**usair**변수에 대한 데이터 탐색을 진행하기 위해 `splom`을 이용하여 산점도 행렬을 나타내었다.  
+변환을 통해 몇몇 변수에 대하여 데이터를 조금 더 퍼뜨릴 필요성이 있어 보인다.  
+
+```{r}
+library(dplyr)
+
+usair$lnSO2 <- log(usair$SO2)
+usair$lnmfg <- log(usair$mfgfirms)
+usair$lnpopn <- log(usair$popn)
+
+usair_tansform <- usair %>% 
+  select(-SO2,-mfgfirms,popn)
+```
+
+
+변환이 필요한 변수들에 **log**변환을 진행하여 데이터를 조금 더 퍼뜨려주었다.  
+
+```{r}
+splom(~usair_tansform)
+```
+
+앞서 변환을 진행하기 전 산점도 행렬보다 상관관계가 보이는 변수들을 확인할 수 있다.  
+
+```{r}
+usair.regsubset <- leaps::regsubsets(lnSO2 ~ lnmfg+ lnpopn + precip + raindays + temp + wind, data=usair_tansform, nbest=2)
+
+usair.subsets.Summary <- summaryHH(usair.regsubset)
+
+tmp <- (usair.subsets.Summary$cp <= 10)
+
+usair.subsets.Summary[tmp,]
+
+```
+
+`summaryHH`를 이용하여 **usair** 데이터에 대하여여 자동적으로 변수선택을 진행하고 그에 따른 회귀 성능지표의 변화를 살펴보았다.  
+
+
+
+```{r}
+plot(usair.subsets.Summary[tmp,], statistic='cp')
+```
+
+
+**cp**와 **Number of paramter**의 관계를 산점도로 나타내었다.  
+
+## 9.10 Example - mtcars data
+
+지금까지 배운 내용들을 토대로 mtcars 데이터를 통해 **multiple regression**을 적합시켜 보자.
+
+```{r}
+data(mtcars)
+str(mtcars)
+```
+
+```{r}
+head(mtcars,5)
+```
+
+mtcars의 데이터 변수들의 형태와 대략적인 구조를 살펴본다.
+
+```{r}
+pairs(mtcars)
+```
+
+`pairs`함수를 이용해 변수들의 관계를 살펴보기 위해 다중산점도 행렬을 그려보았다.  
+우리가 target변수로 설정한 mpg와 다른 독립변수들은 양의 상관관계 혹은 음의 상관관계를 갖고있는 것 처럼 보인다.  
+
+```{r}
+colSums(is.na(mtcars))
+```
+
+`colSums`를 이용하여 결측치 검정을 진행한 결과, 데이터의 결측치는 확인되지 않았다.  
+
+```{r}
+mr <- lm(mpg~.,data=mtcars)
+summary(mr)
+```
+
+```{r}
+library(car)
+vif(mr)
+```
+
+
+mtcars 데이터를 이용하여 다중회귀분석을 진행해보았다. 모형은 유의하고 적합도는 약 80%로 나온것을 확인할 수 있었다. 하지만, 대부분의 변수들의 유의확률보다 높아 유의하지 않았고 다중공선성이 존재하는 변수가 있는 것을 확인할 수 있었다.  
+따라서, 변수선택법을 진행하여 최적의 변수들을 찾아볼 필요가 있다고 판단하였다.  
+
+```{r}
+step(mr,direction="forward")
+```
+
+```{r}
+summary(lm(mpg ~ cyl + disp + hp + drat + wt + qsec + vs + am + gear + carb,data=mtcars))
+```
+
+**전진선택법**을 이용하여 변수선택을 진행해본 결과, 모든 변수를 선택하는 것이 적합하다고 나왔다.
+
+```{r}
+step(mr,direction="backward")
+```
+```{r}
+summary(lm(formula = mpg ~ wt + qsec + am, data = mtcars))
+```
+
+```{r}
+vif(lm(formula = mpg ~ wt + qsec + am, data = mtcars))
+```
+
+**후진제거법**을 사용하여 변수선택을 진행한결과, **wt,qsec,am**변수가 선택되었고 이 변수들을 회귀모형에 적합시킨 결과, 모든 변수가 유의하고 결정계수 또한 이전보다 높아진 것을 확인할 수 있었다.  
+또한, 다중공선성이 존재하는 변수들도 사라진 것을 알 수 있었다.  
+
+```{r}
+step(mr,direction="both")
+```
+
+```{r}
+summary(lm(formula = mpg ~ wt + qsec + am, data = mtcars))
+```
+
+**stepwise**방법을 이용하여 변수 선택을 진행한결과, 후진제거법과 동일한 변수선택이 나왔다.  
+이를 통해, 변수선택법을 이용함에 있어서는 **wt,qsec,am**변수를 통해 회귀모형을 만드는 것이 최적의 회귀모형임을 알 수 있었다.  
+
+
+***
+
+## Summary of Chapter9
+
+* **다중회귀분석(Multiple Regression)**은 단순회귀분석과 달리, 독립변수가 두 개 이상인 회귀분석을 말한다. 독립변수가 하나가 아닌 두 개이상 사용되기 때문에 적절한 변수를 선택하고 변수마다 확실하게 이해를 하고 회귀모형에 적합하는 것이 좋다.
+
+* 변수들을 다중회귀모형에 적합하기 전, 가장 좋은 방법 중 하나는 산점도 행렬을 통해 변수들간의 관계를 살펴보는 것이다. **산점도 행렬**은 변수 간 산점도를 행렬과 같이 한 공간안에 모두 나타내는 것을 말한다. **산점도 행렬**을 보게 되면, 변수들의 관계를 시각적으로 쉽게 파악할 수 있다.
+
+* **다중회귀분석**은 많은 변수들을 고려하기 때문에 변수들 안에서 강한 상관관계가 나타날 수 있다. **다중공선성**은 독립변수들 간에 강한 상관관계가 나타나는 문제를 말하며, 이는 공분산을 높이게 되어 회귀모형의 적합도를 낮출 수도 있다. 따라서, 항상 다중회귀분석을 진행하기 전에, 독립변수 간 다중공선성을 파악하는 것이 필요하다. 
+
+* 고려해야할 변수가 너무 많은 경우, **변수선택법**을 고려할 수 있다. **변수선택법**은 모형을 보다 더 잘 설명하는 변수들만을 골라서 최적의 회귀모형을 만드는 것을 말한다. **변수선택법**은 일반적으로 3가지의 선택법이 있다.
+
+* 첫 번째는 **전진선택법**으로 변수의 개수를 하나씩 늘려나가면서 최적의 회귀모형을 찾아나가는 방법이다. 두 번째는 **후진제거법**으로 전체 변수를 모형에 적합시킨 뒤, 변수를 하나씩 제거해가며 최적의 회귀모형을 찾아나가는 방법이다. 마지막으로 **단계적선택법**은 변수를 하나씩 늘려가다가 중요하지 않은 변수가 선택되면 제거하고 다시 다른 변수를 추가하는 식으로 진행되는 방법이다. 일반적으로는 **단계적선택법(Stepwise)**방법을 많이 사용하지만, 모형의 목적과 데이터에 따라 적절한 변수선택법이 다를 수도 있으니 모든 방법을 고려해보는 것이 좋다.
+
+* R에서 다중공선성은 `car`패키지의 `vif`함수를 통해 쉽게 확인할 수 있다. **vif**는 분산팽창요인이라고 말하며, 10이 넘는 경우 다중공선성이 있다고 말한다. 따라서, 다중공선성이 의심된다면 10이 넘는 변수들 중, 값이 큰 변수들부터 제거하여 회귀모형에 적합시키는 것이 좋다.
+
+* 앞서, 단순회귀분석에서 우리는 회귀모형의 적합도를 파악하는데 결정계수를 사용하였다. 다중회귀분석의 적합도를 살펴볼 때에는 이러한 결정계수를 통해 적합도를 확인해서는 안 된다. 왜냐하면, 결정계수는 독립변수의 수가 늘어날수록 커지는 경향이 있기때문에 다중회귀분석에서는 적합도 측정 지표로 적합하지 않다. 따라서, 다중회귀분석에서는 결정계수가 아닌 수정된 결정계수, cp, BIC 등 다른 지표를 통해 적합도를 살펴보는 것이 좋다.
+
+
+***
+
+
+# Chap10 Multiple Regression - Dummy Variables,Contrasts,and Analysis of Covariacne
+
+
+이번 챕터에서는 앞서 살펴본 다중회귀분석과 더불어 **더미 변수**와 **대조**에 대해 알아보도록 한다.  
+
+**더미 변수(Dummy variable)**은 질적인 특성을 갖고있는 독립변수들을 통합하는 것을 말한다. 예를 들어, A,B,C 3개의 변수를 가지고 있다고 가정하고 이에 대한 더미 변수화를 지정하게 되면, A =(1,0,0), B=(0,1,0), C=(0,0,1)와 같은 식으로 표현될 수 있다.  
+
+또한, 분산분석의 개념과 회귀분석의 개념이 혼합된 **공분산분석(Analysiss of Covariance)**에 대해서도 알아보자.  
+
+
+## 10.1 Example-Height and Weight
+
+### 10.1.1 Data Description
+
+* feet: 정수로 반올림한 피트 단위의 높이
+* inches: 인치단위의 높이
+* months: 월 단위로 표혀한 나이
+* lbs: 파운드 단위의 몸무게
+* sex: 남성 혹은 여성
+* meters: 미터단위의 높이
+
+### 10.1.2 Data Problems
+
+```{r}
+library(HH)
+data(htwt)
+
+levels(factor(htwt$sex,exclude=NULL))
+
+any(is.na(htwt$ht))
+```
+
+`any`함수를 이용해 *ht*변수 안에 결측값이 있는지 확인한다.  
+확인결과, TRUE를 반환하여 결측값이 있는 것으로 보인다.  
+
+
+```{r}
+for (h in tapply(htwt$ht,factor(htwt$sex,exclude = NULL),c)){
+  stem(h,scal=1.5)
+}
+```
+
+*ht*변수를 성별에 따라 `stem`함수를 이용하여 줄기 잎 그림 으로 표현하였다.  
+
+```{r}
+library(dplyr)
+
+df_htwt <- htwt %>% 
+  select("lbs","months","sex","ht")
+
+splom(~df_htwt,groups=df_htwt$sex,pch=c(17,19),col=c("#7685c8","#E16A92"),key=list(text=list(c("Male","Female")),
+      points=list(pch=c(17,19),col=c("#7685C8","#E16A92"))))
+```
+
+데이터 탐색을 위해 성별을 그룹으로 지정하고 `splom`함수를 사용하여 산점도 행렬을 그린 후, 변수 간 관계를 살펴보았다.  
+
+
+```{r}
+xyplot(lbs~ht,data=htwt,groups=sex,pch=c(17,19),
+       col=c("#7685c8","#E16A92"),
+       key=list(text=list(c("Male","Female")),
+                points=list(pch=c(17,19),
+                            col=c("#7685C8","#E16A92"))))
+```
+
+성별에 따른 ht변수와 lbs변수의 산점도를 그려보았다.
+
+```{r}
+## one-wway analysis of variance
+htwt.aov <- aov(ht ~ sex,data=htwt)
+
+summary(htwt.aov)
+
+model.tables(htwt.aov,type="means")
+```
+
+ht변수에 대해서 성별로 평균 차이가 있는지에 대한 분산분석을 진행한 결과, P-value는 0에 매우 가까운 값으로 유의수준 0.05보다 작으므로 유의한 것을 확이할 수 있다.  
+
+따라서, 성별에 따라서 ht변수에 대한 평균차이가 존재하는 것을 알 수 있다.  
+
+### 10.1.3 Three Variants on the Analysis
+
+```{r}
+## dummy variable
+
+htwt$female <- as.numeric(htwt$sex == "f")
+```
+
+성별이 female인 경우를 1로 지정하고 남성인 경우를 0으로 지정하여 더미변수화를 진행해주었다.  
+
+```{r}
+htwt.lm <- lm(ht ~ female, data=htwt)
+
+summary(htwt.lm)
+
+anova(htwt.lm)
+```
+
+더미변수화를 진행한 후 회귀분석과 다시 한 번 분산분석을 진행해본 결과, 유의한 변수임을 알 수 있었고 분산분석의 결과는 앞선 결과와 동일하게 성별 간 평균차이가 존재하는 것을 확인할 수 있었다.
+
+```{r}
+## dummy variable
+
+htwt$treat <- (htwt$sex == "f") - (htwt$sex == "m")
+
+htwtb.lm <- lm(ht ~ treat,data=htwt)
+
+summary(htwtb.lm)
+
+anova(htwtb.lm)
+```
+
+앞선 더미변수 방법과는 다르게 여성일 경우 1, 남성일 경우 -1로 변환해 준 후, 다시 한 번 분석을 진행해본 결과 동일한 결과가 나온 것을 확인할 수 있다.  
+
+## 10.2 Polynomial Contrasts and Orthogonal Polynomials
+
+```{r}
+data(fabricwear)
+
+bwplot(wear~speed,data=fabricwear,ylab="wear",xlab="speed")
+```
+
+**fabricwear**데이터의 *wear,speed*변수를 이용하여 boxplot을 그려본 결과, speed가 높아짐에 따라 wear의 평균 또한 같이 높아지는 것을 확인할 수 있다.  
+
+
+```{r}
+fabricwear.aov <- aov(wear ~ speed, data=fabricwear)
+
+summary(fabricwear.aov)
+```
+
+분산분석 결과, 탐색적 자료분석을 통해 얻은 결과와 동일하게 wear변수에 대하여 적어도 한 speed 집단 간 유의한 평균차이가 발생하는 것을 알 수 있다.  
+
+```{r}
+tmp.c <- zapsmall(contrasts(fabricwear$speed),14)
+
+dimnames(tmp.c)[[1]] <- levels(fabricwear$speed)
+
+tmp.c
+
+
+par(mfrow=c(2,3))
+tmp.c_df <- data.frame(tmp.c)
+plot(rownames(tmp.c_df),tmp.c_df$.L,type="o",xlab="speed",ylab="polynomials",main=".L",col="#7685c8")
+plot(rownames(tmp.c_df),tmp.c_df$.Q,type="o",xlab="speed",ylab="polynomials",main=".Q",col="#7685c8")
+plot(rownames(tmp.c_df),tmp.c_df$.C,type="o",xlab="speed",ylab="polynomials",main=".C",col="#7685c8")
+plot(rownames(tmp.c_df),tmp.c_df$X.4,type="o",xlab="speed",ylab="polynomials",main="^4",col="#7685c8")
+plot(rownames(tmp.c_df),tmp.c_df$X.5,type="o",xlab="speed",ylab="polynomials",main="^5",col="#7685c8")
+```
+
+
+데이터를 1차,2차,3차,4차,5차로 변환시키고 차수가 증가함에 따른 변화를 살펴보기 위해 plot을 통해 나타내보았다.  
+
+
+```{r}
+zapsmall(crossprod(tmp.c),13)
+
+min.nonzero <- function(x, digits=13){
+  xx <- zapsmall(x,digits)
+  min(xx[xx != 0])
+}
+
+tmp.min <- apply(abs(tmp.c),2,min.nonzero)
+
+sweep(tmp.c,2,tmp.min, "/")
+```
+
+
+```{r}
+summary(fabricwear.aov,
+        split=list(speed=list(speed.L=1,speed.Q=2,
+                   speed.C=3,rest=4:5)))
+
+summary.lm(fabricwear.aov)
+
+```
+
+앞서, 차수 변환을 시켜준 데이터에 대하여 분산분석을 진행해 보았다.  
+분산분석결과, 1차,2차,4차의 다항식은 유의한 평균차이가 적어도 한 집단 이상 존재한다는 결과를 얻을 수 있었다.  
+3차,5차의 다항식은 P-value가 유의수준 0.05보다 높으므로 집단 간 유의한 평균차이가 존재하지 않는다.  
+
+## 10.3 Example-Hot Dog Data
+
+### 10.3.1 Data Description
+
+* Type: 핫도그의 유형
+* Calories: 핫도그의 칼로리
+* Sodium: 핫도그 당 나트륨 밀리그램
+
+### 10.3.2 Concomitant Explanatory Variable _ ANCOVA
+
+```{r}
+data(hotdog)
+bwplot(Sodium~Type,data=hotdog,col=c(1:3),
+       par.settings=list(box.rectangle=list(col=c(1:3)),box.umbrella=list(col=c(1:3)),box.dot=list(col=c(1:3))))
+```
+
+탐색적 자료분석을 위한 boxplot 결과, 핫도그에 들어가느 고기 종류에 따른 나트륨은 큰 평균차이가 존재하지 않는 것 처럼 보인다.  
+```{r}
+data("col3x2")
+
+hotdog.key <- list(title="Type", border=TRUE, space="right",
+                   text=list(levels(hotdog$Type),
+                             col=col3x2[1:3]),
+                   points=list(pch=15:17,
+                               col=col3x2[1:3]),
+                   lines=list(lty=1,
+                              lwd=trellis.par.get("superpose.line")$lwd[1:3],
+                              col=col3x2[1:3]))
+TxC <- ancovaplot(Sodium ~ Type, x=Calories, data=hotdog, col=col3x2,
+                  main="Sodium ~ Type, x=Calories",
+                  scales=list(alternating=FALSE),
+                  between=list(x=c(0,0,1)))
+update(TxC, key=hotdog.key)
+```
+
+핫도그의 고기 유형에 따른 나트륨을 비교하고 칼로리를 공변량으로 지정한 결과를 `ancovaplot`을 통해 살펴보았다.  
+
+그림으로만 확인해봤을때, 평균차이는 존재하지 않는 것처럼 보인다.  
+
+```{r}
+aovStatementAndAnova(TxC)
+anova(aov(Sodium~Type,data=hotdog))
+```
+
+분산분석을 진행한 결과 또한, 유의확률이 유의수준 0.05보다 큰 값을 가지므로 고기의 유형에 따른 칼로리의 평균 차이는 존재하지 않는다고 할 수 있다.  
+
+```{r}
+CgT <- ancovaplot(Sodium ~ Calories, groups=Type, data=hotdog, col=col3x2,
+                  main="Sodium ~ Calories, groups=Type",
+                  scales=list(alternating=FALSE),
+                  between=list(x=c(0,0,1)))
+update(CgT, key=hotdog.key)
+```
+
+그룹변수를 Type으로 지정하고, 종속변수가 Sodium이고 독립변수가 Calories에 대한 `ancovaplot`을 그래프로 나타내보았다.  
+
+```{r}
+aovStatementAndAnova(CgT, warn=FALSE)
+anova(aov(Sodium ~ Calories, data=hotdog))
+```
+
+Type을 Group으로 지정하고 반응변수를 Sodium으로 했을 때, 유의확률이 유의수준 0.05보다 작으므로, Calories 변수에 따른 유의한 평균차이가 적어도 한 집단 이상 있는 것을 확인할 수 있다. 
+
+```{r}
+hotdog.key <- list(title="Type", border=TRUE, space="right",
+                   text=list(levels(hotdog$Type),
+                             col=col3x2[1:3]),
+                   points=list(pch=15:17,
+                               col=col3x2[1:3]),
+                   lines=list(lty=1,
+                              lwd=trellis.par.get("superpose.line")$lwd[1:3],
+                              col=col3x2[1:3]))
+CpT <- ancovaplot(Sodium ~ Calories+Type, data=hotdog, col=col3x2,
+                  main="Sodium ~ Calories + Type",
+                  scales=list(alternating=FALSE),
+                  between=list(x=c(0,0,1)))
+update(CpT, key=hotdog.key)
+```
+종속변수를 Sodium으로하고 독립변수는 Calories, Type으로 지정한 후, `ancovaplot`을 그려 보았다.  
+
+```{r}
+aovStatementAndAnova(CpT)
+CpT.aov <- aov(Sodium ~ Calories + Type, data=hotdog)
+anova(CpT.aov)
+```
+분산분석결과, 종속변수 Sodium에 대해서 **Calories,Type**모두 유의한 것으로 보아 두 변수 모두 적어도 한 집단 간 유의한 평균차이가 존재한다는 것을 알 수 있다.  
+
+```{r}
+hotdog.key <- list(title="Type", border=TRUE, space="right",
+                   text=list(levels(hotdog$Type),
+                             col=col3x2[1:3]),
+                   points=list(pch=15:17,
+                               col=col3x2[1:3]),
+                   lines=list(lty=1,
+                              lwd=trellis.par.get("superpose.line")$lwd[1:3],
+                              col=col3x2[1:3]))
+
+hotdog$Sodium.Calories <-
+   hotdog$Sodium - predict.lm(CpT.aov, type="terms", terms="Calories")
+
+T.C <- ancovaplot(Sodium.Calories ~ Type, x=Calories, data=hotdog, col=col3x2,
+                  main="Sodium.Calories ~ Type, x=Calories",
+                  scales=list(alternating=FALSE),
+                  between=list(x=c(0,0,1)))
+update(T.C, key=hotdog.key)
+```
+**hotdog$Sodium.Calories** 변수에 Sodium 변수 - (Calories + Type)을 이용한 회귀예측값을 계산하여 넣어주었다.  
+그 다음, Sodium.Calories변수를 종속변수로 지정하고 Type을 독립변수로 지정한 후, Calories를 공변량으로 지정해주었다.  
+
+```{r}
+aovStatementAndAnova(T.C)
+anova(aov(Sodium.Calories ~ Type, data=hotdog))
+```
+
+위의 Formula를 분산분석에 적용했을 때, Type 주효과는 유의한 것을 확인할 수 있다.  
+따라서, Type 집단에 따라서 적어도 한 집단 간 유의한 평균 차이가 발생하는 것을 알 수 있다.  
+
+```{r}
+CpT.mmc <- mmc(CpT.aov)
+CpT.mmc
+```
+
+차이가 발생하는 집단을 찾기 위해 다중비교를 진행하였다.  
+**Poultry-Meat**, **Poultry-Beef**의 집단이 신뢰구간 0을 포함하지 않으므로 유의한 차이를 보이는 집단이라고 할 수 있다.  
+
+```{r}
+mmcplot(CpT.mmc)
+```
+
+`mmcplot`을 통해서도 다중비교의 결과를 그림을 통해서 살펴볼 수 있다.  
+
+```{r}
+CsT <- ancovaplot(Sodium ~ Calories * Type, data=hotdog, col=col3x2,
+                  main="Sodium ~ Calories * Type",
+                  scales=list(alternating=FALSE),
+                  between=list(x=c(0,0,1)))
+update(CsT, key=hotdog.key)
+
+```
+
+Sodium변수를 종속변수로 지정한 후, Calories,Type를 독립변수로 지정하였고 *를 이용하여 교호작용 또한 고려하여 `ancovaplot`을 통해 그림을 그려보았다.  
+
+```{r}
+aovStatementAndAnova(CsT)
+anova(aov(Sodium ~ Calories * Type,data=hotdog))
+
+```
+
+분산분석 결과, 주효과들은 유의하다는 결과가 나왔지만, 두 주효과의 교호작용은 유의하지 않은 것을 확인할 수 있다.  
+
+### 10.3.3 Tests of Equality of Regression Lines
+
+
+```{r}
+removeAnnotation <-
+       function(x) {
+         update(x,
+                main=list(x$main, cex=1.1),
+                ylab=NULL,
+                xlab=NULL,
+                legend=NULL,
+                scales=list(alternating=0, tck=0),
+                par.strip.text=list(cex=.9, lines=1.1))
+      }
+
+## 2 x 3, with empty spots
+print(position=c(.03, .31,  .53, .62), more=TRUE, removeAnnotation(CgT))
+print(position=c(.50, .00, 1.00, .31), more=TRUE, removeAnnotation(TxC))
+print(position=c(.50, .31, 1.00, .62), more=TRUE, removeAnnotation(CpT))
+print(position=c(.50, .62, 1.00, .93), more=TRUE, removeAnnotation(CsT))
+
+## column labeling
+grid.text(x=c(.29, .75), y=.02, gp=gpar(fontsize=14),
+          c(expression("constant intercept" ~~ alpha),
+            expression("variable intercept" ~~ alpha)))
+
+## row labeling
+grid.text(x=.02, y=c(.15, .45, .75), rot=90, gp=gpar(fontsize=14),
+          c(expression("zero slope" ~~ beta==0),
+            expression("constant slope" ~~ beta),
+            expression("variable slope" ~~ beta)))
+
+## main title
+grid.text(x=.5, y=.98, gp=gpar(fontsize=18),
+          "Composite graph illustrating four models with a factor and a covariate")
+```
+
+
+## 10.4 ancovaplot Function
+
+```{r}
+data(hotdog,package = "HH")
+data(col3x2,pacakge="HH")
+
+## constant line across all groups
+## y ~ x
+ancovaplot(Sodium ~ Calories,groups=Type,data=hotdog,col=col3x2)
+
+## different horizontal line in each group
+## y ~ a
+ancovaplot(Sodium ~ Type, x = Calories, data=hotdog, col=col3x2)
+
+## constant slope, different intercepts
+## y ~ x + a or y ~ a + x
+ancovaplot(Sodium ~ Calories + Type, data=hotdog, col=col3x2)
+
+## different slopes, and differnet intercepts
+## y ~ x * a or y ~ a * x
+ancovaplot(Sodium ~ Calories * Type, data=hotdog, col=col3x2)
+```
+
+`ancovaplot`또한 Formula를 +,* 등의 기호를 사용하여 다양한 조합을 그림으로 나타낼 수 있다.  
+
+## References of Chapter10
+
+[ANCOVA의 개념](https://m.blog.naver.com/PostView.naver?isHttpsRedirect=true&blogId=y4769&logNo=220627663821)
+
+***
+
+## Summary of Chapter10
+
+* **더미 변수(Dummy variable)**은 독립변수를 0과 1로 변환한 변수를 말한다. 예를 들어, 성별에 대한 데이터가 "M","F"인 경우, 문자열이기 때문에 데이터로 사용할 수가 없다. 따라서, 이러한 문자열에 대하여 숫자로 변환해주는 작업을 **더미변수변환**라고 할 수 있다.  
+
+* 문자열을 더미변수로 바꿔주는 과정에서 대응되는 더미를 잘못 만들어주거나, 원하는 가변수로 변하지 않은 상태에서 분석을 진행하면 이상한 모형이 도출될수도 있기 때문에 항상 더미변수화를 진행한 후에는 올바르게 변수변환이 되었는지 확인하는 것이 필요하다.  
+
+* 앞선 챕터에서 독립변수와 종속변수의 인과관계를 살펴보는 **회귀분석**과 종속변수에 대해서 독립변수의 집단 간 유의한 차이가 발생하는지에 대해 알아보기 위한 **분산분석**에 대해서 알아보았다.
+
+* **공분산분석(ANCOVA)**는 회귀분석과 분산분석을 섞은 개념이라고 할 수 있다. 외생변수를 공변량으로 처리한 후, 독립변수의 각 집단 사이의 종속변수 값에 대해서 차이가 있는지를 확인하는 방법이다.  
+
+* **공변량**은 종속변수에 영향을 미칠 수 있으나 독립변수로 설정되지 않은 변수를 말하며, 잡음을 통제하는 과정이라고 말할 수 있다.  
+
+* 공분산분석 또한 분산분석, 회귀분석의 기본 가정사항인 **정규성**, **등분산성**, **독립성**을 가정한다.  
+
+* R에서 공분산분석을 진행하고자 하는 경우, `ancovaplot`을 이용하여 시각적인 방법을 이용하거나, `lm`함수를 이용하여 공변량을 지정하고 회귀모형을 적합시킨 후에, `anova`함수를 이용하여 분산분석을 진행함으로써 공분산분석의 결과를 얻을 수 있다.  
+
+***
+
+# Chapter12 Two-Way Analysis of Variance  
+
+앞 챕터의 일원분산분석(One-Way Anova)는 설명변수가 1개, 종속변수가 1개 일 때 모집단에 대한 평균을 비교하는 방법이었다.  
+일원분산분석에서 종속변수는 연속형 자료 이어야하고, 설명변수는 대체로 3개 이상의 집단을 갖는 범주형 변수이어야 했다.    
+
+**이원분산분석(Two-way Anova)**는 One-way Anova와 달리, 설명변수가 2개, 종속변수가 1개 일 때 모집단에 대한 평균을 비교하는 방법이다.  
+일반적으로, 설명변수 2개를 **주효과**라고 일컫는다.  
+이때, One-Way Anova와 동일하게 설명변수는 범주형 자료이어야 한다.  
+
+또한, 이원분산분석은 일원분산분석과는 주효과간 차이와 더불어, **교호작용**이라는 추가적인 효과를 고려한다.  
+**교호작용**은 두 주효과가 서로 상호간에 영향을 주고 받으면서 나타나는 반응효과를 말한다.  
+
+기본 가정사항은 **독립성**, **정규성**, **등분산성**으로 일원분산분석과 같은 기본 가정사항을 가진다.    
+
+주효과 A를 지하철 이용 방법, 주효과 B를 지하철역, 반응변수를 승객의 수라고 하자.  
+이원분산분석의 귀무가설은 다음과 같다.  
+
+**주효과 A에 대한 귀무가설**
+H0: 지하철 이용 방법에 따른 승객의 수의 차이가 없을 것이다.  
+H1: 지하철 이용 방법에 따른 승객의 수의 차이가 있을 것이다.  
+
+**주효과 B에 대한 귀무가설**
+H0: 지하철 역에 따른 승객의 수의 차이가 없을 것이다.  
+H1: 지하철 역에 따른 승객의 수의 차이가 있을 것이다.  
+
+**교호작용에 대한 귀무가설**
+H0: 지하철이용 방법과 지하철 역의 교호작용 효과가 없을 것이다.  
+H1: 지하철이용 방법과 지하철 역의 교호작용 효과가 있을 것이다.  
+
+***
+
+
+## 12.1 Example-Display Panel Data 
+
+### 12.1.1 Analysis Goals    
+
+```{r}
+library(HH)
+data(display)
+```
+
+**display** 데이터는 아래와 같이 구성 돼있다.  
+
+* time: 초를 기준으로한 시간. **(반응변수)**  
+* panel: 3개의 범주로 구성된 테스트 중인 패널. **(설명변수)**  
+* emergenc: 4개의 범주로 구성된 시뮬레이션 된 비상상황. **(설명변수)**
+* panel.ordered: 반응 평균의 순서와 맞도록 수준이 정렬된 패널요인의 반복.  
+
+***
+
+anova Formula에서 `변수*변수`의 형태로 지정을 해주게 되면, 그 두 변수의 주효과와 더불어 교호작용의 유의성까지 확인할 수 있다.  
+
+
+```{r}
+displayf.aov <- aov(time~emergenc*panel,data=display)
+```
+
+
+```{r}
+anova(displayf.aov)
+```
+
+분산분석 결과, 2개의 주효과는 유의확률이 유의수준 0.05보다 작으므로 유의하다.  
+따라서, 2개의 주효과 모두 적어도 한 집단 간 유의한 차이가 발생하는 것을 알 수 있다.  
+
+교호작용의 경우, **emergenc:panel**의 형태로 표시되며, 유의확률이 유의수준 0.05보다 크므로 유의하지 않다.  
+따라서 두 개의 주효과의 교호작용 효과는 유의하지 않음을 알 수 있다.  
+
+***
+
+```{r}
+interaction2wt(time ~ panel.ordered * emergenc, data=display)
+```
+
+`interaction2wt`을 통해 교호작용 그림을 그리게되면 위와같은 결과를 얻을 수 있다.  
+먼저, 각 독립변수의 범주별 반응변수에 대한 boxplot을 확인할 수 있다. 이를 통해, 주효과의 집단에 따라 주효과의 변화를 살펴 볼 수 있다.  
+또한, 왼쪽위와 오른쪽 아래 패널은 교호작용 그래프를 나타낸다.  
+왼쪽 위의 그래프는 거의 평행하고 오른쪽 아래의 교호작용의 plot은 교차점이 있지만 선마다 거의 평행을 이룸을 볼 수 있다.  
+이를 통해, 우리는 교호작용의 효과가 유의하지 않음을 확인할 수 있다.  
+
+***
+
+또 다른 교호작용 효과 확인 방법으로는 `interaction.plot`함수는 교호작용에 대한 plot만을 그릴 수 있다.  
+
+`interaction.plot(x.factor,trace.factor,reponse)`를 이용하여 그린다.  
+
+* x.factor: x축에 올 독립변수  
+* trace.factor: y축에 올 또 다른 독립변수
+* reponse: 반응변수  
+
+
+```{r}
+interaction.plot(x.factor = display$panel.ordered,trace.factor=display$emergenc,response=display$time,
+                 ylab="emergenc",xlab="panel.ordered")
+```
+
+interaction.plot의 결과, 앞에서 우리가 그려봤던 상호작용 plot 그림과 동일한 그림을 얻을 수 있다.  
+
+***
+
+`mmc`함수에서 `foucs`옵션은 독립변수 중 어느 변수를 기준으로 다중비교 분석을 진행할지 결정하는 옵션이다.  
+
+```{r}
+displayf.mmc <- mmc(displayf.aov,focus="panel")
+displayf.mmc
+```
+
+panel 집단에 대한 다중비교 분석결과, 3-1,3-2 집단은 신뢰구간이 0을 포함하지 않으므로 집단 간 차이가 있음을 알수 있다.    
+
+```{r}
+mmcplot(displayf.mmc,style="both")
+```
+
+`mmcplot`을 통해 유의한 차이가 있는 집단이 붉은색으로 지정된 것을 시각적으로 확인할 수 있다.  
+
+```{r}
+mmcplot(displayf.mmc,type="none")
+```
+
+`type=none`으로 지절하는 경우, 각 집단의 종속변수에 대한 신뢰구간에 대한 그림을 그릴 수 있다.  
+
+```{r}
+displayr.aov <- aov(time~Error(emergenc/panel)+panel,data=display)
+summary(displayr.aov)
+```
+
+위의 anova의 Formula는 우리가 알고있는 형태와 많이 다른 것을 확읺라 수 있다.  
+**Error(emergenc/panel)+panel**의 의미는 emergenc 변수는 random 인자로, panel 인자는 fixed 인자로 설정한다는 것이다.  
+또한, Error가 분수의 꼴로 돼있으므로 panel변수가 emergenc 내에서 nested한다는 의미도 가지고 있다.  
+
+
+## 12.2 Example-The Blood Plasma Data  
+### 12.2.1 Analysis
+
+<br>
+
+```{r}
+data(plasma)
+```
+
+**plasma** 데이터는 위와 같이 구성 돼있다.  
+
+* plasma: 플라즈마의 시트레이트 농도(마이크로몰/리터 단위) **(반응변수)**  
+* time: 5개의 범주를 갖는 시간. **(설명변수)**  
+* id: 10개의 범주로 구성된 요인. 과목당 하나씩 있다. **(설명변수)**
+
+***
+
+데이터를 살펴보기 위해 x축을 time으로하고 y축을 plasma로 한 다음 id의 범주별 그래프를 그린 결과는 아래와 같다.  
+
+```{r}
+xyplot(plasma ~ time | id, data=plasma, type="b", pch=19, layout=c(10, 1), between=list(x=.5))
+```
+
+아래의 Formula는 id를 random effect, time은 fixed effect로 지정한 후, 분산분석을 진행한다는 의미이다.  
+
+```{r}
+plasma.aov <- aov(plasma ~ Error(id)+time,data=plasma)
+summary(plasma.aov)
+```
+
+```{r}
+interaction2wt(plasma ~ time* id, data=plasma)
+```
+
+plasma데이터의 교호작용 그림의 결과이다. 교호작용 패널의 그래프를 보면 선간의 교차점이 꽤 많은 것을 알 수 있다.  
+이를 통해, 두 독립변수 간 교호작용 효과가 존재할수도 있다는 추정을 해볼 수 있다.  
+
+```{r}
+
+plasma$time <-
+   factor(plasma$time,levels=unique(plasma$time),ordered=FALSE)
+plasma.aov2 <- aov(plasma ~ id + time, data=plasma)
+plasma.mmc <- mmc(plasma.aov2,focus="time")
+plasma.mmc
+```
+
+**다중비교**를 진행한 결과, 11am과 5pm 집단만이 신뢰구간 0을 포함하지 않는다.  
+따라서, 11am-5pm 집단간 차이만이 유의한 것을 확인할 수 있다.  
+
+
+```{r}
+mmcplot(plasma.mmc,style="both")
+```
+
+다중비교의 결과를 plot을 통해 나타낸 결과, 11am-5pm 집단 간 차이가 유의하여 붉은색으로 지정된 것을 확인할 수 있다.  
+
+
+## 12.3 Introduction to Nesting  
+### 12.3.1 Example-Workstation Data
+
+```{r}
+data("workstation")
+```
+
+**station** 데이터는 위와 같이 구성 돼있다.  
+
+* metohd: 1시간 동안 생산된 장치의 갯수 **(반응변수)**  
+* station: 2개의 범주로 구성된 지하철역. **(설명변수)**  
+* devices: 3개의 범주로 구성된 조립 방법. **(설명변수)**
+
+
+```{r}
+bwplot(devices~station|method,data=workstation)
+
+```
+
+boxplot을 살펴본결과, station에 따라 평균이 달라지는 것을 알 수 있고 metohd의 범주에 따라서도 boxplot의 평균이 달라지는 것을 확인할 수 있다.  
+
+### 12.3.2 Analysis Goals 
+
+아래의 anova formula는 station 변수가 method 변수에 대해서 nested 된 것을 가르키며, 그에 따른 분산분석을 진행하는 것이다.  
+
+```{r}
+workstation.aov <- aov(devices~method/station,
+                       data=workstation)
+summary(workstation.aov)
+```
+
+분산분석 결과, metohd의 주효과는 유의한 차이가 있는 것을 알 수 있고, station을 method에 대해서 netsted 했을 때의 두 변수간 교호작용은 유의한 것으로 확인되는 것을 확인할 수 있다.  
+
+```{r}
+model.tables(workstation.aov,"means",se=TRUE)
+```
+
+`model.tables`를 통해 station과 method에 대한 그룹의 평균과 더불어, 전체 평균에 대한 정보를 알 수 있다.  
+또한, `se=TRUE`옵션을 추가하여 standard errors에 대한 정보까지 확인할 수 있다.  
+
+
+## 12.4 Example-The Rhizobium Data
+
+```{r}
+data("rhiz.alfalfa")
+unique(rhiz.alfalfa$comb)
+```
+
+**rhiz.alfala**는 clover에서 자라는 박테리아에 대한 정보로 구성된 데이터이다.  
+**rhiz.alfalfa** 데이터의 2-way 독립변수는 아래 와 같이 구성 돼있다.  
+
+* strain: 실험에 사용되는 박테리아의 종류. 6개의 범주로 구성됐다. **(반응변수)**    
+* comb: 2개의 범주로 구성된 순수 박테리아와 혼합된 박테리아. **(설명변수)**  
+
+
+
+```{r}
+library(gridExtra)
+p1 <- bwplot(weight~strain|comb,data=rhiz.alfalfa)
+p2 <- bwplot(nitro~strain|comb,data=rhiz.alfalfa)
+p3 <- bwplot(Npg~strain|comb,data=rhiz.alfalfa)
+
+print(p1,split=c(1,1,1,3),more=TRUE)
+print(p2,split=c(1,2,1,3),more=TRUE)
+print(p3,split=c(1,3,1,3),more=FALSE)
+```
+
+comb변수를 group으로 rhiz.alfalfa의 종속변수들에 대한 boxplot을 그린 결과이다.  
+
+```{r}
+data("rhiz.clover")
+```
+
+**rhiz.clover**는 clover에서 자라는 박테리아에 대한 정보로 구성된 데이터이다.  
+독립변수와 종속변수는 **rhiz.alfala**데이터와 같다.  
+단, strain에 대한 독립변수의 level은 다르게 구성됐다.  
+
+```{r}
+p4 <- bwplot(weight~strain|comb,data=rhiz.clover)
+p5 <- bwplot(nitro~strain|comb,data=rhiz.clover)
+p6 <- bwplot(Npg~strain|comb,data=rhiz.clover)
+
+print(p4,split=c(1,1,1,3),more=TRUE)
+print(p5,split=c(1,2,1,3),more=TRUE)
+print(p6,split=c(1,3,1,3),more=FALSE)
+```
+
+comb변수를 group으로 rhiz.clover의 종속변수들에 대한 boxplot을 그린 결과이다.  
+
+
+### 12.4.1 Alfalfa Analysis
+
+```{r}
+## unset position(rhiz.alfalfa$comb) for glht
+rhiz.alfalfa.aov <- aov(Npg~strain*comb,data=rhiz.alfalfa)
+
+summary(rhiz.alfalfa.aov)
+```
+
+분산분석 결과, **strain**변수는 적어도 한 집단 간 차이가 유의하다는 결론이 나왔고 comb변수와 교호작용 효과는 유의하지 않은 것을 알 수 있다.  
+
+```{r}
+alf.means <- model.tables(rhiz.alfalfa.aov,type="means",se=TRUE,cterms = "strain")
+alf.means
+```
+
+`model.tables`를 통해 집단 간 평균과 standard error에 대한 결과를 얻을 수 있다.  
+`cterms` 옵션을 이용하여 **strain**변수에 대한 정보만을 확인한다.  
+a.comp 범주가 평균이 가장 높은 것을 확인할 수 있다.  
+
+```{r}
+old.fin <- par()$fin
+par(fin=c(old.fin[1], 2.5))
+
+plot(y=c(1.01,1,.99,1,1,1), x=alf.means$tables$strain,pch=16,xlim=c(29.5, 32.7),yaxt="n", ylim=c(.85,1.10), ylab="",
+     xaxt="n", xlab="",col=1:6)
+rug(alf.means$tables$strain, ticksize=-.1)
+axis(3)
+mtext("Npg", 3, line=3)
+
+
+lines(x=c(29.7,31.5), y=c(.95,.95))
+lines(x=c(30.5,32.5), y=c(.90,.90))
+strain.labels <- paste(dimnames(alf.means$tables$strain)[[1]],
+                       format(alf.means$tables$strain, digits=6),
+                       sep=": ")
+
+axis(1, at=alf.means$tables$strain[c(2,4, 6)], labels=strain.labels[c(2,4,  6)], line=1, tick=FALSE, adj=.45)
+axis(1, at=alf.means$tables$strain[c(    5  )], labels=strain.labels[c(    5  )], line=2, tick=FALSE, adj=.45)
+axis(1, at=alf.means$tables$strain[3         ], labels=strain.labels[3         ], line=2, tick=FALSE, adj=.45)
+axis(1, at=alf.means$tables$strain[1         ], labels=strain.labels[1         ], line=3, tick=FALSE, adj=.4)
+```
+
+`model.tables`의 결과를 `plot,lines,axis`함수를 통하여 시각적으로 나타낼 수도 있다.  
+
+```{r}
+par(fin=old.fin)
+```
+
+```{r}
+rhiz.alfalfa.mmc <- mmc(rhiz.alfalfa.aov,focus="strain")
+rhiz.alfalfa.mmc
+```
+
+다중비교를 진행한 결과, **a.comp-3DOa1**, **a.comp-3DOa10**, **a.comp-3DOa7**, 집단의 평균차이 신뢰구간이 0을 포함하지 않으므로 집단 간 차이가 유의한 것을 확인할 수 있다.  
+
+
+```{r}
+mmcplot(rhiz.alfalfa.mmc,style="both")
+```
+
+`mmcplot`을 이용하여 시각적으로 조금 더 쉽게 살펴볼 수 있다.  
+
+***
+
+다중비교 후, 원하는 집단 간 차이를 살펴보기 위해 cbind를 이용하여 contrast matrix를 만들어 준 후, 다시 한 번 다중비교 분석을 진행하였다.  
+
+```{r}
+alf.comp <- cbind("1,7,10-c"=c(-3, 0, 0, 1, 1, 1),
+                  "1,10-7"  =c( 0, 0, 0, 1, 1,-2),
+                  "1-10"    =c( 0, 0, 0, 1,-1, 0),
+                  "15-12"   =c( 0, 1,-1, 0, 0, 0),
+            "1,7,10,c-12,15"=c( 1,-2,-2, 1, 1, 1))
+dimnames(alf.comp)[[1]] <- dimnames(rhiz.alfalfa.mmc$none$lmat)[[2]]
+alf.mmc <- mmc(rhiz.alfalfa.aov, focus="strain",
+                         focus.lmat=alf.comp)
+alf.mmc
+alf.both_style <- mmcplot(alf.mmc, h=c(.45, .55), type="lmat", style="both",
+        sub=list("\n         The MMC panel shows informative overprinting.  Please see Tiebreaker panel and caption.", cex=.75))
+alf.both_style
+alf.both2_style <- alf.both_style
+
+alf.both2_style$par.settings$layout.heights$panel <- c(.75, .25)
+alf.both2_style     
+```
+
+
+분석결과, **c(a.comp) - (3DOa1, 3DOa7, 3DOa10)**의 집단 간 차이만 유의한 것을 확인할 수 있다.  
+
+### 12.4.2 Clover Analysis
+
+```{r}
+rhiz.clover.aov <- aov(Npg~strain*comb,data=rhiz.clover)
+
+summary(rhiz.clover.aov)
+```
+
+**rhiz.clover**데이터에 대한 분산분석 결과, strain이 유의한 것을 확인할 수 있고 **rhiz.alfala** 데이터와 달리 교호작용이 유의한 것을 확인할 수 있다.  
+
+```{r}
+model.tables(rhiz.clover.aov,type="means",se=TRUE)
+```
+
+
+교호작용 효과가 유의하므로 `cterms`옵션을 사용하지 않고 주효과와 교호작용에 대한 model table을 확인한다.    
+
+
+```{r}
+rhiz.clover.mmc <- mmc(rhiz.clover.aov,focus="strain")
+rhiz.clover.mmc
+```
+
+집단 간 차이를 확인하기 위해 다중비교를 진행한 결과, 차이가 유의한 집단은 다음과 같다.  
+**3DOk5-k.comp**, **3DOk5-3DOk7**, **3DOk5-3DOk13**, **3DOk5-3DOk4**, **3DOk1-3DOk13**, **3DOk1-3DOk4**
+
+```{r}
+mmcplot(rhiz.clover.mmc,style="both")
+```
+
+`mmcplot`을 통해서도 집단 간 유의한 차이가 있는 그룹을 확인할 수 있다.  
+
+```{r}
+interaction2wt(Npg~strain*comb,data=rhiz.clover,par.settings=list(
+                 plot.symbol=list(pch=18),
+                 box.dot=list(pch=18),
+                 axis.text=list(cex=.6) 
+                 ))
+```
+
+교호작용 plot에서 `par.settings`옵션을 통해 box와 plot의 symbol을 지정해줄 수 있다.  
+
+boxplot을 통해 각 범주 데이터의 이상치를 확인할 수 있다.  
+또한, 교호작용이 유의하므로 교호작용 패널의 선들이 교차점을 가지고 대체로 평행하지 않은 형태를 보이는 것을 살펴볼 수 있다.  
+
+```{r}
+interaction2wt(Npg~strain*comb,data=rhiz.clover,simple=TRUE,par.settings=list(
+                 plot.symbol=list(pch=18),
+                 box.dot=list(pch=18),
+                 axis.text=list(cex=.6)))
+```
+
+`simple=TRUE`라는 옵션을 지정하게 되면 범주에 따라서 pch옵션을 자동으로 다르게 해준다. 따라서, 범주간 데이터를 구별하는데 더 유용하다.  
+
+
+***
+
+아래의 anova formula는 **strain**변수가 **comb**변수에 nested 된 formula 이다.  
+
+```{r}
+rhiz.clover.nest.aov <-
+  aov(Npg~comb/strain,data=rhiz.clover)
+summary(rhiz.clover.nest.aov)
+```
+
+nested를 진행한 분산분석의 결과, 주효과 comb는 유의하지 않고, 교호작용의 효과만 유의한 것을 살펴볼 수 있다.  
+
+
+```{r}
+old.width <- options(width=35)
+names(coef(rhiz.clover.nest.aov))
+options(old.width)
+```
+
+nested된 anova 결과의 계수를 살펴보면 위와 같다.  
+
+
+```{r}
+summary(rhiz.clover.nest.aov,
+        split=list("comb:strain"=
+                     list(clover=c(1,3,5,7,9),
+                          "clover+alf"=c(2,4,6,8,10))))
+```
+
+split을 통해 범주를 나눈 후, 그 범주에 따른 교호작용 또한 살펴볼 수 있다.  
+
+***
+
+rhiz.clover의 독립변수 간 교호작용이 유의했으므로 inetr 변수에 두 변수의 교호작용을 넣어 준후 분석을 진행해본다.  
+
+```{r}
+rhiz.clover$inter <- with(rhiz.clover, interaction(comb, strain))
+levels(rhiz.clover$inter)
+rhiz.clover.inter.aov <- aov(Npg ~ inter, data=rhiz.clover)
+summary(rhiz.clover.inter.aov)
+```
+
+```{r}
+cs12.mmc <- mmc(rhiz.clover.inter.aov, linfct=mcp(inter="Tukey"))
+mmcplot(cs12.mmc,
+  main="clover and clover+alfalfa comparisons",style="both")
+```
+
+교호작용에 대한 다중 비교 plot을 그리면 위와 같다.  
+유의한 집단간 차이가 보이지만, 너무 많은 집단간 차이가 출력되어 한 눈에 알아 볼 수 없다.    
+
+교호작용 분석을 진행할 때에는 적절한 제약조건이 필요하다는 것을 확인할 수 있다.  
+
+```{r}
+## Look at the contrasts, their generated dummy variables  
+## and their regression coefficients
+## Abbreviate their names for presentation,
+
+tmp <- abbreviate(names(coef(rhiz.clover.nest.aov)))
+tmp
+```
+
+
+contrasts를 통해 R 프로그램 내에서 더미변수가 어떻게 지정됐는지 확인할 수 있다.  
+
+```{r}
+contrasts(rhiz.clover$comb)
+contrasts(rhiz.clover$strain)
+```
+
+
+```{r}
+cnx <- aov(Npg~ comb/strain, data=rhiz.clover,x=TRUE)$x
+
+dimnames(cnx)[[2]] <- tmp
+
+## cnx
+cnx[seq(1,60,5),c(1,2,3,5,7,9,11)]
+
+cnx[seq(1,60,5),c(4,6,8,10,12)]
+
+```
+
+앞서 분산분석의 결과로 얻어진 회귀계수를 더미변수로에 함께 배치되도록 지정해주었다.  
+cnx를 통해 살펴본 결과, 우리가 지정한 회귀계수가 더미변수 안에 적절하게 들어간 것을 확인할 수 있다.  
+
+```{r}
+cnxb <- round(coef(summary.lm(rhiz.clover.aov)),3)
+dimnames(cnxb)[[1]]<-tmp
+cnxb[c(1,2,3,5,6,7,11,4,6,8,10,12),]
+```
+
+clover 데이터의 실험에서 더미변수와 회귀계수를 함께 배치한 뒤 분석한 선형회귀분석 결과는 위와 같이 나온다.   
+
+## 12.5 Example-Animal Feed Data
+### 12.5.1 Analysis
+
+```{r}
+data(feed)
+feed.int.aov <- aov(retained~temp*supp,data=feed)
+anova(feed.int.aov)
+```
+
+feed 데이터의 분산 분석 결과, **temp, supp** 독립변수는 유의확률이 유의수준 0.05보다 작으므로 적어도 집단 간 차이가 한 집단 이상에서 유의한 차이가 있다는 것을 알 수 있다.  
+교호작용의 유의확률은 유의수준 0.05보다 크므로 유의하지 않은 것을 확인할 수 있다.  
+
+```{r}
+feed.aov <- aov(retained ~ temp + supp,data=feed)
+anova(feed.aov)
+
+summary(feed.aov,split=
+          list(temp=list(linear=1,quadratic=2),
+               supp=list(linear=1,quadratic=2,rest=3:4)))
+
+```
+
+
+feed 데이터의 contrasts를 고차 방정식을 적용하여 anova 분석을 다시 한 번 진행해보았다.  
+1차, 2차는 모두 유의하게 나온 것을 알 수 있었지만 rest(나머지) 방정식에서는 더 이상 유의하지 않은 것을 알 수 있다.  
+
+```{r}
+model.tables(feed.aov,type="means",se=TRUE)
+```
+
+```{r}
+interaction2wt(retained ~ supp * temp, data=feed)
+```
+
+교호작용의 패널은 거의 평행한 모양에 가깝기 때문에 앞서 살펴본 것 처럼, 교호작용이 유의하지 않은 것을 다시 한 번 확인할 수 있다.  
+
+## 12.6 Appendix: R Markdown Theme
+### 12.6.1 Change of Theme
+
+R markdown은 다양한 theme를 가지고 있다.  
+theme는 다음과 같이 설정할 수 있다.  
+
+Ouput:  
+  html_document:  
+  theme: **theme**이름
+
+사용할 수 있는 Theme의 종류는 아래의 링크에서 볼 수 있다.    
+https://rfriend.tistory.com/311  
+
+### 12.6.2 Change of Background
+
+theme가 아닌 Markdown의 background를 변경을 원할수도 있다.  
+Markdown의 경우 HTML을 기반으로 하기때문에 이러한 스타일의 변경은 css를 수정해주어야한다.  
+
+html에서 내용을 가지고 있는 부분은 **body**이다.  
+이러한 **body**의 배경색을 변경해주면 markdown의 배경색을 변경할 수 있다.  
+변경방법의 코드는 아래와 같다.  
+
+`<body style="background-color:grey;">`
+
+기본 색깔이 아닌 Color Hex를 지정하여 배경색을 지정해줄 수도 있다.  
+`<body style="background-color:#FFFFE6;">`
+
+## References of Chapter 12 {-}
+
+[이원분산분석의 정의](https://rfriend.tistory.com/136)  
+[이원분산분석의 특징](http://contents2.kocw.or.kr/KOCW/document/2016/chungang/parkjunseong2/9.pdf)  
+[Nested of Two-Anova](https://stackoverflow.com/questions/37497948/aov-error-term-in-r-whats-the-difference-bw-errorid-and-errorid-timevar/42664178)  
+[R markdown theme](https://rfriend.tistory.com/311)
+[R background color](https://stackoverflow.com/questions/65541245/how-do-i-change-the-entire-background-color-in-an-rmarkdown-html-document)
+
+
+
+***
+
+## Summary of Chapter12
+
+* 우리는 Chapter6에서 설명변수의 집단에 따른 평균적인 차이가 존재하는지에 대해 분석하는 **One-Way-ANOVA**방법에 대해서  살펴보았다. 회귀에서도 단순선형회귀, 다중선형회귀가 있는 것 처럼, 분산분석 또한 설명변수가 2개 이상인 경우에 사용하는 분석방법이 있다.  
+
+* (집단을 3개 이상 가지는)설명변수가 2개 이상인 경우에는 일원분산 분석이 아닌 **이원분산분석(Two-way ANOVA)**를 이용하여 집단간 평균의 차이가 존재하는지에 대해서 검정을 진행해야 한다.  
+
+* 이원분산분석을 통해 집단간 평균의 차이를 살펴보고자 할 때, 사용하는 2개 이상의 설명변수들을 **주효과**라고 하며, 이러한 주효과들이 서로 영향을 받으면서 나타는 효과를 **교호작용**이라고 한다. 일원분산분석과 달리 이원분산분석은 교호작용을 반드시 분석을 진행할 때 고려해 주어야한다.
+
+* 이원분산분석 역시 일원분산분석과 같이 **정규성**, **독립성**, **등분산성** 3가지의 기본 가정을 가지고 분석을 진행한다.
+
+* R에서는 `aov`함수를 이용하여 분산분석을 진행할 수 있다고 했는데, 이원분산분석 또한 `aov`함수를 이용하여 진행할 수 있다. `(반응변수 ~ 설명변수 * 설명변수,data)`의 형태로 Formula를 지정하게 되면 **이원분산분석**과 더불어 주효과 간 교호작용의 유의성 까지 확인할 수 있다. 
+
+* `aov`에 사용되는 formula를 `interactionw2t`함수에 지정하게 되면 각 주효과에 따른 반응변수의 *boxplot*과 교호작용 plot까지 확인할 수 있기 때문에 데이터 탐색에 꽤나 유용하게 사용할 수 있다.  
+
+***
+
+
+# Chap13 Design of Experiments - Factorial Desings  
+
+**삼원분산분석(Three-way ANOVA)**는 앞서 우리가 살펴본 이원분산분석(Two-Way ANOVA)과 달리 **독립변수가 3개** 이상인 분산분석을 일컫는다.  
+앞서 우리가 진행했던 이원분산분석에서는 두 독립변수간의 교호작용만을 고려했다.  
+
+하지만, 삼원분산분석의 경우, 독립변수가 3개 이상이기 때문에 두 독립변수간 교호작용이 3개 이상이 나올 수 있다.  
+또한, 독립변수 3개에 대한 교호작용도 살펴봐야한다.  
+
+주효과와 교호작용에 대한 귀무가설과 대립가설은 앞서 살펴본 분산분석들과 동일하다.  
+
+**주효과의 대립가설**  
+
+* H0: 독립변수 A에 따른 종속변수 B에 대하여 평균차이가 없다.  
+* H1: 독립변수 A에 따른 종속변수 B에 대하여 평균차이가 있다.  
+
+
+**교호작용의 대립가설**  
+
+* H0: 독립변수간 교호작용 효과가 존재하지 않는다.  
+* H1: 독립변수간 교호작용 효과가 존재한다.  
+
+
+## 13.1 A Three-Way ANOVA - Muscle Data
+
+
+
+`cc176`은 근육 데이터로 구성된 데이터로, `HH`패키지 안에 내장돼있다.  
+
+```{r}
+library(HH)
+data("cc176")
+```
+
+
+```{r}
+xyplot(wt.d~wt.n|n.treats*current,data=cc176,group=minutes,
+        panel=function(x,y,...) {
+         panel.superpose(x,y,...)
+         panel.abline(lm(cc176$wt.d ~ cc176$wt.n))})
+```
+
+`cc176`의 **group(n.treats,current)**에 대한 EDA를 진행하기 위해 `xyplot`함수를 사용하여 그림을 그렸다.  
+또한, 공변량에 대해 회귀직선을 표시했으며, 회귀직선이 양의 기울기를 가지는 것으로 보아 변수간 효과가 있는 것을 알 수 있다.  
+
+```{r}
+## y=wt.d with x=wt.n as covariate
+## (get essentially the same ANOVA as the approximate (y-bx)^2)
+## ANOVA table in Cochran and Cox)
+cc176.aov <- aov(wt.d~rep+wt.n+n.treats*minutes*current,data=cc176)
+summary(cc176.aov)
+```
+
+3개의 변수(**n.treats**,**minutes**,**current**)를 교호작용으로 지정하여 분산분석을 진행하였다.  
+
+분산분석 결과, minutes를 제외한 모든 주효과는 유의확률이 유의수준보다 작으므로, '유의한 차이가 존재하는 집단이 적어도 한 집단 이상이다.'는 결과를 얻을 수 있었다.  
+
+교호작용의 결과를 살펴본 결과, 유의한 교호작용은 존재하지 않았다.  
+
+```{r}
+interaction2wt(wt.d~n.treats*minutes*current,data=cc176)
+```
+
+
+`interaction2wt` 함수를 통해 3개의 교호작용에 대한 plotㅇ르 살펴볼 수 있다.   
+
+```{r}
+summary(cc176.aov,
+        split=list(n.treats=list(n.treats.lin=1,
+                                 n.treats.quad=2)),
+        expand.split=FALSE)
+
+```
+
+**n.treats** 변수에 대하여 2차 방정식을 적용하여 결과를 살펴보았다.  
+
+**n.treats**를 2차로 변환하게 되면 유의하지 않게 변하는 것을 알 수 있다.    
+
+```{r}
+##
+## adjust y for x
+cc176$y.adj <- cc176$wt.d -
+  (cc176$wt.n - mean(cc176$wt.n))*coef(cc176.aov)["wt.n"]
+```
+
+cc176의 y변수인 ``wt.d``에 대하여 분산분석을 통해 얻어진 평균과 회귀계수를 통해 값을 조정해주었다.  
+
+***
+
+
+```{r}
+## duplicate CC Table 5.17
+cc176.means <- tapply(cc176$y.adj,
+                      cc176[,c("current","n.treats")],mean)
+
+cc176.means
+
+apply(cc176.means,1,function(x) mean(x))
+```
+
+`tapply`를 통해 **current**, **n.treats**에 따른 조정된 y의 평균 값을 살펴볼 수 있다.  
+
+`apply`를 사용하여 옵션을 1로 지정하면 (행에 대한 함수 적용) **current**에 따른 평균만을 얻을수도 있다.  
+
+***
+
+```{r}
+interaction2wt(y.adj~current*n.treats,data=cc176)
+```
+
+조정된 y값에 대해서 **ntreats, current**의 교호작용 그림을 그려주었다.  
+
+교호작용 패널들에서 교차점이 몇 개 보이지만,  대부분 평행을 이루기 때문에 교호작용은 유의하지 않은 것을 알 수 있다. 
+
+***
+
+```{r}
+bwplot(y.adj~current,data=cc176,main="Boxplots for adjusted weights",col=c(1:4),
+       par.settings=list(box.rectangle=list(col=c(1:4)),
+                         box.umbrella=list(col=c(1:4))))
+```
+
+
+```{r}
+bwplot(y.adj~minutes|n.treats*current,data=cc176,col=c(1:4),
+       par.settings=list(box.rectangle=list(col=c(1:4)),
+                         box.umbrella=list(col=c(1:4))))
+```
+
+조정된 값 y에 대한 minutes의 boxplot을 그려주었다.  
+**ntreats,current**을 그룹변수로 하여 두 개의 그룹변수에 따라 **boxplot**을 나누어 그려주었다.  
+
+```{r}
+cc176t <- cc176
+for (i in names(cc176t))
+  if (is.factor(cc176t[[i]]))
+    contrasts(cc176t[[i]]) <-
+  contr.treatment(length(levels(cc176t[[i]])))
+sapply(cc176t,class)
+
+cc176t.aov <- aov(wt.d ~ rep + wt.n + n.treats +
+                    wt.n*current,data=cc176t)
+summary(cc176t.aov)
+```
+
+앞서 진행한 분산분석과 다르게 주효과왁 교호작용을 지정해주었다.  
+주효과는 모두 유의확률이 유의수준보다 작으므로 유의한 집단이 적어도 하나 존재하는 것을 알 수 있다.  
+교호작용인 **wt.n:current** 또한 유의확률이 0.000376으로 두 변수의 교호작용은 유의한 것을 알 수 있다.  
+
+***
+
+**current** 변수에 대한 다중비교를 진행하고 원하는 집단 간 차이를 살펴보기 위해 **contrast matrix**를 만들어 주었다.    
+
+```{r}
+cc176$current <- factor(cc176$current,levels=unique(cc176$current),ordered=FALSE)
+unique(cc176$current)
+current.lmat <-cbind("gf-cc"=c(-1,-1,1,1),
+                      "25-60"=c(0,0,-1,1),
+                      "g-f"=c(1,-1,0,0))
+dimnames(current.lmat)[[1]] <- levels(cc176$current)
+cc176_current.aov <- aov(y.adj~current,data=cc176)
+mmc(cc176_current.aov,focus="current",focus.lmat = current.lmat)
+```
+
+**current**변수에 따른 다중비교 결과와 우리가 설정한 집단 간 평균차이 결과를 볼 수 있다.  
+
+```{r}
+mmcplot(mmc(cc176_current.aov,focus="current",focus.lmat = current.lmat))
+```
+
+`mmcplolt`을 통해서 살펴본 결과 평균차이가 유의하게 나타나는 집단은 다음과 같다.  
+**25.cycle-galavnic**, **25.cycle-faradic**, **60.cycle-faradic**
+
+```{r}
+mmcplot(mmc(cc176_current.aov,focus="current",focus.lmat = current.lmat),type="lmat")
+```
+
+`type=lmat`옵션을 이용하여 우리가 설정한 집단 간 차이를 살펴본 결과, 유의한 차이가 나타나는 집단은 **gf-cc** 하나뿐 이었다.  
+
+### 13.1.1 Example - Latin Square
+
+```{r}
+data(tires)
+library(gridExtra)
+b1<-bwplot(wear~car,data=tires,main="car")
+b2<-bwplot(wear~position,data=tires,main="position")
+b3<-bwplot(wear~brand,data=tires,main="tires")
+
+
+print(b1,split=c(1,1,3,1),more=TRUE)
+print(b2,split=c(2,1,3,1),more=TRUE)
+print(b3,split=c(3,1,3,1),more=FALSE)
+```
+
+**tires**데이터에 대한 시각적 탐색을 위해 `boxplot`을 그렸다.  
+**car** 변수의 경우, 숫자가 커질수록 wear의 값이 낮아지는 것을 알 수 있다.  
+
+
+```{r}
+tires.aov <- aov(wear~ car+position+brand,data=tires)
+summary(tires.aov)
+```
+
+
+`tires`데이터에 대한 분산분석 진행결과, **position** 변수를 제외한 두 **car,brand** 주효과 변수가 유의한 것을 알 수 있다.  
+따라서, 두 주효과 집단에서는 유의한 차이가 발생하는 집단이 적어도 하나 존재한다.  
+
+
+```{r}
+tapply(tires$wear,tires$car,function(x) mean(x))
+
+tapply(tires$wear,tires$position,function(x) mean(x))
+
+tapply(tires$wear,tires$brand,function(x) mean(x))
+```
+
+`tapply`함수를 적용하여 **tires**의 각 변수에 대한 평균을 구해주었다.    
+
+
+```{r}
+tires.mmc.brand <- mmc(tires.aov,linfct=mcp(brand="Tukey"))
+
+tires.mmc.brand
+
+mmcplot(tires.mmc.brand)
+```
+
+**brand**변수에 대한 다중비교를 진행하였다.  
+1-4, 1-3집단이 신뢰구간 0을 포함하지 않고 다중비교 plot에서 붉은색으로 지정된 것으로 보아 유의한 차이가 있는 집단인 것을 확인할 수 있다.  
+
+
+```{r}
+brand.lmat <- cbind("1-43" =c(2,0,-1,-1),
+                    "4-3" =c(0,0,-1,1),
+                    "143-2" = c(1,-3,1,1))
+
+dimnames(brand.lmat)[[1]] <- levels(tires$brand)
+
+
+tires.mmc.brand2 <- mmc(tires.aov,linfct=mcp(brand="Tukey"),
+                       focus.lmat = brand.lmat)
+
+tires.mmc.brand2
+```
+
+원하는 집단 간 차이를 살펴보기 위해 contrast matrix를 만들어 주었다.  
+**1-43** 집단만이 신뢰구간 0을 포함하지 않으므로 유의한 차이가 있는 집단인 것을 알 수 있다.  
+
+```{r}
+mmcplot(tires.mmc.brand2,type="lmat")
+```
+
+`mmcplot`에서도 유의한 집단 간 차익가 있는 **1-43** 집단이 붉은색으로 지정된 것을 볼 수 있다.  
+
+
+```{r}
+tires.aov <- aov(wear ~ car + position + brand, data=tires)
+
+summary(tires.aov,split=list(brand=list("1-43"=1,rest=2:3)))
+
+```
+
+
+### 13.1.2 Example = The filemcoat Data
+
+```{r}
+data(filmcoat)
+```
+
+**filmcoat**는 다음과 같은 데이터로 구성돼있다.  
+* temprt: 3개의 수준으로 구성된 온도.  
+* pressure: 3개의 수준으로 구성된 압력.  
+* coat: 필름의 두께  
+
+### 13.1.3 Data analysis
+
+```{r}
+bwplot(coat~pressure|pressure+temprt,data=filmcoat)
+```
+
+시각적 탐색을 위해 **filmcoat**에 대한 `bwplot`을 이용하여 **boxplot**을 그려주었다.  
+
+```{r}
+library(reshape2)
+acast(filmcoat,temprt~pressure,mean,value.var="coat",margins=TRUE)
+```
+
+`acast`함수를 이용하여 **filmcoat**데이터에 대한 평균을 한 눈에 보기 쉽게 정리할 수 있다.  
+
+```{r}
+film.aov1 <- aov(coat ~ temprt*pressure,data=filmcoat)
+summary(film.aov1)
+```
+
+**filmcoat**에 대한 분산분석을 진행한 결과, 주효과와 교호작용이 모두 유의한 결과를 나타내는 것을 확인할 수 있다.  
+
+
+```{r}
+interaction2wt(coat~temprt*pressure,data=filmcoat,simple=TRUE)
+```
+
+**filmcoat**의 교호작용 패널을 살펴보면 직선이 평행하지 않으며 교차점을 가지는 것으로 보아 교호작용이 어느정도 유의함을 알 수 있다.  
+
+
+```{r}
+film.mmc1 <- mmc(film.aov1,focus="pressure")
+film.mmc1
+```
+
+```{r}
+mmcplot(film.mmc1,style="both")
+```
+
+`pressure`변수에 대한 다중비교를 진행한 결과, **p.high-p.med,p.high-p.low**의 집단 간 평균차이가 유의한 것을 알 수 있었다.  
+
+## 13.2 Nested Factorial Experiment
+### 13.2.1 Example-Gunload Data
+
+```{r}
+data(gunload)
+bwplot(rounds~method|method+group,data=gunload)
+```
+
+**gunload**데이터에 대해서 **method,group** 그룹 변수로 **rouns**를 종속변수로 지정하여 `boxplot`을 그렸다.  
+
+### 13.2.2 Example-Turkey Data (Continnued)
+
+```{r}
+gunload.aov <-
+  aov(rounds ~ method*group + Error((team %in% group)/method),data=gunload)
+summary(gunload.aov)
+model.tables(gunload.aov,type="means")
+```
+
+
+gunload데이터에 대한 분산분석을 진행하였다.  
+분산분석 진행에 대해서 Error term이 의미하는 바는, team을 제외한 주효과는 모두 **Random인자**로 설정하겠다는 의미이다.  
+
+또한, Error가 분수의 형태로 돼있으므로 metohd -> group -> team의 형태로 nested 된다는 것을 나타낸다.  
+
+
+```{r}
+data(turkey)
+turkey[c(1,7,13,19,25),]
+
+turkey$trt.vs.control <-
+  factor(rep(c("control","treatment"),c(6,24)))
+contrasts(turkey$trt.vs.control) <- c(4,-1)
+
+
+turkey$additive <- factor(rep(c("control","A","B"),c(6,12,12)),
+                          levels=c("control","A","B"))
+
+contrasts(turkey$additive) <- c(0,1,-1)
+
+turkey$amount <- factor((rep(c(0,1,2,1,2),c(6,6,6,6,6))))
+
+contrasts(turkey$amount) <- c(0,1,-1)
+turkey[c(1,7,13,19,25),]
+```
+
+`trt.vs.control`변수는 **diet**변수가 **control**이면 control, 나머지에 대해서는 **treatment**를 반환한다.  
+
+`additive`의 경우 **control** =  control, **A** = A, **B** = B를 반환한다.  
+
+`amount`변수는 **control** = 0, *diet* 변수의 마지막 숫자가 1이면 1, 2면 2를 반환한다.  
+
+```{r}
+turkey3.aov <- aov(wt.gain ~ trt.vs.control / (additive*amount),data=turkey,x=TRUE)
+summary(turkey3.aov)
+```
+
+앞서 우리가 설정한 변수와 control, treatment에 대해서 분산분석을 진행하였다.  
+control과 treatment 집단 간은 유의한 차이가 있음을 알 수 있고 **additive,amount** 또한 집단 간 유의한 차이가 있는 것을 확인할 수 있다. 
+교호작용의 유의확률은 0.0609로 유의수준 0.05보다 높으므로 유의하지 않다.   
+하지만, 0.05에 매우 가까운 값을 가지므로 유의수준에 따라 유의하다고 해석할 수도 있다.  
+
+
+```{r}
+print(na.print="",tapply(turkey$wt.gain,turkey[,c("additive","amount")],mean))
+```
+*treatment*에  따른 **amount,additive**에 대한 평균을 `tapply` 함수를 이용하여 구해주었다.  
+
+## 13.3 Specification of Model Formulas
+
+```{r}
+data(abc)
+abc
+
+abc.oneway <- with(abc,matrix(y,4,3,dimnames=list(1:4,A=unique(A))))
+
+abc.oneway
+
+abc.crossed <- with(abc,matrix(y,3,4,byrow=TRUE,
+                               dimnames=list(A=unique(A),B=unique(B))))
+
+abc.crossed
+```
+
+abc데이터에 대해서 **abc.oneway**데이터는 일원분산분석 형태의 matrix를 가지고 있다.  
+**abc.crossed**는 이원분산분석 형태의 교차 matrix 형태를 가지고 있다.  
+
+
+```{r}
+abc.nested <- with(abc,matrix(c(y[1:4],rep(NA,8),
+                                rep(NA,4),y[5:8],
+                                rep(NA,4),
+                                rep(NA,8),y[9:12],3,12,byrow=TRUE,dimnames=list(A=unique(A),BwA=BwA))))
+
+print(abc.nested,na.print="")
+
+abc.double.indexed <- abc[,"y",drop=FALSE]
+abc.double.indexed
+```
+
+**abc.nested**는 nested된 형태의 matrix를 보여준다.  
+**abc.double.indexed**는 A와 B 변수의 값 두 개를 index로 가지고 있는 것을 나타낸다.  
+
+```{r}
+## one-way
+abc.A.aov <- aov(y ~ A, data = abc)
+anova(abc.A.aov)
+coef(abc.A.aov)
+contrasts(abc$A)
+model.matrix(abc.A.aov)
+```
+
+**abc.oneway**에 대해서 분산분석을 진행한 결과, 유의확률이 유의수준보다 크므로 유의한 차이가 발생하는 집단이 없는 것을 알 수 있다.  
+
+**contrasts**를 통해 dummy변수가 어떻게 처리 됐는지 알 수 있으며, model.matrix를 통해 contrast matrix의 조합을 살펴볼 수 있다.  
+
+```{r}
+## crossed: no interaction
+abc.ApB.aov <- aov(y ~ A+B, data = abc)
+anova(abc.ApB.aov)
+coef(abc.ApB.aov)
+contrasts(abc$A)
+contrasts(abc$B)
+model.matrix(abc.ApB.aov)
+```
+
+**abc.corossed**에 대해서 분산분석을 진행한 결과, 두 변수 모두 유의확률이 유의수준보다 크므로 유의한 차이가 발생하는 집단이 없는 것을 알 수 있다.  
+
+
+```{r}
+## crossed: with interaction
+abc.AsB.aov <- aov(y ~ A*B, data = abc)
+anova(abc.AsB.aov)
+coef(abc.AsB.aov)
+contrasts(abc$A)
+contrasts(abc$B)
+contrasts(abc$AB)
+model.matrix(abc.AsB.aov)
+```
+
+crossed의 경우 뒤에 Formula에 *+*가 아닌 `*`를 사용함으로써 교호작용을 함께 살펴볼 수 있다.  
+
+```{r}
+## nested
+abc.BwA.aov <- aov(y ~ A/B, data = abc)
+anova(abc.BwA.aov)
+coef(abc.BwA.aov)
+contrasts(abc$A)
+contrasts(interaction(abc$A,abc$B))
+model.matrix(abc.BwA.aov)
+```
+
+**nested**의 경우, **/**형태의 Formula를 사용함으로써 nested된 분산분석의 결과를 살펴볼볼 수 있다.  
+
+```{r}
+## doublyindexed
+abc.AB.aov <- aov(y ~ AB, data = abc)
+anova(abc.AB.aov)
+coef(abc.AB.aov)
+contrasts(abc$B)
+model.matrix(abc.AB.aov)
+```
+
+
+```{r}
+model.matrix(~A,data=abc,
+             contrasts=list(A=contr.treatment))
+```
+
+`model.matrix`의 option인 `contr.treatment`를 사용한 결과, **ABC**데이터의 A변수에 대한 contrast matrix를 살펴볼 수 있다.  
+
+```{r}
+model.matrix(~A,data=abc,contrasts=list(A=contr.sum))
+```
+
+`contr.sum`을 지정해준 결과, 절편을 제외한 matrix의 열에 대하여 누적 합이 0이 되도록 조합을 만들어준다.  
+
+### 13.3.1 Crossing of Two Factor
+
+```{r}
+old.width <- options(width=70)
+
+mm <- model.matrix(~A*B,data=abc,
+                   contrasts=list(A=contr.helmert,
+                                  B=contr.helmert))
+mm[,]
+```
+
+`contr.helmert`을 지정해준 결과, 각 조합에 대한 contrast matrix의 행의 합이 0이 되도록 만들어진 것을 살펴볼 수 있다.  
+
+
+```{r}
+print(AA <- mm["s.y",c("A1","A2")])
+
+print(BBB <- mm["s.y",c("B1","B2","B3")])
+
+outer(AA,BBB)
+
+as.vector(outer(AA,BBB))
+
+mm["s.y",c("A1:B1","A2:B1","A1:B2","A2:B2","A1:B3","A2:B3")]
+
+options(old.width)
+```
+
+## 13.4 Sequential and Conditional Tests
+
+자료에 2개 이상의 종속변수가 존재하는 경우, 아래와 같은 분석방법을 통해서 실험을 진행할 수 있다.  
+
+```{r}
+match(dimnames(coef(summary.lm(turkey3.aov)))[[1]],dimnames(turkey3.aov$x)[[2]])
+
+turkey[c(1,7,13,19,25),]
+
+turkey3.coef <- summary.lm(turkey3.aov)$coef
+
+turkey3.x <- turkey3.aov$x
+
+term.names <- c("(Intercept)","trt.vs.control","additive","amount","additive:amount")
+
+dimnames(turkey3.coef)[[1]] <- term.names
+dimnames(turkey3.x)[[2]][c(1,2,4,8,12)] <- term.names
+
+zapsmall(turkey3.coef)
+
+turkey3.x[c(1,7,13,19,25),c(1,2,4,8,12)]
+```
+
+
+### 13.4.1 Example-Application to Clover Data
+
+
+```{r}
+data("rhiz.clover")
+
+stripplot(Npg~strain|comb,data=rhiz.clover)
+
+rhiz.clover2 <- rhiz.clover[-c(7,9,10),]
+stripplot(Npg~strain|comb,data=rhiz.clover2)
+```
+
+**rhiz.clover**대해서 **comb**를 그룹변수로 하고 **strain**과 **Npg**의 관계를 살펴보기 위해 `stripplot`함수를 사용하였다.  
+
+```{r}
+library(car)
+
+## drop two obervation to illustrate Type 2 Eand 3 sums of squares
+## I am dropping the non-outlier observations in 300k5
+cloverD <- rhiz.clover[-c(7,9,10),]
+
+old.opt <- options(show.signif.stars = FALSE, digit=3)
+
+cloverDsc.aov <- aov(Npg ~ strain*comb,data=cloverD,contrasts = list(strain=contr.sum,comb=contr.sum))
+
+anova(cloverDsc.aov)[,c(2,1,4,5)]
+```
+
+분산분석 결과, 두 개의 관측치를 제외한 *cloverD*데이터에 대해서 주효과와 교호작용이 모두 유의한 결과를 가지는 것을 확인할 수 있다.  
+***
+
+`Anova`함수에서 `type = 2` 옵션을 지정하게 되면 불균형한 데이터셋에 대해서 Method of Fitting Constants의 test 결과를 확인할 수 있다.  
+
+```{r}
+Anova(cloverDsc.aov,type=2)
+```
+
+***
+
+`type = 3` 옵션을 지정할 경우, Weighted Sqaures of Means의 test 결과를 확인할 수 있다.  
+
+```{r}
+Anova(cloverDsc.aov,type=3)
+```
+
+***
+
+아래의 분석은 위와 같은 분석이지만 교호작용에 대해서 **comb**변수가 먼저 오도록 설정하였다.  
+결과가 동일한 것으로 보아 교호작용 Formula를 지정할 때, 순서는 크게 상관없는 것을 확인할 수 있다.  
+
+```{r}
+cloverDsc.aov <- aov(Npg ~ comb*strain,data=cloverD,contrasts = list(strain=contr.sum,comb=contr.sum))
+
+anova(cloverDsc.aov)[,c(2,1,4,5)]
+
+Anova(cloverDsc.aov,type=2)
+
+Anova(cloverDsc.aov,type=3)
+
+options(old.opt)
+```
+
+### 13.4.2 Example-Application to Body Fat Data
+
+```{r}
+library(HH)
+data("fat")
+fat.lm <- lm(bodyfat ~ abdomin+biceps,data=fat)
+
+## regression coefficients
+coef(summary(fat.lm))
+
+## sequential sums of squares (Type 1)
+anova(fat.lm)
+
+## weighted squares of means (Type 3)
+Anova(fat.lm,type="3")
+
+## model sum of squares
+var(fat$bodyfat) * (nrow(fat)-1) - sum(fat.lm$residuals^2)
+```
+
+## 13.5 Apendix: What is Residual?
+
+흔히, 우리는 잔차와 오차를 많이 헷갈리고 구분하지 못하는 경우가 있다.  
+
+**오차**는 모집단으로부터 회귀식을 얻었을 때, 회귀식의 예측값과 실제 관측값의 차이를 말한다.   
+**잔차**는 표본집단으로부터 회귀식을 얻었을 때, 회귀식의 예측값과 실제 관측값의 차이를 말한다.  
+
+우리가 분석을 진행함에 있어 모집단의 자료들을 이용하여 분석하는 경우는 드물다.  
+모집단이 셀 수 없이 큰 집단인 경우가 많기 때문에 대부분의 분석에서 표본을 이용한다.  
+그렇기 때문에, 우리는 오차보다 잔차라는 용어를 더 많이 접하게 되는 것이다.  
+
+이러한 잔차를 통해서도 우리는 유용한 정보를 얻을 수 있다.  
+
+![Residual plot by Anova](https://2.bp.blogspot.com/-sYvS3hNj-FA/VrS-2IE5mjI/AAAAAAAAAgM/CvRpelwTASc/s1600/2016-02-05%2B13%253B31%253B44.PNG){width=50%}
+
+사진 출처: **http://webr4statistics.blogspot.com/2016/02/1.html**  
+
+*첫 번째 패널*은 모형의 **모형의 선형성**을 살펴볼 수 있다.  
+빨간 실선은 잔차의 추세를 나타내며, 발깐 실선이 점선에서 크게 벗어난다면 예측값에 따라 잔차가 크게 달라지는 것을 말한다.  
+
+*두 번째 패널*은 **잔차의 정규성**을 살펴볼 수 있다.  
+점들이 직선형태에 가까울 수록 정규분포를 따른다고 할 수 있다.  
+
+*세 번째 패널*은 **잔차의 등분산성**을 살펴볼 수 있다.  
+등분산성은 분산이 동일하다는 가정으로 빨간색 실선이 수선을 그리면 등분산성을 만족한다고 할 수 있다.  
+
+*네 번째 패널*은 자료의 극단값을 나타내는 그래프이다.  
+숫자가 옆에 있는 점은 자료 안에서 극단값을 나타내는 행의 번호라고 할 수 있다.  
+
+
+**잔차의 독립성**의 경우 R에서 **Durbin-Watson test**를 통해 가정이 성립하는지를 살펴볼 수 있다.  
+
+## References of Chpater13 {-}
+
+[잔차와 오차의 차이](https://bskyvision.com/642)  
+[잔차 분석](https://mindscale.kr/course/basic-stat-r/residuals/)  
+[고정효과, 임의효과](https://abluesnake.tistory.com/4)  
+[nested](http://www.statedu.com/QnA/79640)  
+
+***
+
+## Summary of Chapter13
+
+* **삼원분산분석(Three-way ANOVA)**는 우리가 살펴본 2개의 분산분석과 달리 설명변수가 3개 이상인 경우의 집단 간 평균 차이를 확인하기 위해 진행되는 분석방법을 말한다.  
+ㄴ
+* 우리는 앞선 챕터에서, 이원분산분석을 진행할 때, 설명변수간 교호작용을 고려해야 한다고했다. 따라서, 삼원분산분석의 경우에도 주효과만 살펴보는 것이 아니라 설명변수 간 상호효과를 살펴보기 위해 교호작용을 확인해야 한다.
+
+* 단, **삼원분산분석**에서 설명변수가 3개일 경우의 교호작용은 3개, 4개일 경우에는 6개의 교호작용 등 설명변수가 늘어날수록 교호작용도 늘어나기 때문에, 너무 많은 설명변수를 사용하기 보다는 적절한 설명변수를 사용하는 것이 좋다.
+
+* **고정효과**는 요인의 수준을 실험자가 직접 지정한 경우를 일컫는다. 이러한 고정 요인이 포함된 모형을 **고정효과 모형(Fixed effects model)** 모델이라고 한다. 요인의 수준을 직접 지정하기 때문에 실험된 요인의 수준에 대해서만 비교가 가능하며, 통계 추론이 실험에 사용된 수준에 제한된다.
+
+* **랜덤효과**는 요인의 수준이 임의로 추출된 경우를 의미한다. 이러한 랜덤 요인이 포함된 모형을 **랟넘효과 모형(Random effectss model)**이라고 한다. 고정효과 모형과 달리 요인의 수준이 임의로 추출되기 때문에 해당 요인의 수준으 넘어 모집단으로 해석을 확대할 수 있다.
+
+* **혼합효과 모형(Mixed effcets model)**은 고정 요인과 랜덤 요인이 모두 존재하는 모형을 말한다.
+
+* **nested**는 실헙계획법의 용어 중 하나로, 2개의 설명변수가 있다고 할 때, 인자의 수준이 독립정으로 정해지는 것이 아닌, 다른 인자의 수준이 정해진 다음에 정해지는 것을 의미한다.  
+
+* `R`에서 삼원분산분석 또한 `aov`함수를 이용하여 분석을 진행할 수 있다. Formula는 `(종속변수 ~ 설명변수 + 설명변수 + 설명변수,data)`의 형태로 지정하게 되면 주효과에 대한 평균 차이 결과만을 보여주고 `(종속변수 ~ 설명변수 * 설명변수 * 설명변수,data)`의 형태로 input을 지정하게 되면 주효과와 더불어 주효과간 교호작용 효과를 확인할 수 있다.
+
+***
+
+# Chap15 Bivariate Statistics-Discrete Data  
+
+## 15.1 Mosaic Plot
+
+모자이크 플랏(mosaic plot)은 교차표를 시각화한 그래프이다.  
+모자이크 플랏에는 사각형들로 표현이 되며, 사각형의 크기는 데이터의 비율을 의미한다.  
+R에서는 `mosaicplot`함수를 이용하여 쉽게 그릴 수 있다.  
+Formula를 이용하여 교차표의 데이터를 어떤 방식으로 나눌지 지정할 수 있다.  
+
+```{r}
+library(HH)
+library(vcd)
+library(dplyr)
+data(drunk)
+mosaicplot(~age+sex,data=drunk,main="Mosaic plot of drunk",color=c("#7685C8","#E99FAD"))
+```
+
+파란색 사각형이 빨간색 사각형의 크기에 비해서 월등하게 큰 것을 확인할 수 있다.  
+파란색 사각형은 male의 비율, 빨간색 사각형은 Female의 비율을 나타낸다.  
+남성의 경우, 40~49세의 사각형이 가장 큰 것으로 보아 40~49세가 음주빈도가 가장 높은 연령대인 것을 알 수 있고
+여성의 경우, 30~39세의 사각형이 가장 큰 것으로 보아 30~39세가 음주빈도가 가장 높은 연령대인 것을 확인할 수 있다.  
+
+### 15.1.1 Mosaic
+Mosaicplot 함수말고도 mosaic 함수를 통해서도 mosaic plot을 그릴 수 있다.  
+mosaic함수는 `vcd`패키지를 설치해야 한다.  
+mosaic함수는 특이하게 shade라는 옵션을 제공한다.  
+shade 옵션은 관찰빈도와 기대빈도의 관계를 보여주며, 오른쪽 아래 chi-test의 결과에 대한 P-value도 제공한다.  
+
+
+```{r}
+data("Titanic")
+Titanic
+mosaic(~Sex+Survived,data=Titanic,main="Survive of Titanic",color=c("#7685C8","#E99FAD"),shade=TRUE)
+```
+
+P-value가 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서 두 변수는 연관성이 있다고 할 수 있다.(독립X)  
+파란색으로 사각형이 채워진 경우, 관찰빈도가 기대빈도보다 높다는 의미이고,   
+빨간색으로 사각형이 채워진 경우, 관찰빈도가 기대빈도보다 낮다는 의미이다.  
+즉, 남성이 생존하지 못할 관찰빈도가 기대빈도보다 높다는 의미로 해석할 수 있고  
+여성의 경우 생존하지 못할 관찰빈도가 기대빈도보다 낮다는 의미로 해석할 수 있다.  
+
+### 15.1.2 다중 mosaic plot
+
+앞서 본 예제처럼 범주가 두 가지인 경우가 아니라 세 가지 이상인 경우도 많다.  
+이런 경우, 기본옵션만으로 mosaicplot을 그리게 되면 원하는 결과를 얻기 힘들기 때문에 옵션을 지정해 줘야한다.  
+`highlighting`옵션은 어떠한 변수를 기준으로 색깔을 나눌것인지를 결정하는 것이다.  
+`highlighting_fill` 옵션은 나눠지는 변수들에 대해서 색깔을 지정해주는 옵션이다.  
+`direction`옵션은 변수의 축을 어떻게 할지 정해주는 것이다. h = horizontal, v = vertical을 의미한다.  
+
+
+```{r}
+data(salk)
+salk
+mosaic(~paralyze+age+vaccine,data=salk,highlighting = "vaccine",highlighting_fill=c("#7685C8","#E99FAD"),
+       direction=c("h","v","v"))
+```
+
+우리가 지정한 vaccine의 여부에 따라서 색깔이 나누어졌고, 지정한 컬러로 다중 모자이크 플랏이 만들어졌다.  
+또한 paralyze 변수의 경우 축을 horizontal으로 지정했기 때문에 옆으로 누워있는 것을 확인할 수 있다.  
+
+
+
+## 15.2 assoc function
+
+`vec` 패키지의 assoc를 이용하면 assocplot을 그릴 수 있다.  
+assocplot 또한 교차표를 그래프를 통해 살펴봄으로써 데이터의 형태를 조금 더 쉽게 볼 수 있다.  
+assoc함수 또한 Formula를 이용하여 시각화할 데이터를 지정해준다.
+assoc함수에서 그래프의 색깔을 채우기 위해서는 `gp=gpar(fill=c("색깔","색깔"))` 옵션을 이용한다.  
+
+```{r}
+assoc(age~sex,data=drunk,gp=gpar(fill=c("#7685C8","#E99FAD")))
+```
+
+fill 옵션이 아닌 `col` 옵션을 이용하면 테두리에 색깔을 채우게 된다.  
+
+```{r}
+assoc(age~sex,data=drunk,gp=gpar(col=c("#7685C8","#E99FAD")))
+```
+
+`gp=shading_binary` 옵션을 통해 mosaic plot에서도 제공했던 shade 옵션을 사용할 수 있다.  
+mosaic plot에서와 같이 관찰빈도와 기대빈도의 관계를 살펴볼 수 있다.  
+
+```{r}
+assoc(age~sex,data=drunk,gp=shading_binary(col=c("#7685C8","#E99FAD")))
+```
+
+## 15.3 cotabplot  
+
+cotabplot을 이용하면 xyplot과 같이 조건부 시각화 그림을 그릴 수 있다.  
+아래에서는 Formula를 지정한 후 |sex라는 옵션을 지정하여 성별에 따라서 그래프를 나눠서 그렸다.  
+
+```{r}
+drunk.chisq <- chisq.test(drunk)
+cotabplot(~age|sex,data=drunk,gp=gpar(fill=c("#7685C8","#E99FAD")))
+```
+
+## 15.4 chisq.test in R
+
+R에서는 chisq.test를 통해 간단하게 독립성 검정을 진행할 수 있다.  
+H0: 두 변수들은 연관성이 없으며 서로 독립이다.  
+H1: 두 변수들은 연관성이 있으며 서로 독립이아니다.    
+
+```{r}
+drunk.chisq <- chisq.test(drunk)
+drunk.chisq
+```
+
+P-value = 0.004217로 유의수준 0.05보다 작으므로 두 변수들은 연관성이 있다고 할 수 있다.  
+
+
+Chi-squared test를 객체에 저장하게 되면 카이제곱 통계랑과 P-value 뿐만 아니라 다른 정보들도 살펴볼 수 있다.  
+
+
+```{r}
+
+# observed에는 주어진 교차표의 관찰값들이 들어가있다.
+drunk.chisq$observed
+
+# expected에는 주어진 교차표의 기댓값들이 들어가있다.
+drunk.chisq$expected
+
+# rsiduals에는 주어진 교차표들의 잔차를 포함한다.
+drunk.chisq$residuals
+
+# 잔차^2을 하게되면 각 잔체의 제곱 값을 확인할 수 있다.  
+drunk.chisq$residuals^2
+```
+
+
+## 15.5 Two-Dimensional Contingency Tables - Fisher's Exact Test  
+### 15.5.1 Example-Do Juvenile Delinquents Eschew Wearing Eyeglasses?  
+
+앞서 우리는 두 범주형 변수 간에 연관성을 확인하기 위해 카이제곱 검정을 실시하였다.  
+그러나 만약 교차표에서 기대빈도가 5보다 작은 셀이 20%이상인 경우,  
+카이제곱 검정보다 Fisher's exact test를 수행하는 것이 좋다.  
+
+H0: 두 변수들은 연관성이 없으며 서로 독립이다.  
+H1: 두 변수들은 연관성이 있으며 서로 독립이아니다.    
+
+
+```{r}
+data(glasses)
+fisher.test(glasses)
+```
+
+P-value = 0.03497로 유의수준 0.05보다 작으므로 두 변수들은 관련성이 있다고 할 수 있다.  
+
+
+## 15.6 AEdotplot
+
+`HH` 패키지에 내장돼있는 `AEdotplot`은 데이터의 다양한 정보들을 패널을 나눔으로써 확인할 수 있게 해준다.  
+여기서 사용한 AEdata는 암에 관련된 데이터이다.  
+첫 번째 패널은 그룹별로 발생률을 표시하고 기호를 통해 그룹을 구분해준다.  
+두 번째 패널은 95% 신뢰구간을 사용하여 암에 대한 상대적 위험을 표시한다.  
+세 번째 패널에서는 각 치료에 대한 환자 수, 각 치료에 대한 부작용 수 및 상대적 위험이 표시된다.  
+
+```{r}
+library(HH)
+data(AEdata)
+AEdotplot(AE~nAE/nTRT,groups=TRT,data=AEdata)
+```
+
+## 15.7 stacked plot
+
+barplot 함수에 table 데이터를 넣게 되면 자동으로 교차표에 따른 stack plot을 그려준다.  
+`beside=FALSE`옵션을 지정하게 되면 Stacked 막대그림,  
+`beside=TRUE`옵션을 지정하게 되면 Side형 막대그림을 그릴 수 있다.  
+
+```{r}
+data(drunk)
+barplot(drunk,col=c("#7685C8","#E99FAD"),legend = c('males','females'),
+xlab="Age",ylab="Frequency",beside=FALSE)
+```
+
+```{r}
+data(drunk)
+barplot(drunk,col=c("#7685C8","#E99FAD"),legend = c('males','females'),
+xlab="Age",ylab="Frequency",beside=TRUE)
+```
+
+## 15.8 Waffle plot  
+
+`waffle plot`또한 각 범주의 빈도수를 시각화 하기에 좋은 방법이다.  
+시각화 된 결과가 Waffle과 비슷하여 `Waffle plot`이라는 이름이 붙었다고 한다.  
+
+Cyl에 따른 차량의 개수를 파악하기 위해 dplyr함수를 통해 전처리를 진행해주었다.  
+
+```{r}
+data(mtcars)
+Cyl_freq <- mtcars %>% 
+  group_by(cyl) %>% 
+  summarise(count=n())
+```
+
+
+`Waffle`함수는 빈도수를 가지고 있는 열을 입력해주면 쉽게 그릴 수 있다.  
+- rows: 가로의 갯수를 지정한다.  
+
+```{r}
+library(waffle)
+waffle(Cyl_freq$count,rows=5,title="Waffle plot of cyl")
+```
+
+범례의 이름을 지정하기 위해서는 데이터를 넣을 때 `항목 이름 = 숫자`형태로 넣으면 된다.  
+
+```{r}
+library(waffle)
+waffle(c("4"=11,"6"=7,"8"=14),rows=5,title="Waffle plot of cyl")
+```
+
+waffle plot을 그릴 때 네모난 모양이 아닌 자기가 원하는 그림을 그리고 싶은 경우가 있을 수 있다.  
+이러한 경우, R과 호환되는 Font-Awesome을 다운 받은 후 R에 추가하는 작업을 거쳐야 한다.  
+
+1. font를 불러오기 위해 `extrafont`패키지를 설치한다.  
+2. *https://github.com/FortAwesome/Font-Awesome/releases/tag/v4.7.0* 링크에서 fontawesome을 다운받는다.  
+! 폰트를 다운받은 후 반드시 폰트를 설치해줘야 한다.  
+
+
+```{r}
+library(extrafont)
+```
+
+3. `font_import`를 통해 다운받은 폰트를 import한다.  
+- *path*: 폰트를 설치한 위치.  
+- *pattern*: 지정한 경로에 파일이 많을 경우 시간이 오래걸리므로 지정한 이름으로 시작하는 파일만 불러온다.  
+폰트를 import 한 후 font의 Familyname과 FontName, Fontfile을 살펴본다.  
+
+
+```{r}
+font_import(path="C:\\Users\\eum20\\Downloads",pattern="fontawesome-",prompt = FALSE)
+
+fonttable() %>% 
+  as_tibble() %>% 
+  filter(grepl("Awesom", FamilyName)) %>% 
+  select(FamilyName, FontName, fontfile)
+```
+
+
+4. `load_fontawesome`을 이용하여 설치된 폰트를 로드한다. (*emojifont*패키지를 이용한다.)  
+
+```{r}
+library(emojifont)
+load.fontawesome(font = "fontawesome-webfont.ttf")
+```
+
+
+5. `showtext`패키지에 있는 `font_add`를 이용하여 폰트를 R에 내장시켜준다. 
+
+
+```{r}
+library(showtext)
+font_add(family = "FontAwesome", regular = "C:\\Users\\eum20\\Downloads\\fontawesome-webfont.ttf")
+showtext_auto()
+```
+
+
+6. `waffle`함수의 *use_glyph*를 이용하여 원하는 그림을 넣는다.  
+- *use_glyph* = 원하는 픽토그램의 모양  
+- *glyph_size* = 원하는 픽토그램의 사이즈
+
+```{r}
+waffle(c("4"=11,"6"=7,"8"=14),rows=4,title="Waffle plot of cyl",use_glyph="car",glyph_size=15)
+```
+
+```{r}
+waffle(c("Red"=18,"Green"=12),rows=5,title="Number of Apple",use_glyph="apple",glyph_size=15,
+       colors=c("#FF9090","#B7F0B1"))
+```
+
+```{r}
+waffle(c("Comic"=8,"Horror"=5,"SF"=10,"Romance"=7),rows=5,title="Genre of book",use_glyph="book",glyph_size=15,
+       colors=c("#FFE08C","#7F7EFF","#818181","#FF8383"))
+```
+
+
+앞선 waffle 그림보다 훨씬 그림이 한 눈에 들어오는 것을 확인할 수 있다.  
+
+***
+
+`iron` 함수를 이용하면 픽토그램의 모양을 여러개로 지정하여 한 그래프 안에 그릴 수 있다.  
+
+```{r}
+iron(waffle(c('Female'=10),colors="#FF5A5A",use_glyph = "female",glyph_size = 15,rows=1,title="Female & Male"),
+waffle(c('Male'=20),colors="#5AAEFF",use_glyph = "male",glyph_size = 15,rows=2))
+```
+
+
+## 15.9 Bubble chart  
+
+`Bubble chart`는 데이터의 크기에 따라 그래프의 모양을 다르게 해주는 그림이다.  
+즉, 비중이 높을수록 그래프의 크기가 더욱 커진다.  
+
+```{r}
+mtcars$am <- as.factor(mtcars$am)
+ggplot(mtcars,aes(x=disp,y=qsec,colour=am))+
+  scale_size_area(max_size=10)+
+  geom_point(aes(size=hp),shape=20)+
+  ggtitle("Bubble chart of mtcars")+
+  theme_bw()
+```
+
+x축은 mtcars의 disp, y축은 mtcars의 qsec로 나타내었다.  
+차량의 기어가 automatic인지, manual인지에 따라서 색깔을 구분해주었고 (Auto=0,Manual=1)  
+bubble의 크기는 hp에 따라서 크기를 다르게 하였다.  
+
+
+***
+
+## Summary of Chapter15
+
+* R에서는 다양한 형태의 데이터 자료 구조를 만들 수 있는데 대표적으로 많이 사용되는 구조는 행과 열로 이루어진 **data.frame** 구조이다. 우리가 가지고 있는 거의 모든 데이터들은 관측치를 가지고 있는 행과 변수를 나타내는 열로 구성되어 있기 때문에 R에서 **data.frame**구조를 이용하면 데이터를 쉽게 불러오고 분석하기 용이한 구조로 만들 수 있다.  
+
+
+* **교차표**는 범주형 변수들의 조합에 따른 빈도를 표로 나타낸 것을 말한다. 이러한 데이터 형태를 R에서는 **table 데이터**라고 한다. table 데이터의 경우 데이터 프레임에 비해서 다루기가 쉽지않기 때문에 적절한 전처리와 분석방법을 이용하는 것이 좋다. 특히, R의 `unlist`함수를 이용하면 조금 더 쉽게 table 데이터를 처리할 수 있다.
+
+* 교차표 같은 경우, 빈도와 범주로 구성돼 있기 때문에 요약된 표를 통해서는 한 눈에 차이를 살펴보기 어렵다. 따라서, 시각화 기법을 이용해 결과를 정리하는 것이 중요하다. 대표적인 예시로는 `barplot`, `pieplot`등을 예시로 들 수 있다.  
+
+* **모자이크 플랏(Mosaic plot)**은 두 개 이상의 다변량 범주형 자료를 시각화 하는 기법 중 하나이다. 범주에 따라서 색깔이 달라지고 빈도에 따라서 사각형의 넓이가 달라지기 때문에 barplot, pieplot에 비해서 데이터가 내포하고 있는 정보를 조금 더 쉽게 얻을 수 있다는 장점이 있다.
+
+* 앞에서 살펴본 그림 외에도 교차표를 시각화 할 수 있는 방법과 함수는 상당히 많다. 범주와 빈도를 시각화할 수 있는 많은 방법들을 찾아보고 데이터 특징과 분석 상황에 맞는 적절한 그래프를 그릴 수 있게 연습하는 것이 좋다.  
+
+* **적합도 검정(Goodness of fit test)**는 관측값들이 어떤 이론적인 특정 분포를 따르고 있는지를 검정하는 것이다. 보통 한 개의 요인을 대상으로 하는 경우가 많다.
+
+* **적합도 검정**의 귀무가설과 대립 가설은 다음과 같다.  
+-> 귀무가설 H0: 관측값의 도수와 가정한 이론 도수가 동일하다. (관측값이 특정 분포를 따른다.)  
+-> 대립가설 H1: 적어도 하나의 범주 (혹은 계급)의 도수가 가정한 이론도수(기대 관측도수)와 다르다. (관측값이 특정 분포를 따르지 않는다.)  
+
+
+* **독립성 검정**은 서로 다른 요인들에 의해 분할되어 있는 경우 그 요인들이 관찰값에 영향을 주고 있는지 아닌지, 요인들이 서로 연관이 있는지  없는지를 검정하는 것을 말한다.  
+
+* **독립성 검정의** 가설은 다음과 같다.
+-> 귀무가설 H0: 두 변수 X와 Y는 서로 독립이다.(관련성이 없다.)
+-> 대립가설 H1: 두 변수 X와 Y는 서로 독립이 아니다.(관련성이 있다.)
+
+***
+
+# Reference of All chapters
+[위키백과](https://ko.wikipedia.org/wiki/%EC%9C%84%ED%82%A4%EB%B0%B1%EA%B3%BC:%EB%8C%80%EB%AC%B8)  
+[보건과학통계 SPSS 이야기](https://m.blog.naver.com/PostView.nhn?isHttpsRedirect=true&blogId=y4769&logNo=220146051135&proxyReferer=)  
+[Rfriend](https://rfriend.tistory.com/)  
+
+***
+***

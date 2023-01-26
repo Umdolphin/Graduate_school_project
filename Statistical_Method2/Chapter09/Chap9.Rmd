@@ -1,0 +1,482 @@
+---
+title: 통계밥법론2 Chap9 실습코드
+author: 202140191 엄태훈
+date: 2021-11-13(SAT)
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Chap9 Loglinear and Logit Models for Contingency Tables
+
+**Chapter9**에서는 분할표 데이터를 이용하여 **Loglinear model**과 **Logit model**을 적합시키는 방법에 대해서 알아본다.  
+이러한 모델들은 **mosaic plot**을 통해 시각화 하는것이 가장 적합하다.  
+
+## 9.1 Introduction
+
+**로지스틱 회귀 모델**의 경우 하나의 반응 변수의 예측에 대해 초점을 맞추지만, **로그선형 모델**의 경우 **모든 변수를 대칭**으로 처리하여, 각 변수사이의 **중요한 연관성**을 모형화한다. 여기서, 로그선형 모형의 목적은 변수간의 의존성 및 독립성의 패턴을 파악하는 것이다.  
+
+앞선 챕터에서, 로그 선형모형의 기본적인 측면을 살펴봤다면, 이번 장에서는 모형을 적합하고 해석하는데 초점을 둔다. 또한, 분할표의 차원이 큰 경우 **로그 오즈 그림** 혹은 **모자이크 플롯**을 통해 연관성의 특징을 보다 쉽게 이해할 수 있다.  
+
+***
+
+## 9.2 Loglinear models for frequencies
+
+**로그선형 모델**은 양적 데이터에 대한 결합, 주변확률 사이의 곱셈 관계를 로그로 변환하여 사용한다. 카운트를 로그로 변환해주는 이유는 카운트가 0인 경우 결과가 0으로 나오기 때문에 로그를 적용하여 이러한 위험을 방지하는 것이다.  
+
+```{r warning = FALSE}
+options("contrasts")
+```
+
+인자에 대한 매개변수화는 주어진 인자가 명목형인지 순서형인지에 따라 달라지는 것을 확인할 수 있다.  
+`unordered`의 경우, 처리에 대한 모수화를 사용하지만, `ordered`의 경우 다항식에 기반한 모수화를 사용하는 것을 확인할 수 있다.  
+
+***
+
+## 9.3 Fitting and testing loglinear models
+
+로그선형 모델의 경우, 상호 독립을 가정하는 **[A][B]][C]**모델부터, 완벽한 포화모델인 [ABC]까지 다양한 독립성 가정을하여 모델을 적합시킬 수 있다.  
+
+### 9.3.1 Model fitting functions
+
+```{r warning = FALSE}
+set.seed(42)   
+n <- 100
+A <- factor(sample(c("a1", "a2"), n, replace = TRUE))
+B <- factor(sample(c("b1", "b2"), n, replace = TRUE))
+C <- factor(sample(c("M", "F"), n, replace = TRUE))
+Freq <- round(rnorm(n, mean = 30, sd = 5))
+mydata <- data.frame(A, B, C, Freq)
+mytable <- xtabs(~ A + B + C, data = mydata)
+```
+
+```{r warning = FALSE}
+loglin(mytable, margin = list(c(1,2), c(1,3), c(2,3)))
+```
+
+로그선형 모델을 적합시키는 가장 기본적인 방법은 **chapter5**에서 살펴보았던 `loglin`함수이다.  
+표 형식의 빈도데이터와 적합할 margin을 지정하여 모형을 적합시킨다.  
+적합시킨 모형에 대한 피어슨 잔차와 자유도가 출력되는 것을 확인할 수 있다.  
+또한, 독립성 유형을 어떻게 가정하였는지 알 수 있는데, 위의 모델같은 경우, 상호독립을 가정하는 **[A][B][C]**모델임을 알 수 있다.  
+
+```{r warning = FALSE}
+library(MASS)
+loglm(~ (A+B+C)^2, data = mytable)
+```
+
+**Chpater5**에서 살펴보았던 `MASS`패키지의 `loglm`함수를 통해 더욱 다양한 로그 선형모델을 적합시킬 수 있다.  
+위의 Formula는 **[A][B][C]**모델에 대한 로그선형 모델의 적합 결과이다.  
+유의확률이 유의수준 0.05보다 작으므로 독립이 아닌 항이 존재하는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+loglm(Freq ~ (A+B+C)^2, data = mydata)
+```
+
+데이터에 빈도가 존재하는 경우, 빈도 데이터를 추가시켜 **빈도**에 따른 변수 간 로그선형 모델을 적합시킬 수 있다.  
+유의확률이 유의수준 0.05보다 크므로 귀무가설을 기각한다.  
+따라서, 빈도와 변수들은 서로 **독립**인 것을 확인할 수 있다.  
+
+
+```{r warning = FALSE}
+glm(Freq ~ (A+B+C)^2, data = mydata, family = poisson)
+```
+
+`glm`함수를 통해서도 로그선형 모델을 적합시킬 수 있다.  
+`glm`의 `Formula`에서 **(변수들의 구성)^2**을 하게 되면 `loglin`함수에서와 같이 **[A][B][C]**모형을 가정하는 것이다.  
+`glm`의 옵션 중 하나인 `family`의 값을 `poisson`으로 지정하여 로그선형 모델을 만들 수 있다. 이렇게되면 **link function**을 `log`로 사용하기때문에 로그선형 모델에 적합이 되는 것이다.  
+`glm`을 통해 로그선형 모델을 적합시키면 위와같이 각 변수에 따른 계수 추정치와 두 변수를 독립으로 가정했을 때의 계수 추정치를 출력하게 된다.  
+
+
+```{r warning = FALSE}
+summary(glm(Freq ~ (A+B+C)^2, data = mydata, family = poisson))
+```
+
+`glm`을 통해 로그선형 모델을 적합시킨 결과, 절편을 제외한 모든 변수들의 유의확률이 유의수준 0.05보다 큰것을 확인할 수 있다.  
+따라서, 빈도에 따른 **[A][B][C]**모델을 적합시켰을 때, 주어진 변수들은 모두 빈도에 대해 독립이고 각 변수들 또한 서로 독립적인 것을 알 수 있으며, 설정한 로그선형 모형은 적합한 모형이 아닌 것을 알 수 있다.  
+
+
+### 9.3.2 Goodness-of-fit tests
+
+모델을 적합시킨 후에, 주어진 모델이 주어진 데이터를 얼마나 설명할 수 있고 얼마나 적합한지에 대해 **Goodness-of-fit test**를 통해 확인할 수 있다.  
+가장 일반적으로 사용되는 방법은 **Pearson 카이제곱검정**, **우도비 검정** 등이 있다.  
+
+### 9.3.3 Residuals for loglinear models
+
+모델의 적합도 검정을 진행한 후, 각 데이터의 패턴을 살펴보고 싶을 수 있다.  
+이러한 경우, 쉽게 예시로 생각할 수 있는것 중 하나는 **피어슨 잔차**를 통해 데이터의 패턴을 살펴보는 것이다.  
+앞선 chapter에서 살펴본대로, 잔차가 양의 값을 가질경우, 예상된 케이스보다 많은 것을 확인할 수 있고 음의 값을 가질경우, 예상된 케이스보다 적은 것을 확인할 수 있다.  
+또 하나의 방법은 Haberman이 제시한 Pearson 잔차를 표준 오차로 나눈 이른바 **신뢰 잔차**라고 하는 값을 살펴보는 것이다.  
+
+`R`에서는 `glm`을 통해 모델을 적합시키면 `hatvalue`를 얻을 수 있고 이 값을 통해 **수정 잔차 값**을 구할 수 있다.  
+일반적으로 **수정 잔차는** $sqrt(1-h)$으로 정의한다.  
+
+```{r warning = FALSE}
+berkeley <- as.data.frame(UCBAdmissions)
+berk.glm1 <- glm(Freq ~ Dept * (Gender + Admit), data = berkeley,
+                family = "poisson")
+fit <- fitted(berk.glm1)
+hat <- hatvalues(berk.glm1)
+stderr <- sqrt(1 - hat)
+```
+
+`glm`에서 얻은 `hatvalue`와 `fit`값을 이용하여 **수정잔차**를 구한 후, **stderr**객체에 저장하였다.  
+
+```{r warning = FALSE}
+op <- par(mar = c(5,4,1,1)+.1)
+plot(fit, stderr, cex = 5 *hat,
+     ylab = "Std.Error of Residual", xlab = "Fitted Frequency",
+     cex.lab = 1.2)
+labs <- with(berkeley,
+             paste(Dept, substr(Gender, 1, 1), ifelse(Admit == "Admitted", "+", "-"), sep = ""))
+col <- ifelse(berkeley$Admit == "Admitted", "blue", "red")
+text(fit,stderr,labs,col=col,cex = 1.2)
+par(op)
+```
+
+위의 결과는 앞서 구했던 **수정잔차**를 시각화한 결과이다.  
+**BM-, AM+**의 **symbol size**가 제일 큰 것을 볼 수 있는데, 이는 **레버리지 hi**의 비율을 나타낸다.  
+**BF-, AF-**의 **Symbol size**가 제일 작으므로 **레버리지 hi**의 비율이 작은것을 알 수 있다.  
+전반적으로 Fitted Frequency가 높아질수록 **잔차의 수정잔차가 낮아지는 것**을 확인할 수 있다.  
+
+### 9.3.4 Using loglm()
+
+*Example 9.1: Berkeley admissions*
+
+```{r warning = FALSE}
+data("UCBAdmissions")
+berk.loglm0 <- loglm(~ Dept + Gender + Admit, data = UCBAdmissions, param = TRUE, fitted = TRUE)
+berk.loglm0
+```
+
+`UCBAdmissions`에 대해 `loglm`함수를 사용하여 로그선형 모델을 적합시켰다.  
+출력된 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, 주어진 변수들 중, 독립이 아닌 변수들이 존재하는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+library(vcd)
+structable(Dept ~ Admit + Gender, fitted((berk.loglm0)))
+```
+
+`fitted`함수를 통해 로그선형 모델에 적합된 셀들의 기대빈도를 확인할 수 있다.  
+**Dept**에 따른 **Admit, Gender**의 기대빈도를 구한 후, `structable`함수를 통해 표를 한 눈에 볼 수 있도록 하였다.  
+**Dept = A, Admit = Rejected, Gender = Male**의 기대빈도가 가장 높고 **Dept = E, Admit = Admitted, Gender = Female**의 기대빈도가 가장 낮은 것을 확인할 수 있다.   
+
+```{r warning = FALSE}
+berk.loglm1 <- loglm(~ Dept *(Gender + Admit), data = UCBAdmissions)
+berk.loglm1
+```
+
+**Dept**를 **공동적인 독립**이라고 가정한 후, 다시 한 번 로그 선형모델을 적합시켜보았다.  
+유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, **Dept**를 공동독립이라고 가정할 때, **Gender**와 **Admit**은 서로 연관이 있는 것을 알 수 있다.  
+
+```{r warning = FALSE}
+berk.loglm2 <- loglm(~ (Admit + Dept + Gender)^2, data = UCBAdmissions)
+berk.loglm2
+```
+
+모델의 **homogeneous association**을 보기 위해, Formula를 각 변수의 독립성을 살펴볼 수 있도록 바꿔준 후, 로그선형 모델을 다시 한 번 적합시켜 보았다.    
+모델적합 결과, 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, 주어진 변수들 중 서로 독립이 아닌 변수들이 존재하는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+anova(berk.loglm0, berk.loglm1, berk.loglm2, test = "Chisq")
+```
+
+모델간의 적합도를 살펴보기 위해 `anova`를통해 모델을 비교해보았다.  
+
+**Model1**과 **Model2**의 잔차의 차이는 매우크고 유의확률 또한 유의수준 0.05보다 작은 것을 볼 수 있다.  
+따라서, **Model2**는 **Model1**과 유의한 잔차 차이가 있으므로 유의한 모델임을 알 수 있다.  
+
+**Model2**와 **Model3**의 잔차의 차이는 1.5312로 매우 작고 유의확률 또한 유의수준 0.05보다 큰 것을 볼 수 있다.  
+따라서, **Model2**와 **Model3**과 유의한 잔차 차이가 없으므로 유의하지 않은 모델임을 알 수 있다.  
+
+
+### 9.3.5 Using glm()
+
+*Example 9.2: Berkeley admissions*
+                                            
+`glm`함수를 통해 로그선형 모델을 적합시키기 위해서는 앞서 살펴본대로 `family = poisson`으로 지정한 후 분석을 진행한다.  
+
+```{r warning = FALSE}
+berkeley <- as.data.frame(UCBAdmissions)
+head(berkeley)
+```
+
+`glm`모형을 사용하기에 앞서 데이터의 형태를 데이터프레임 형태로 바꿔주어야 한다.  
+
+```{r warning = FALSE}
+berk.glm1 <- glm(Freq ~ Dept * (Gender + Admit),
+                 data = berkeley, family = "poisson")
+berk.glm2 <- glm(Freq ~ (Dept + Gender + Admit)^2,
+                 data = berkeley, family = "poisson")
+```
+
+**berk.glm1**의 경우, **Dept**를 공동적인 독립이라고 가정한 후, **Freq**에 따른 **Gender, Admit**의 독립성을 살펴보는 모델이고 **berk.glm2**의 경우, 세 변수의 상호독립을 가정하고 독립성 검정을 진행한 모델이다.  
+
+```{r warning = FALSE}
+anova(berk.glm1, berk.glm2, test = "Chisq")
+```
+
+`glm`을 사용해 적합한 로그 선형모델의 Anova 검정결과, 앞선 로그선형모델의 Anova 검정결과와 동일하게 **Model1과 Model2** (앞선 로그선형모델에서는 Model2, Model3)에는 유의한 잔차의 차이가 없는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+anova(berk.glm1, test = "Chisq")
+```
+
+적합시킨 모형의 결과를 `anova`를 사용하여 개별 변수에 대한 유의성 검정 결과 또한 확인할 수 있다.  
+모든 변수들의 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, 각 변수들은 빈도변수와 연관이 있고 **Dept**를 공동적인 독립으로 가정할 때, **Gender, Admit**은 서로 독립이 아닌 것을 알 수 있다.  
+
+```{r warning = FALSE}
+library(vcdExtra)
+mosaic(berk.glm1, shade = TRUE,
+       formula = ~Dept + Admit + Gender, split = TRUE,
+       residuals_type = "rstandard",
+       main = "Model1: [AdmitDept][GenderDept]",
+       labeling = labeling_residuals,
+       abbreviate_labs = c(Gender = TRUE),
+       keep_aspect_ratio = FALSE)
+```
+
+`residuals_type = "rstandard"`로 지정하게 되면, 표준화된 잔차를 출력할 수 있다.  
+**Dept**를 공동 독립으로 가정한 후, **로그선형 모델**을 적합시켰을때의 결과를 모자이크 플랏을 통해 나타내었다.    
+잔차의 색깔을 통해 **Dept = A, Gender = Male, Admit = Rejected**는 관찰빈도가 기대빈도보다 높기 때문에, 남성의 경우 A부서에 탈락을 많이 하는 경향이 있음을 알 수 있고 **Dept = A, Gender = Female, Admit = Admitted**는 관찰빈도가 기대빈도보다 높기 때문에, 여성의 경우 A부서에 합격을 많이 하는 경향이 있음을 알 수 있다.  
+ 
+```{r warning = FALSE}
+berkeley <- within(berkeley,
+                   dept1AG <- (Dept == "A") *
+                     (Gender == "Female") *
+                     (Admit == "Admitted"))
+head(berkeley)
+```
+
+**dept1AG**변수의 경우, **Dept = A, Gender = Female, Admit = Admitted**인 경우에 1을 갖고 나머지의 경우 0을 갖게한다.  
+
+```{r warning = FALSE}
+berk.glm3 <- glm(Freq ~ Dept * (Gender + Admit) + dept1AG,
+                 data = berkeley, family = "poisson")
+```
+
+위의 모델은 **Dept, (Gender,Admit)**을 **dept1AG**에 대해 공동적인 독립을 가정한 모형을 적합시킨 모델이다.  
+
+```{r warning = FALSE}
+LRstats(berk.glm3)
+```
+
+유의확률이 유의수준 0.05보다 높으므로 귀무가설을 기각하지 못한다. 따라서, **berk.glm3**모형은 유의한 모형임을 확인할 수 있다.  
+
+```{r warning = FALSE}
+anova(berk.glm1, berk.glm3, test = "Chisq")
+```
+
+또한, `anova`를 통해 **berk.glm1**과 **berk.glm3**를 비교해본 결과, 유의확률이 유의수준 0.05보다 작은것을 확인할 수 있다.  
+따라서, 유의한 잔차의 차이가 있으므로 **berk.glm3**는 유의한 모델이라는 것을 한 번 더 확인할 수 있다.  
+
+```{r warning = FALSE}
+coef(berk.glm3)[["dept1AG"]]
+```
+
+```{r warning = FALSE}
+exp(coef(berk.glm3)[["dept1AG"]])
+```
+
+**berk.glm3**의 **dept1AG**계수를 이용해 오즈비를 구한 결과, **exp(1.05) = 2.86**이라는 값을 얻을 수 있었다.  
+이는 **dept1AG**변수가 한 단위 증가할때, 그렇지 않을 사람보다 빈도가 높아질 오즈가 약 2.86배 증가한다는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+mosaic(berk.glm3, shade = TRUE,
+       formula = ~ Dept + Admit + Gender, split = TRUE,
+       residuals_type = "rstandard",
+       main = "Model: [DeptGender][DeptAdmit] + DeptA*[GA]",
+       labeling = labeling_residuals,
+       abbreviate_labs = c(Gender = TRUE),
+       keep_aspect_ratio = FALSE)
+```
+
+**berk.glm3** 모델의 결과를 모자이크 플롯을 통해 나타낸 결과, 유의확률이 유의수준 0.05보다 크므로 모든 변수들은 서로 독립인 것을 알 수 있다.  
+또한, 특정 잔차의 패턴이 보이지 않는 것을 확인할 수 있다.  
+하지만, P-value가 0.05에 가까우므로 **Partial association**분석을 통해 부분관계를 살펴봄으로써 연관된 변수를 찾을수도 있다.  
+
+***
+
+## 9.4 Equivalent logit models
+
+로그선형 모형은 설명변수와 반응변수를 구분하지 않지만, **logit모형**은 설명변수를 통해 한 반응변수에 대한 로그 확률이 어떻게 변하는지를 보여준다.  
+
+*Example 9.3: Berkeley admissions*
+
+```{r warning = FALSE}
+(obs <- log(UCBAdmissions[1,,] / UCBAdmissions[2,,]))
+```
+
+log(`Admit = Admitted` / `Admit = Rejectd`)를 통해 로그 합격 확률을 구할 수 있다.  
+
+```{r warning = FALSE}
+berk.logit2 <- glm(Admit == "Admitted" ~ Dept + Gender,
+                   data = berkeley,
+                   weights = Freq,
+                   family = "binomial")
+summary(berk.logit2)
+```
+
+**Admit == Admitted**를 반응변수로 하고 설명변수는 **Dept, Gender**로 하는 로짓 모형을 적합시켰다.    
+**Dept = B**, **Gender**변수는 유의확률이 유의수준 크므로 유의하지 않은 변수임을 알 수 있다.  
+**Dept = B**, **Gender**변수를 제외한 나머지 변수들의 유의확률은 유의수준 0.05보다 작으므로 유의한 변수임을 확인할 수 있다.  
+
+```{r warning = FALSE}
+berkeley <- within(berkeley,
+                   dept1AG <- (Dept == "A") * (Gender == "Female"))
+berk.logit3 <- glm(Admit == "Admitted" ~ Dept + Gender + dept1AG, data = berkeley, weights = Freq, family = "binomial")
+summary(berk.logit3)
+```
+
+**Dept = A, Gender = Female**을 만족하는 변수를 **dept1AG**로 설정하여 다시 한 번 모형을 적합시켜 보았다.  
+앞선 결과와 같이 **Dept = B**, **Gender**는 유의하지 않지만, **dept1AG**는 반응변수에 유의한 영향을 미치는 것읋 확인할 수 있다.  
+
+```{r warning = FALSE}
+library(car)
+Anova(berk.logit2)
+```
+
+```{r warning = FALSE}
+Anova(berk.logit3)
+```
+
+`Anova`함수를 통해서도 각 변수들의 수준을 모두 고려했을 때 유의한지 유의하지 않은지를 확인할 수 있다.  
+**Gender**변수는 유의하지 않은 것을 알 수 있고 **Dept**변수의 경우, **Dept = B**는 유의하지 않지만 나머지 **Dept**의 수준들이 유의하기 때문에 유의한 변수로 나오는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+pred2 <- cbind(berkeley[,1:3], fit = predict(berk.logit2))
+pred2 <- cbind(subset(pred2, Admit == "Admitted"), obs = as.vector(obs))
+head(pred2)
+```
+
+**berk.logit2**모형을 통해 각 변수의 수준이 주어질때의 합격에 대한 예측확률과 앞서 구해봤던 로그 합격률을 **pred2**데이터에 적합시켰다.  
+
+```{r warning = FALSE}
+library(ggplot2)
+ggplot(pred2, aes(x = Dept, y = fit, group = Gender, color = Gender)) +
+  geom_line(size = 1.2) +
+  geom_point(aes(x = Dept, y = obs, group = Gender, color = Gender), size = 4) +
+  ylab("Log odds (Admitted)") + theme_bw() +
+  theme(legend.position = c(.8, .9),
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 14))
+```
+
+```{r warning = FALSE}
+pred3 <- cbind(berkeley[,1:3], fit = predict(berk.logit3))
+pred3 <- cbind(subset(pred3, Admit == "Admitted"), obs = as.vector(obs))
+head(pred2)
+```
+
+
+```{r warning = FALSE}
+library(ggplot2)
+ggplot(pred3, aes(x = Dept, y = fit, group = Gender, color = Gender)) +
+  geom_line(size = 1.2) +
+  geom_point(aes(x = Dept, y = obs, group = Gender, color = Gender), size = 4) +
+  ylab("Log odds (Admitted)") + theme_bw() +
+  theme(legend.position = c(.8, .9),
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 14))
+```
+
+첫번째 그래프의 경우, **dept1AG**를 포함하지 않은 로짓 모형이고, 아래 그래프의 경우 **dept1AG**를 포함한 로짓 모형의 합격률에 대한 로그 오즈 변화율 그림이다.  
+두 그림 모두, **Dept = A**에서는 **Gender = Female**의 합격률이 **Gender = Male**보다 높지만 나머지 **Dept**에서는 큰 차이를 보이지 않는다.  
+이를 통해, **Dept =  A를** 제외하고 **Gender**변수가 합격률에 영향을 미치지 않는다는 것을 알 수 있고 **Dept = A**에서 **Dept = B**로 이동함에 따라, 합격률이 감소하는 것을 확인할 수 있다.  
+
+***
+
+## 9.5 Zero frequencies
+
+데이터에서 발생빈도가 0인경우, 로그선형 및 로짓모형을 적합시킴에 있어 문제를 발생시킬 수 있다.  
+이러한 경우, 전처리를 통해 발생빈도가 없는 데이터를 제거하거나 데이터를 더 수집하여 발생빈도가 0이 나오지 않도록 하는 방법을 활용할 수 있다.  
+
+*Example 9.4: Heath concerns of teenagers*
+
+```{r warning = FALSE}
+Health <- expand.grid(concerns = c("sex", "menstrual",
+                                   "healthy", "nothing"),
+                      age = c("12-15","16-17"),
+                      gender = c("M","F"))
+Health$Freq <- c(4,0,42,57,2,0,7,20,
+                 9,4,19,71,7,8,10,21)
+```
+
+```{r warning = FALSE}
+health.glm0 <- glm(Freq ~ concerns + age + gender, data = Health, subset = (Freq > 0), family = poisson)
+health.glm1 <- glm(Freq ~ concerns + age * gender, data = Health, subset = (Freq > 0), family = poisson)
+```
+
+`health`데이터의 경우, 발생빈도가 0인 데이터가 있는 것을 확인할 수 있다. 따라서, `subset`옵션을 활용하여 발생빈도가 0인 경우는 제외하고 모델을 적합시킨다.  
+**health.glm0**의 경우 주효과들로만 모델을 적합시키고 **health.glm1**의 경우 주효과와 더불어 **age**와 **gender**의 교호작용 항도 포함시킨다.  
+
+```{r warning = FALSE}
+LRstats(health.glm0, health.glm1)
+```
+
+두 모델에 대해 **Likelihood ratio** 검정을 진행한 결과, 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, 로지스틱 회귀분석을 이용하여 적합시킨 두 모델은 유의하지않은 모델임을 확인할 수 있다.  
+
+```{r warning = FALSE}
+mosaic(health.glm1, ~ concerns + age + gender,
+       residuals_type = "rstandard",
+       rot_labels = 0,
+       just_labels = c(left = "right"),
+       margin = c(left = 5))
+```
+
+**health.glm1**의 결과를 모자이크 플롯을 통해 나타내 보았다.  
+여성의 경우, 12-15세에는 월경에대한 걱정이 낮지만, 16-17세의 경우 월경에대한 걱정이 많아지는 것을 확인할 수 있다.  
+또한, 12-15세의 남성의 경우 건강에대한 걱정이 많지만, 여성의 경우에는 낮은 것읋 확인할 수 있다.  
+
+
+```{r warning = FALSE}
+health.glm2 <- glm(Freq ~ concerns*gender + concerns*age,
+                   data = Health, subset = (Freq > 0),
+                   family = poisson)
+LRstats(health.glm2)
+```
+
+`concerns`을 공동 독립 변수로 가정한 후, `glm`의 `family = poisson`을 통해 공동 독립 모형을 가정해 보았다.  
+유의확률이 유의수준 0.05보다 높으므로 귀무가설을 기각하지 못한다.  
+따라서, **health.glm2**모델은 유의한 모델임을 확인할 수 있다.  
+
+```{r warning = FALSE}
+summary(health.glm2)
+```
+
+**cocenrs = healthy, concerns = nothing, gender = F, concerns = healthy : gender = F**변수를 제외하고 대부분의 변수들이 유의하지 않은 변수임을 확인할 수 있다.  
+
+```{r warning = FALSE}
+health.tab <- xtabs(Freq ~ concerns + age + gender, data = Health)
+```
+
+```{r warning = FALSE}
+nonzeros <- ifelse(health.tab >0, 1, 0)
+health.loglm0 <- loglm(~ concerns + age + gender,
+                       data = health.tab, start = nonzeros)
+health.loglm1 <- loglm(~ concerns + age * gender,
+                       data = health.tab, start = nonzeros)
+health.loglm2 <- loglm(~ concerns*gender + concerns*age,
+                       data = health.tab, start = nonzeros)
+LRstats(health.loglm0, health.loglm1, health.loglm2)
+```
+
+발생빈도가 0인 변수의 경우 0으로, 발생빈도가 0보다 큰 경우 1로 코딩을 한 후, 교차표를 만들어 로그 선형 모델에 적합시켜 보았다.  
+앞선 결과와 동일하게 **concerns**를 공동독립을 가정하는 경우에만 모형이 유의하고 나머지 두 개의 모형은 유의하지 않게 나오는 것을 확인할 수 있다.  
+
+***
+
+**Summary of chapter9**
+
+* `loglin`, `loglm`함수가 아닌 `glm`함수를 통해서도 로그선형 모델을 적합시킬 수 있다. `family = poisson`으로 지정하게 되면 **link function**을 `log`를 통해 계산하기 때문에 로그선형 모델과 동일하게 적합할 수 있다.  
+* **로그선형 모델**의 목적은 반응변수에 대한 확률예측보다는 **변수들간의 관계**를 파악하는 것이다.  
+* **로지스틱 회귀모델**의 목적은 
+* 분할표에서 관찰된 빈도가 0인 경우, 모형에 큰 영향을 끼칠 수 있다. 따라서 추가적인 데이터를 수집하여 빈도가 0이 아니도록 만들어주거나 변수 제거를 고려하는 등의 처리가 필요하다.  
+* 변수를 통해 모형을 적합하고자 하는 경우, **변수선택법**과 같은 방법도 있지만, 다양한 변수를 통해 다양한 모델을 적합시키며 모델의 성능을 확인하면서 최적의 모형을 도출하는 과정이 필요하다.  

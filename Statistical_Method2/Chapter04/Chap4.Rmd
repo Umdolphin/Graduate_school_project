@@ -1,0 +1,1059 @@
+---
+title: 통계밥법론2 Chap3 실습코드
+author: 202140191 엄태훈
+date: 2021-09-18(SAT)
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Chap4 Two-Way Contigency Tables
+
+우리는 앞선 챕터까지 대부분 일차원의 빈도표를 이용하여 분석을 진행하였다.  
+하지만, 실생활에서 일차원 빈도표처럼 간단한 빈도표를 보는 경우보다 이원 혹은 그 이상의 다차원 분할표를 보는 경우가 많다.  
+다차원은 일차원에 비해 변수가 많으므로, 분석을 진행함에 있어 더 까다롭기 때문에 조금은 다른 분석방법과 데이터 처리 과정을 연습하는 것이 필요하다.  
+
+**이원 빈도표 분석(two-way frequency tables)**은 두 변수 간의 연관성에 대해 알아보는 분석이다.    
+다양한 시각화 기법들은 연관성의 패턴을 시각화 하는데 도움이 되며, 몇몇 지역을 셀의 빈도를 나타내기 위해 사용하기도 한다.  
+
+이러한 방법들 중 오즈비 또는 일반적인 연관 패턴에 더 집중하여 알아보도록 한다.    
+
+***
+
+## 4.1 Introduction
+
+대부분의 통계 분석 방법은 변수 간의 관계를 이해하는 것과 관련이 있으며, 범주형 변수는 이러한 관계를 종종 분할표에 의해 연구되기도 한다.  
+
+**Thomas Carlyle**은 숫자표로 전달된 메시지를 이해하는 것은 어렵다고 말했다.  
+수많은 정보가 내포된 숫자표를 바로 이해하는 것보다는 데이터의 일부분만을 먼저 살펴본다던지, **EDA**를 활용하는 등 전반적인 데이터의 구조를 보는 것이 좋다.  
+Chapter4에서는 두 범주형 변수 간의 연관성을 이해하기 위한 그래픽 방법들에 대해 알아본다.  
+
+* 몇몇의 예시에서는 세 번째 변수를 이용하여 두 주요 변수 간의 관계를 파악하기도 한다.  
+* 두 변수 사이에 연관성이 존재하는지 시험하기 위한 몇몇의 수치 및 통계적 방법과 연관성의 강도의 측정에 대해서 알아본다.  
+* 변수 간의 연관 패턴을 설명하는 데 도움이 되는 그래픽 방법이 가장 중요하다.  
+* **fourfold**, **association plot**, **agreement plot**, **trilinear plot**에 대해서 알아본다.  
+
+
+*Example 4.2: Hair color and eye color*
+
+```{r}
+(hec <- margin.table(HairEyeColor,2:1))
+barplot(hec, beside = TRUE, legend = TRUE)
+```
+
+`HairEyeColr`데이터를 `barplot`을 통해 머리색과 눈색 사이의 관계를 시각화 하였다.  
+빈도표를 통해 데이터를 탐색하는 것보다는 `barplot`을 통해 시각화하여 살펴본 결과가 더 한 눈에 들어오는 것을 알 수 있다.  
+전체적으로 머리색, 눈색이 둘 다 **Brown**인 학생의 빈도가 높아 보인다.    
+
+`plot`에서 `beside`옵션은 데이터의 그룹에 대한 분포를 표현하고자 할 때, 한 막대안에 넣을지 아니면 그룹에 따라 막대를 표현할지를 결정해주는 옵션이다.  
+
+```{r}
+barplot(hec, beside = FALSE, legend = TRUE)
+```
+
+`beside`를 `FALSE`로 지정할 경우, 앞선 결과와 달리 한 막대안에 모든 정보가 들어가는 것을 확인할 수 있다.  
+
+```{r}
+library(vcd)
+tile(hec)
+```
+
+`tile` 함수는 분할표가 갖고있는 데이터의 빈도를 매트릭스 형태로 시각화를 진행하여 변수간 관계를 조금 더 파악하기 쉽게 시각화 해주는 함수로, `vcd`패키지안에 포함돼있다.  
+- `tile(data)`
+
+* data: tile을 통해 빈도를 시각화하고자 하는 데이터
+
+*Example 4.3: Mental impairment and parents'SES*
+
+```{r}
+data("Mental",package = "vcdExtra")
+head(Mental)
+```
+
+`Mental`데이터는 6x4의 분할표 형태로, 1660명의 젊은 뉴욕 거주자의 정신건강 상태를 부모의 사회 경제적 상태에 따른 빈도를 나타낸 데이터로, `vcdExtra`패키지 안에 포함돼있다.  
+
+* ses: 부모의 사회 경제적상태 (Factor variable - 1<2<3<4<5<6)
+* mental: 정신건강 상태 (Factor variable - Well<Mild<Moderate<Impaired)
+* freq: 빈도 (Discrete variable)
+
+```{r}
+mental <- xtabs(Freq ~ ses +mental, data = Mental)
+spineplot(mental)
+```
+
+`spineplot`은 누적된 막대 그림의 일반화로 볼 수 있으며, 위의 코드에서는 **ses와 mental**에 따른 빈도를 시각화하기 위해 사용하였다.  
+- `spineplot(data)`
+
+* data: 누적된 막대 그림을 그리고자 하는 데이터 (일반적으로 교차표의 형태)
+
+`spineplot`을 통해 `Mental`데이터의 누적 barchart를 확인할 수 있으며, 각 막대의 너비는 `SES`변수의 백분율에 비례한다.  
+위의 그림을 통해 사회적 지위가 변함에 따라 **mental == Well**인 상태는 점점 감소하며, **mental == Impaired**인 상태는 점점 증가하는 것을 확인할 수 있다.  
+
+***
+
+## 4.2 Tests of association for two-way tables
+
+### 4.2.1 Notation and terminology
+
+각 관측값이 일부 모집단에서 랜덤하게 추출되어 두 범주형 변수 A와 B로 나눠지는 경우, 이 변수들의 **joint distribution**을 참조하고 i번째 행, j번째 행으로 분류될 확률을 나타낸다.  
+
+**marginal distribution**은 joint distribution의 행과 열의 합으로 정의된다.  
+
+```{r}
+Berkeley <- margin.table(UCBAdmissions,2:1)
+library(gmodels)
+CrossTable(Berkeley, prop.chisq = FALSE, prop.c = FALSE,
+           format = "SPSS")
+```
+
+`gmodels`패키지는 모델 적합 혹은 모델 적합 전 데이터를 살펴보기 위해 필요한 다양한 함수를 제공하는 패키지이다.  
+
+`Crosstable`은 SAS Proc 형태의 유사한 출력을 가진 교차 테이블 함수로 각 열과 행, Row & column, Total에 대한 Frequency와 proportion을 구할 수 있다. 
+- `Crosstable(data,prop.chisq,prop.c,format)`
+
+* data: 교차 테이블 함수를 적용할 데이터
+* prop.chisq: 교차표에 카이제곱 검점 통계량 출력여부 (TRUE = 출력, FALSE = 출력 X)
+* prop.c: 교차표에 열의 속성 추가여부 (TRUE = 출력, FALSE = 출력 X)
+* format: 출력형식의 포맷 ("SPSS", "SAS")
+
+`Crosstable`을 `Berkeley`데이터에 적용한 결과, 남성의 경우 여성에 비해 합격비율이 2배 정도 높은 것을 쉽게 확인할 수 있다.  
+
+### 4.2.2 2 by 2 tables: Odds and odds ratios
+
+**연관성 측도**는 변수 간의 연관 정도를 나타내는 데 사용된다.  
+특히 **odds ratio**는 2x2 표에서 특히 유용하며, 후에 설명되는 몇몇의 그래픽과 모델에서의 기본적인 매개변수이다.  
+
+이항 변수에서, 성공확률을 $\pi$라고 할 때, 성공의 **odds**는 다음과 같이 정의 된다.  
+
+$$
+odds = { \pi \over  (1-\pi)} 
+$$
+
+따라서, odds가 1이라는 것은 $\pi$가 0.5이거나 성공과 실패 확률이 같다.  
+
+예를들어, $\pi$ = 0.75일 때, odds는 3(0.75 / 0.25)이므로 성공 확률은 실패의 3배라는 것을 알 수 있다.  
+
+성공의 오즈는 1을 중심으로 곱셈적으로 변하며, 로그를 취하면 **log odds** 또는 **logit**으로 불리는 측정값을 얻을 수 있다.  
+
+
+$$
+logit(\pi) = log(odds) = log { \pi \over  (1-\pi)} 
+$$
+
+
+```{r}
+P <- c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)
+odds <- P / (1-P)
+logodds <- log(odds)
+data.frame(P, odds, logodds)
+```
+
+여러 성공확률들을 가정하고 각 확률을 이용해 **odds와 logodds**를 구해보았다.  
+성공확률이 높아질수록 오즈와 로그오즈 모두 점점 증가하는 형태를 보인다.  
+
+
+두 그룹에 대한 이항반응은 그룹 변수를 행으로 사용하여 2x2 테이블로 제공한다.  
+$\pi$, $\pi2$를 각각 그룹1과 그룹2의 성공확률 이라고하자.  
+두 그룹에 대한 오즈의 비율 즉 **odds ratio**는 다음과 같이 정의된다.  
+
+$$
+odds ratio = \theta = {odds1 \over odds2} = {\pi1/(1-\pi1) \over \pi2/(1-\pi2)
+}
+$$
+
+odds와 마찬가지로 odds ratio 또한 항상 0과 무한대의 범위 사이에 존재한다.  
+$\theta$ = 1인 경우 성공과 실패의 분포는 두 그룹 모두에서 동일하며 반응변수는 그룹과 독립적이다.  
+$\theta$ > 1인 경우, 그룹 1의 성공 확률이 더 높고 $\theta$ < 1인 경우, 그룹 2의 성공 확률이 더 높다고 해석할 수 있다.  
+
+
+*Example 4.5: Berkeley admissions*
+
+```{r}
+library(vcd)
+data("UCBAdmissions")
+UCB <- margin.table(UCBAdmissions,1:2)
+(LOR <- loddsratio(UCB))
+```
+
+`vcd`패키지의 `loddsratio`함수를 이용하여 (로그)오즈비를 간단하게 구할 수 있다.  
+- `loodsratio(data,log)`
+
+* data: (로그)오즈비를 구할 데이터 (단, 데이터는 2차원의 분할표의 형태로 구성되어야 한다.)
+* log: 로그오즈비 적용 여부 (TRUE = 로그오즈비, FALSE = 오즈비)
+
+```{r}
+(OR <- loddsratio(UCB,log=FALSE))
+```
+
+`log = FALSE`를 지정함으로써 로그오즈비가 아닌 **오즈비**를 구한 것을 확인할 수 있다.  
+위의 결과의 경우, 남성이 여성에 비해 합격할 오즈가 약 1.84배 정도 높은 것을 알 수 있다.  
+
+```{r}
+summary(LOR)
+```
+
+`summary`함수를 통해 단순히 오즈비의 결과뿐만 아니라 표준오차, 유의확률 등의 추가적인 정보를 얻을 수 있다.  
+유의확률이 유의수준 0.05보다 작으므로 주어진 변수를 이용해 오즈비를 구하는 것은 유의한 분석임을 알 수 있다.  
+
+```{r}
+confint(OR)
+confint(LOR)
+```
+
+`confint`함수를 이용하여 오즈비 혹은 로그오즈비의 95% 신뢰구간의 추정값 또한 구할 수 있다.  
+
+```{r}
+fisher.test(UCB)
+```
+
+`fisher.test`를 통해 오즈비에 대한 가설검정을 진행할수도 있다.  
+
+* H0: 오즈비는 1이다.
+* H1: 오즈비는 1이 아니다.
+
+주어진 결과의 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, 주어진 데이터의 오즈비는 1이 아닌 것을 확인할 수 있다.  
+
+### 4.2.3 Larger tables: Overall analysis
+
+two-way table에서는 `assocstats`함수를 이용하여 전반적인 연관성 테스트를 진행할 수 있다.  
+
+만약, 데이터셋이 2개의 요인보다 많은 경우 표 생성시 포함되지 않은 다른 요인은 무시된다.  
+
+하지만, 제외된 요인이 사용된 요인과 상호작용이 존재할수도 있으므로 확인하는 작업이 필요하다.  
+
+*Example 4.6: Arthritis treatment*
+
+```{r}
+data("Arthritis",package = "vcd")
+Art <- xtabs(~Treatment + Improved, data = Arthritis)
+Art
+```
+
+`Arthritis`데이터의 **Improved, Treatment**변수를 이용하여 교차표를 생성하였다.  
+
+```{r}
+round(100 * prop.table(Art, margin = 1), 2)
+```
+
+`prop.table`함수를 이용하여 행을 기준으로 확률표를 생성하였다.  
+
+```{r}
+assocstats(Art)
+```
+
+`vcd`패키지의 `assocstats`함수를 이용하여 연관성 분석을 진행한다.  
+
+**Cramer’s V**, **Contigency coeff**는 각각 0.367, 0.394로 변수간 어느정도의 연관성이 있음을 파악할 수 있다.  
+
+또한, LR방법, 피어슨검정 방법의 유의확률이 유의수준 0.05보다 모두 작으므로 귀무가설을 기각한다.  
+따라서, **Improved, Treatment** 변수는 독립이 아니므로 서로 연관이 있다고 볼 수 있다.  
+
+### 4.2.4 Tests for ordinal variables
+
+행 변수와 열 변수 중 하나 또는 둘 다 순서형인 경우 일반적인 카이제곱 검정을 사용하게 되면 다른 결과가 출력될수도 있는데, 이는 카이제곱 검정은 변수가 순서형 변수여도 명목형 변수로 가정하기 때문이다.  
+따라서, 일반 연관성에 대한 검정보다 더 민감한 검정을 사용할 수 있다.  
+
+변수의 순서적 특성을 고려하는 경우 `vcdExtra`패키지의 `CMHtest`를 고려해볼 수 있다.  
+`CMHtest`는 분할표에 순서형 요인이 있는 경우의 연관성에 대한 검정을 진행할 때 사용한다. 이 검정은 기본적으로 순서형 요인에 숫자 점수를 할당하여 검정을 진행하게 된다. 또는 층을 사용하여 각 변수 수준에 대해 검정을 계산하고 층을 제어하는 전체 검정을 제공하기도 한다. 
+- `CMHtest(data)`
+
+* data: 순서형 요인이 포함된 분할표
+
+*Example 4.7: Mental impairment and parents'SES*
+
+```{r}
+data("Mental",package = "vcdExtra")
+mental <- xtabs(Freq ~ ses + mental, data = Mental)
+assocstats(mental)
+```
+
+두 요인을 명목형 변수로 가정하고 `assocstats`함수를 통해 독립성 검정을 진행한 결과, 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, 두 요인은 서로 독립이 아니며 연관성이 있는 변수임을 알 수 있다.  
+
+```{r}
+library("vcdExtra")
+CMHtest(mental)
+```
+
+**Nonzero correlation**: 행 변수와 열변수가 모두 순서형일 경우, 두 변수에 점수를 할당하고 상관계수를 계산하여 Spearman의 순위 상관계수를 얻을 수 있다. 이 검정은 행 평균 점수가 행에 걸쳐 선형적으로 변화하는 패턴에 가장 민감하다.  
+
+**Row mean scores differ**: 만일 열 변수가 순서형인 경우 열 변수에 점수를 할당하면 각 행에 대한 평균이 생성된다. 행 변수와 열 변수의 연관성은 표의 행에 대해 평균이 다른지 여부를 검정하는 것으로 나타낼 수 있다. 이는 Kruskal-Wallis 비모수 검정과 유사하다.  
+
+**Col mean scores differ**: Row mean scores differ과 유사하며 행 변수에 점수를 할당하는 것만 차이가 있다.  
+
+**General association**: 행 변수와 열 변수가 모두 순서형이 아닌 경우 유일한 대립 가설은 행 변수와 열 변수 사이에 연관성이 있다는 것이다. CMH 검정 통계량은 카이-제곱 및 우도비 카이-제곱과 유사하다.  
+
+
+`mental`데이터는 두 요인 모두 순서형 데이터이므로 **Nonzero correlation**을 통해 결과해석을 해야한다.  
+자유도가 1, 카이제곱 검정통계량의 값은 37.1558, 유의확률은 0.05보다 매우 작은 값을 가지는 것을 확인할 수 있다. 이때, 유의확률은 명목형을 가정하고 독립성 검정을 진행한 유의확률보다 매우 작으므로 더 유의한 결과가 나오는 것을 알 수 있다.  
+따라서, 두 요인을 순서형으로 고려하여 독립성 검정을 진행했을 때에도 두 변수는 서로 독립이아니며, 서로 연관성이 있는 것을 확인할 수 있다.  
+
+### 4.2.5 Sample CMH profiles
+
+#### 4.2.5.1 General association
+
+```{r}
+row1 <- c(0,15,25,15,0)
+row2 <- c(5,20,5,20,5)
+row3 <- c(20,5,5,5,20)
+cmhdemo1 <- rbind(row1,row2,row3)
+rownames(cmhdemo1) <- c("a1","a2","a3")
+colnames(cmhdemo1) <- c("b1","b2","b3","b4","b5")
+cmhdemo1
+```
+
+```{r}
+CMHtest(cmhdemo1)
+```
+
+임의로 생성한 `cmhdemo1`에 대해서 `CMHtest`를 한 결과는 위와같다.  
+이때, **Non-zero correlation**, **row mean scores differ**모두 카이제곱 값이 정확히 0인 것을 볼 수 있는데, 이는 행 평균이 모두 같기 때문이다.  
+
+```{r}
+row_1 <- c(2,5,8,8,8)
+row_2 <- c(2,8,8,8,5)
+row_3 <- c(5,8,8,8,2)
+row_4 <- c(8,8,8,5,2)
+cmhdemo2 <- rbind(row_1,row_2,row_3,row_4)
+rownames(cmhdemo2) <- c("a1","a2","a3","a4")
+colnames(cmhdemo2) <- c("b1","b2","b3","b4","b5")
+cmhdemo2
+```
+
+```{r}
+CMHtest(cmhdemo2)
+```
+
+다시 한 번 임의로 생성한 `cmhdemo2`에 대해서 `CMHtest`를 진행해 보았다.  
+
+`cmhdemo2` 분할표는 약하고 유의하지 않은 일반 연관성이 포함되어 있지만 행과 열의 평균은 모두 유의하다.    
+**General association** 결과에서는 유의확률이 유의수준 0.05보다 크므로 연관성이 존재하지 않는다는 결론으로 이어지지만, 순서형 요인을 고려한 검정(**Nonzero correlation**)에서는 유의확률이 유의수준 0.05보다 작으므로 연관성이 존재한다는 결론으로 이어진다.  
+
+이를 통해 변수간의 독립성 검정이 요인 수준의 순서 특성에 따라 달라진다고 생각 될 때는 순서형 요인에대한 보다 집중적인 검정을 진행하며, 순서형 요인의 수준을 숫자 점수값으로 재코딩 하는 것도 하나의 방법이 될 수 있다.  
+
+```{r}
+sieve(cmhdemo1,shade = TRUE, main = "General association")
+sieve(cmhdemo2,shade = TRUE, main = "Linear association")
+```
+
+`sieve`함수는 이원 분할표의 관찰빈도와 기대빈도를 서로 비교할 수 있게 하는 **sieve diagram**을 시각화 할 수 있도록 도와주는 함수로, `vcd`패키지에 포함돼있다.  
+- `sieve(data,labeling,shade)`
+
+* data: sieve diagram을 그리고자 하는 데이터 (이원 분할표의 형태여야 한다.)
+* labeling: 교차표위에 출력하고자 하는 값
+* shade: 양의 잔차와 음의 잔차를 음영으로 구분할지에 대한 여부 (TRUE = 구분, FALSE = 구분 X)
+
+`cmhdemo1`을 이용하여 **sieve diagram**을 시각화한 결과, 음영의 색깔을 통해 a1과 B의 수준들은 대부분 연관이 없거나(잔차 = 거의 0) 음의 잔차를 가지는 것을 볼 수 있고 a3의 경우, b2,b3,b4에 대해서 양의 잔차를 가지는 것을 확인할 수 있다.  
+
+`cmhdemo2`를 이용하여 **sieve diagram**을 시각화한 결과, b3와 A는 서로 연관이 없다는 것을 제외하고는 특별한 패턴이 보이지 않는다.  
+
+**sieve diagram**을 통해 시각적으로 연관성을 살펴볼수도 있다.  
+
+***
+
+## 4.3 Stratified analysis
+
+
+### 4.3.1 Computing strata-wise statistics
+
+**Stratified analysis(계층화 분석)**은 하나 이상의 배경 변수의 효과를 제어하여 분석하는 방법을 말한다.  
+이는 분산 분석 설계에 블럭화 변수를 사용하는 것과 유사하다.  
+
+*Example 4.8: Arthritis treatment*
+
+```{r}
+Art2 <- xtabs(~Treatment + Improved + Sex, data = Arthritis)
+Art2
+```
+
+**계층화 분석**을 `Arthritis`데이터에 적용하기 위해 `xtabs`함수를 사용하여 **Improved, Treatment**변수에 대한 분할표를 성별에 따라 나눠주었다.  
+
+```{r}
+assocstats(Art2)
+```
+
+**Contingency Coeff,Cramer's V**는 남성, 여성 그룹에서 약 0.4의 값을 가지며, 어느정도 연관성이 있는 것 처럼 보인다.  
+하지만, **여성의 유의확률은 유의수준 0.05보다 작아** 변수간 연관이 있다라는 결론을 얻을 수 있는 반면, **남성의 유의확률은 유의수준 0.05보다 크므로** 변수간 연관이 없다라는 결론을 얻을 수 있다.  
+
+
+```{r}
+CMHtest(Art2)
+```
+
+`CMHtest`를 사용한 결과, **여성의 경우** 4가지 방법을 적용했을 때, 모든 유의확률이 유의수준 0.05보다 작아 변수 간 연관성이 있는 것을 확인할 수 있지만, **남성의 경우** 4가지 방법을 적용했을 때, 모든 유의확률이 유의수준 0.05보다 크므로 변수간 연관성이 없다. 앞선 결과와 동일한 결과가 나오는 것을 알 수 있다.   
+
+```{r}
+apply(Art2, 3, sum)
+```
+
+이러한 결과는 표본의 영향을 받을수도 있으므로 표본을 확인해본 결과, 여성이 남성보다 두 배 이상 표본이 많은 것을 확인할 수 있었다.  
+따라서, 남성의 경우 표본을 늘린 후 연관성 검정을 다시 진행해보면 결과가 바뀔수도 있다는 추측을 해볼 수 있다.  
+
+### 4.3.2 Assessing homogeneity of association
+
+계층화 분석에서 주 테이블 변수 간의 연관성이 모든 계층에서 동일한지 확인하는 것은 중요하다.  
+2 x 2표의 경우 모든 계층에서 승산비가 동일한지 여부를 통해 확인할 수 있다.  
+
+* H0: 모든 계층에서 승산비가 동일하다.  
+* H1: 모든 계층에서 승산비가 동일하지 않다.  
+
+`woolf_test`는 모든 계층에 대한 동질성 검정을 진행하는 함수로,  `vcd`패키지에 포함돼있다.  
+- `woolf_test(table)`
+
+* table: 동질성 검정을 진행할 데이터 (계층의 갯수는 상관없지만 2x2의 분할표 형태를 가져야 한다.)
+
+*Example 4.9: Berkeley admissions*
+
+```{r}
+woolf_test(UCBAdmissions)
+```
+
+`UCBAdmissions`데이터에 대한 동질성 검정 결과, 유의확률은 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, 승산비가 계층에 따라 동일하지 않은 것을 확인할 수 있다.  
+
+*Example 4.10: Arthritis treatment*
+
+```{r}
+woolf_test(Art2)
+```
+
+`Art2`데이터에 대한 동질성 검정 결과, 유의확률은 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다.  
+따라서, 승산비가 계층에 따라 동일한 것을 확인할 수 있다.  
+
+```{r}
+library(MASS)
+loglm(~ (Treatment + Improved +Sex)^2, data =Art2)
+```
+
+세 변수 A,B,C 사이의 연관성의 동질성 가설을 로그선형 모델로 정의할 수 있다. 
+`loglm`은 `Chapter5`에서 더 자세히 다루게 되므로 자세한 설명은 뒤에서 하도록 한다.  
+유의확률이 유의수준 0.05보다 크므로 귀무가설을 기각한다.  
+따라서, **Treatment + Improved + Sex**의 2차항을 고려했을 때, 변수들은 서로 독립인 것을 확인할 수 있다.  
+
+***
+
+## 4.4 Fourfold display for 2 x 2 tables
+
+**Fourfold display**는 2x2 표의 표시를 위해 만들어진 방사형 다이어그램이다.  
+각각의 셀의 빈도는 $\sqrt{n_{ij}}$에 비례하는 1/4 circle로 표시되며, 면적은 셀의 빈도에 비례한다.  
+이 그림의 목적은 샘플 odds ratio를 표시하는 것이다. 변수 사이의 연관성이 있다면, 한 방향의 대각선 반대쪽 셀과 크기가 다른 셀 크기가 다른 경향으로 나타나며 색깔 또는 음영을 통해 방향을 표시한다.  
+
+R에서 `Fourfold`함수는 `vcd`패키지안에 포함돼있다.  
+- `Fourfold(data)`
+
+* data: Fourfold 함수를 적용할 데아터 (분할표의 계층은 상관없지만 반드시 2x2형태의 분할표이어야 한다.)
+
+*Example 4.11: Berkeley admissions*
+
+```{r}
+fourfold(Berkeley, std = "ind.max") # unstandardized
+```
+
+위 그림은 표준화 되지않은 fourfold display를 보여준다. 여기서, 각 사분면의 점은 각 모서리에 숫자로 표시된 셀 빈도에 비례한다.  
+승산비는 어두운 음영 영역의 곱에 비례하며, 밝은 음영 영역의 곱으로 나눈다.  
+위의 그림을 통해 남성이 합격할 오즈가 여성에 비해 **약 2배 정도 높다**는 것을 쉽게 확인할 수 있다.  
+
+```{r}
+fourfold(Berkeley, margin = 1) # equating gender
+```
+
+첫번째 그림을 보면 남성과 여성의 표본 차이가 크기 때문에 면적 차이가 큰 것을 볼 수 있다.  
+이 문제를 해결하기 위해 위의 그림은 행 백분율에 비례하도록 하여 fourfold display 그렸다.  
+앞선 그림과 같이 남성이 합격할 오즈가 여성보다 2배정도 높은 것을 알 수 있다.  
+불합격할 오즈는 남성과 여성 모두 큰 차이가 없을을 확인할 수 있다.  
+
+```{r}
+fourfold(Berkeley)
+```
+
+표준화를 통해, 신뢰 고리는 승산비가 1과 다르지 않을 경우 각 상단의 사분면에 대한 신뢰 고리와 그 아래의 신뢰 고리가 겹치는 특성을 갖는다.  
+일반적으로 가장 유용한 형태인 **완전히 표준화된 fourfold display**는 위 그림과 같다.  
+
+### 4.4.1 Confidence rings for oods ratio
+
+```{r}
+summary(loddsratio(Berkeley))
+```
+
+`Berkeley`데이터의 로그 오즈비를 구한 결과 약 0.6103이 나온 것을 확인할 수 있다.  
+
+```{r}
+exp(.6103 + c(-1,1) * qnorm(0.975) * 0.06398)
+```
+
+로그 오즈비를 구했기 때문에 `exp`함수를 통해 로그를 제거하고 오즈비에 대한 신뢰구간을 구한다.  
+`Berkeley`데아터의 95%오즈비 신뢰구간은 (1.624,2.087)인 것을 확인할 수 있다.  
+
+```{r}
+confint(loddsratio(Berkeley, log = FALSE))
+```
+
+직접 계산하지 않고 `confint`함수를 사용하여 오즈비의 신뢰구간을 간편하게 얻을수도 있다.  
+
+
+### 4.4.2 Stratified analysis for 2x2xk tables
+
+2x2xk 테이블에서 마지막 차원은 종종 **계층**에 해당되며, 일반적으로 첫 번째 두 번째 변수 사이의 연관성이 계층 간에 동일한지 확인하는 것은 중요한 문제 중 하나이다.   
+
+#### 4.4.2.1 Stratified display
+
+```{r}
+UCB <- aperm(UCBAdmissions, c(2,1,3))
+fourfold(UCB, mfrow = c(2,3))
+```
+
+`UCBAdmissions`의 6개의 학과를 고려하여 `Fourfold`그림을 그려보았다. A학과를 제외하고 나머지 학과들의 `Fourfold`면적은 거의 동일해 보이므로, 성별에 따른 입학 오즈비는 동일한 것을 알 수 있다.   
+
+```{r}
+exp((loddsratio(UCB))$coefficients[1])
+```
+
+부서 A는 다른 부서와 달리 남성이 입학할 오즈가 여성에 비해 약 0.34배인 것을 확인할 수 있다.  
+즉, 여성이 남성에 비해 A부서에 입학할 오즈가 약 2.86배 정도 높은 것을 알 수 있다.  
+
+#### 4.4.2.2 Visualization principles for complex data
+
+크고 복잡한 데이터에서 중요한 원칙은 통제된 비교이다. `fourfold`는 세그먼트의 각도를 일정하게 유지하고 반지름을 변화 시킨다는 점에서 파이 차트와 다르다.  
+중요한 결과는 표의 해당 셀이 항상 동일한 위치에 있기 때문에 서로 다른 층에 대한 `fourfold`를 쉽게 비교할 수 있다.  
+
+*Example 4.12: Breathlessness and wheeze in coal miners*
+
+```{r}
+data("CoalMiners", package = "vcd")
+head(CoalMiners)
+```
+
+`CoalMiners`데이터는 방사선 증거가 없는 20~64세의 흡연자인 석탄 광부들의 두 폐 질환 즉, 호흡과 휘즈 사이의 연관성에 대한 정보를 제공하는 데이터로 `vcd`패키지안에 포함돼있다.  
+
+* Breathlessness: 호흡 (Factor variable - B, NoB)
+* wheeze: 휘즈 (Factor variable - W, NoW)
+* Age: 나이 (Factor variable - 20~24,25~29,...,60~64)
+
+```{r}
+CM <- CoalMiners[, , 2:9]
+structable(.~Age, data = CM)
+```
+
+인덱싱을 통해 `CoalMiners`데이터의 필요한 부분만을 불러오고 `Structable`을 통해 여러개의 계층으로 구성돼있는 분할표를 한 눈에 살펴볼 수 있게 하였다.  
+
+```{r}
+fourfold(CM, mfcol = c(2,4))
+```
+
+`fourfold`를 통해 대략적인 오즈비를 살펴본 결과, 거의 모든 변수의 수준에서 유의한 오즈비 차이가 있는 것을 확인할 수 있었다.   
+
+```{r}
+loddsratio(CM)
+```
+
+`CoalMiners`데이터의 로그 오즈비를 구한 결과는 위와같다. 나이가 증가할수록 로그오즈비가 점차 감소하는 것을 볼 수 있다.  
+
+```{r}
+loddsratio(CM,log = FALSE)
+```
+
+나이에 따른 호흡 곤란 한계와 동일한 휘즈에 대한 오즈비를 구해보았다(`log = FALSE`옵션 지정).    
+`fourfold`와 위의 결과를 통해 나이가 증가할수록 호흡 곤란 한계와 휘즈에 대한 오즈비가 점차 낮아지는 것을 알 수 있다.  
+
+```{r}
+lor_CM <- loddsratio(CM)
+plot(lor_CM, bars = FALSE, baseline = FALSE, 
+     whiskers = .2)
+lor_CM_df <- as.data.frame(lor_CM)
+age <- seq(25,60,by=5) + 2
+lmod <- lm(LOR ~ poly(age,2),weights = 1 / ASE^2, 
+           data = lor_CM_df)
+grid.lines(seq_along(age),fitted(lmod),
+           gp = gpar(col= "red", lwd = 2),
+           default.units = "native")
+```
+
+분석 목적이 승산비가 계층화 요인에 따라 어떻게 변하는지 이해하는 것이라면 승산비를 직접 표시하는 것이 좋다.  
+나이에 따른 호흡 곤란 한계와 휘즈의 로그오즈비 변화를 그림으로 살펴보았다.  
+분석 결과를 통해 확인하는 것 보다 로그오즈비의 감소추세를 더 쉽게 파악할 수 있다.  
+
+```{r}
+summary(lmod)
+```
+
+로그오즈와 나이에 관련된 선형 모델에 대한 추세가 비선형인지 확인하기 위해 2차 모형을 사용한다.  
+2차 모형의 유의확률은 0.4525로 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, 선형 모델의 추세는 비선형이 아닌 선형직선임을 확인할 수 있다.  
+
+***
+
+## 4.5 Sieve diagrams
+
+two-way table 혹은 더 높은 분할표에서는 합리적인 귀무가설을 하에서 **예상되는 빈도와 관찰된 빈도를 비교**해서 보여줘야 한다고 제안한다.  
+이를 위해 분할표를 그래픽으로 표현하는 몇 가지 방법은 행과 열 변수가 독립적일 때, 측정된 기대 빈도 $m_{ij}$가 행과 열 합계의 곲(총합으로 나눠진다.)이라는 사실에 기초한다.  
+
+$$
+m_ij = { n_{i+}n_{+j} \over n_{++}}
+$$
+
+그런 다음 각 셀은 관찰된 빈도, 예상 빈도 또는 편차를 직사각형으로 나타낼 수 있다.  
+직사각형의 시각적 속성을 사용하여 연관 패턴을 강조할 수 있다.  
+
+### 4.5.1 Two-way tables
+
+```{r}
+haireye <- margin.table(HairEyeColor, 1:2)
+expected = independence_table(haireye)
+round(expected,1)
+```
+
+`independence_table`은 분할표의 각 셀에 대한 기대빈도를 쉽게 구할 수 있게 만들어주는 함수로, `vcd`패키지안에 포함돼 있다.  
+- `independence_table(table)`
+
+* table: 기대빈도를 계산하고자 하는 분할표
+
+```{r}
+sieve(expected,labeling=labeling_values,  
+      gp_text = gpar(fontface = 2),
+      shade = TRUE,
+      main = "Expected frequencies")
+```
+
+위의 그림은 만약 머리 색과 눈의 색이 독립적인 경우의 빈도를 나타낸다. 즉, 기대빈도를 출력한다고 이해할 수 있다.  
+관찰된 빈도를 표시하기 위해 셀을 교차 해석하면 아래와 같이 관찰빈도와 기대빈도를 암묵적으로 비교하는 데이터 표시를 할 수 있다.  
+이 원리를 바탕으로 위와 같은 그림을 **sieve diagram**이라고 한다.  
+각 직사각형의 면적은 항상 기대 빈도에 비례하지만 관찰 빈도는 각 직사각형의 정사각형의 수로 표시된다.  
+
+**Eye = Brown, Hair = Brown**일때의 기대빈도가 106.3으로 가장 크고 **Eye = Green, Hair = Red**일때의 기대빈도가 7.7로 가장 작은 것을 확인할 수 있다.  
+
+```{r}
+sieve(haireye,labeling = labeling_values,
+       gp_text = gpar(fontface = 2),
+      shade = TRUE,
+      main = "Observed frequencies")
+```
+
+관찰 빈도와 기대 빈도의 차이는 음영 밀도의 변화로 나타난다. 독립성으로부터 양수 및 음수 편차의 패턴은 음수 편차인 경우 빨간색, 양수인 경우 파란색을 사용하여 더 쉽게 확인할 수 있다.  
+색상과 음영을 통해 위의 그림은 **Hair = Blond, Eye = Blue**, **Hair = Brown, Eye = Brown**인 사람들의 셀은 파란색을 가지므로 관찰빈도가 기대빈도보다 높은 것을 확인할 수 있다.  
+**Hair = Brown, Eye = Blue**, **Hair = Brown, Eye = Green**인 사람들의 셀은 빨간색을 가지므로 관찰빈도가 기대빈도보다 낮은 것임을 확인할 수 있다.  
+
+*Example 4.14: Visual acuity*
+
+```{r}
+data("VisualAcuity", package = "vcd")
+```
+
+`VisualAcuity`데이터는 30-39세인 남성 3,242명과 여성 7,477명의 좌측 우측 시력을 나타낸 데이터로 `vcd`패키지 안에 포함돼 있다.  
+
+* Freq: 빈도 (Discrete variable)
+* right: 우측시력 (Factor variable - 1,2,3,4)
+* left: 좌측시력 (Factor variable - 1,2,3,4)
+* gender: 성별 (Factor variable - female, male)
+
+```{r}
+VA <- xtabs(Freq ~ right + left + gender, data = VisualAcuity)
+dimnames(VA)[1:2] <- list(c("high",2,3,"low"))
+names(dimnames(VA))[1:2] <- paste(c("Right","Left"),"eye grade")
+structable(aperm(VA))
+```
+
+`VisualAcuity`데이터를 `xtabs`함수를 이용하여 성별을 계층으로하며, 빈도에따른 좌측시력,우측시력에 대한 교차표형태로 만들어 주었다.  
+또한, 시력이 1인경우를 **high**, 시력이 4인 경우를 **low**로 재코딩하였고 `structable`를 사용하여 교차표를 쉽게 탐색할 수 있도록 하였다.     
+
+```{r}
+sieve(VA[, , "female"], shade = TRUE)
+```
+
+`VisualAcuity`데이터 중, 성별이 여성인 경우의 `sieve diagram`을 그려보았다.  
+대각선셀은 잔차의 색깔이 파란색이므로 양의 잔차에 해당되는데, 이는 여성의 경우 **왼쪽눈과 오른쪽눈의 시력이 같은 경향이 많다**는 것을 보여주며, 독립성이 강하게 결여된다는 증거이기도 하다.  
+직사각형의 면적은 빈도에 비례하므로, **left = 3, right = 3**인 여성들의 면적이 가장 크므로 가장 많은 빈도를 갖고있음을 알 수 있다.  
+
+### 4.5.2 Larger tables: The strucplot framework
+
+```{r}
+sieve(Freq ~ right + left, data = VisualAcuity, shade = TRUE)
+```
+
+`sieve`함수는 다른 시각화 함수들과 같이 **formula method**를 통해서 원하는 변수들로 시각화를 진행할 수 있다.  
+위의 예시는 빈도에 따른 왼쪽 및 오른쪽 눈의 시력을 통해 얻어진 교차표에 대한 `sieve diagram`이다.  
+왼쪽 눈의 시력과 오른쪽 눈의 시력이 같은 사람들의 셀이 파란색이므로 관찰빈도가 기대빈도 보다 높음을 확인할 수 있고 이를 통해 한쪽 눈의 시력이 같으면 다른 쪽 눈의 시력이 같은 경향이 있음을 확인할 수 있다.  
+
+```{r}
+sieve(Freq ~ right + left | gender, data = VisualAcuity,
+      shade = TRUE, set_varnames = c(right = "Right eye grade", left = "Left eye grade"))
+```
+
+`| 표현`을 이용하여 원하는 변수를 계층으로 하는 `sieve diagram`그림을 볼 수도 있다. 위의 그림은 성별에 따라 구분한 `sieve diagram`이다.  
+남성과 여성에 상관없이 양쪽눈의 시력이 같은 사람들이 기대빈도 보다 많이 관찰된 것을 확인할 수 있다.  
+
+
+```{r}
+cotabplot(VA, cond = "gender", panel = cotab_sieve,
+          shade = TRUE)
+```
+
+`cotabplot`은 분할표가 주어졌을 때, 분할표의 **conditional plot**을 시각화하기 위한 함수로 `vcd`패키지안에 포함 돼 있다.  
+- `cotabplot(table,cond,panel,shade)`
+
+* table: **conditional plot**을 그리고자 하는 분할표
+* cond: 계층변수
+* panel: **conditional plot**의 유형
+* shade: 잔차에 따른 음영 표시 여부
+
+위의 그림은 `cotabplot`을 사용하여 성별에 따른 `sieve diagram`을 그린 결과이다.  
+`cotabplot`은 `sieve`함수와 달리 계층에 따라 panel을 구분해주기 때문에 분할된 시각화 결과를 보고자 할때, 유용하게 사용할 수 있다.  
+
+*Example 4.15: Berkeley admissions*
+
+```{r}
+sieve(UCBAdmissions, shade = TRUE, condvar = 'Gender')
+```
+
+위의 그림은 성별에 의해 조건화된 부서와 부서의 합격여부 관계에 대한 `sieve diagram`을 보여준다.  
+전체적으로 여성보다 남성 지원자가 더 많았으며, 남성과 여성에 대해 파랑색(관찰빈도 > 기대빈도) 패턴이 비슷한 것을 알 수 있다.  
+남성과 여성 모두 A,B부서에 대한 합격 관찰빈도는 기대빈도 보다 높고, E,F부서에 대한 불합격 관찰빈도가 기대빈도보다 높은 것을 확인할 수 있다.  
+이를 통해, A,B부서는 전반적으로 합격률이 높지만 E,F부서는 합격률이 낮은 것을 알 수 있다.  
+
+```{r}
+sieve(~Dept + Admit + Gender, data = UCBAdmissions,
+      shade = TRUE, labeling = labeling_values,
+      gp_text = gpar(fontface = 2),
+      abbreviate_labs = c(Gender = TRUE))
+```
+
+위의 그림은 `Dept`를 첫 번째 분할 변수로 만 든 후, 성별에 따른 합격여부를 `sieve diagram`그림으로 나타내었다.  
+위의 formula는 세 변수를 모두 상호 독립을 가정하는데, 이럴 경우 여성의 A,B부서에 대한 합격요인이 음의 잔차가 되는 것을 확인할 수 있다. 이를 통해, 세 변수에 대해서 상호독립을 가정하는 것은 적절하지 않음을 확인할 수 있다.  
+`labeling` 인수는 각 사각형의 셀 빈도를 표현하는데 사용되고, `gp_text`는 굵은 글꼴로 만들어주며, `abbreviate_labs`는 오버플롯을 피하기 위해 사용한다.  
+
+
+```{r}
+cotabplot(UCBAdmissions, cond = "Gender",
+          panel = cotab_sieve,
+          shade = TRUE)
+cotabplot(UCBAdmissions, cond = "Dept",
+          panel = cotab_sieve,
+          shade = TRUE, labeling = labeling_values,
+          gp_text = gpar(fontface=  "bold"))
+  
+```
+
+`UCBAdmissions`의 데이터를 `cotabplot`을 통해 원하는 계층 변수에 따라 패널을 나누고 그에 따른 `sieve diagram`을 살펴볼 수 있다.  
+
+```{r}
+UCB2 <- aperm(UCBAdmissions, c(3,2,1))
+sieve(UCB2, shade = TRUE, expected = ~ Admit * Gender + Dept, split_vertical = c(FALSE, TRUE, TRUE))
+```
+
+2차원 이상의 표의 경우, 독립성에 대한 다양한 모델이 있다.  
+`sieve`함수의 `expected`옵션을 이용하여 원하는 형태의 모형을 적합시킬 수 있다.  
+위의 코드는 `~Admit * Gender + dept`모형을 적합시켜 부서가 성별과 합격여부에 대해서 공동적으로 독립이라고 가정한다.   
+
+위의 결과 또한 여성의 A,B 부서에대한 합격 빈도가 음의 잔차를 가지므로 기존의 진행했던 분석 결과와 달라지게 된다. 따라서, 부서가 성별과 합격여부에 대해서 공동적으로 독립이 아닌것을 알 수 있다.   
+
+***
+
+## 4.6 Association plots
+
+**sieve diagram**에서 사각형은 기대 빈도를 나타내며 독립성의 편차는 색상과 음영 밀도로 표시된다.  
+
+**association plot**은 고차원 분할표에 지정된 독립성 모형으로부터 편차를 나타내는데, **sieve diagram**과 달리 편차를 사각형에 제시한다. 각 상자의 면적은 (관측 - 기대)빈도에 비례, 즉 잔차에 비례한다.  
+셀 $i,j$에서 $Personx X^2$에 대한 signed contribution은 다음과 같다. 
+
+$$
+r_{ij} ={ n_{ij} - m_{ij} \over \sqrt{(m_{ij})}}
+$$
+
+R에서 `association plot`은 `assoc`를 통해 시각화 할 수 있으며, `vcd`패키지 안에 포함돼있다.  
+- `assoc(table)`
+
+* table: 편차를 살펴볼 분할표 (상황에 따라 Formula도 가능하다. )
+
+
+```{r}
+assoc(~ Hair + Eye, data = HairEyeColor, shade = TRUE)
+```
+
+위의 그림은 머리카락 색상과 눈에 대한 데이터의 연관도를 보여준다. `sieve diagrm`과 다르게 직사각형의 면적이 편차에 따라 결정되는 것을 확인할 수 있다.  
+이 그래프를 구성하는 각 직사각형은 피어슨의 잔차 값에 따라 음영 처리된다.  
+**Hair = Brown, Eye = Brown**, **Hair = Blond, Eye = Blue**일 때, 면적이 큰 파랑색 사각형으로 양의 잔차를 가지고 **Hair = Blond, Eye = Brown**일 때, 면적이 큰 음의 잔차 사각형을 갖고 있는 것을 확인할 수 있다.  
+
+```{r}
+assoc(HairEyeColor, shade = TRUE)
+```
+
+위의 그림은 기존의 머리색깔과 눈색깔의 연관성에 더해 성별을 계층변수로 추가한 `association plot`이다.  
+성별에 관계없이, **Hair = Black, Eye = Brown**일 때, 공통적으로 양의 잔차를 가지고 **Hair = Blond, Eye = Brown**일 때, 공통적으로 음의 잔차를 가지는 것을 확인할 수 있다.  
+
+***
+
+## 4.7 Observer agreement
+
+행 변수와 열 변수가 서로 다른 관찰자의 동일한 주체 또는 개체 등급을 나타내는 경우 관심은 단순한 연관성 보다 **observer agreement(관찰자의 동의)**가 중요하다.   
+이 경우, 합의의 측정 및 시험은 주관적인 분류 또는 평가 절차의 신뢰성을 평가하는 방법을 제공한다.  
+
+예를 들어, 두 명 이상의 심리학자는 (a)정상, (b)경미한 손상, (c)심각하게 손상된 범주의 규모로 환자를 분류할 수 있다. 이러한 예시에서 알 수 있듯이 등급 범주는 종종 정렬되지만, 항상 정렬되는 것은 아니다.  
+대부분의 경우, 동일한 범주가 두 평가자에 의해 사용 되므르 분할표는 정사각형이며, 대각 셀의 항목은 평가자가 동일하는 경우이다.  
+
+*Example 4.16: Sex is fun*
+
+```{r}
+data("SexualFun", package = "vcd")
+SexualFun
+```
+
+`SexualFun`데이터는 설문지 항목에 대한 부부의 반응을 요약한 것으로 서로의 성관계에 대한 만족도를 제공하는 데이터이며, `vcd`패키지 안에 포함돼있다.  
+
+* Husband: 남편의 만족도 (Factor variable - Never, Fairly often, very often, Always)
+* Wife: 부인의 만족도 (Factor variable - Never, Fairly often, very often, Always)
+
+각 행에서 대각선 항목이 항상 큰 것은 아니지만, 파트너 중 하나가 **거의 항상**이라고 응답할 때 더 자주 동의하는 경향이 있는 것처럼 보인다.  
+
+*Example 4.17: Diagnosis of MS patients*
+
+`MSPatients`데이터는 다발성 경화증 환자 진단에 대한 위니펙과 뉴올리언스의 두 명의 신경학자가 평가한 데이터로 `vcd`패키지 안에 포함돼있다.  
+
+* New Orleans Neurologist: 뉴올리언스 신경학자가 평가한 환자의 상태 (Factor variable Certain, Probable, Possible, Doubtful)
+* Winnipeg Neurologist: 위니펙 신경학자가 평가한 환자의 상태 (Factor variable - Certain, Probable, Possible, Doubtful)
+* patients: 환자의 소속 주 (Factor variable - Winnipeg, New Orleans)
+
+```{r}
+MSPatients[, , "Winnipeg"]
+```
+
+```{r}
+MSPatients[, , "New Orleans"]
+```
+
+
+```{r}
+apply(MSPatients, 3, sum)
+```
+
+`MSPatients`데이터는 4x4x2표로 구성돼 있으며, 환자가 소속된 주를 계층으로 사용했다.  
+winnipeg의 환자의 수는 149명, New Orleans의 환자의 수는 69명인 것을 확인할 수 있다.  
+
+### 4.7.1 Measuring agreement
+
+동의의 강도를 평가할 때 우리는 일반적으로 연관성의 강도를 측정할 때 보다 더 엄격한 기준을 가지고 있다. 이는 관찰자 등급은 강한 합의 없이 강하게 연관될 수 있기 때문이다. 예를 들어, 한 평가자가 더 엄격한 기준을 사용할 수 있으므로 다른 평가자보다 등급이 낮을 수 있다.  
+따라서, 여러명의 평가자를 고려할 때에는 특정 평가자의 평가를 통해 기준이 한 쪽으로 쏠리지 않도록 공평한 평가가 이루어지게 하는 것이 중요하다.  
+
+
+#### 4.7.1.4 Computing Kappa
+
+코헨의 **Kappa**는 두 관찰자의 등급이 독립적일 경우 관측된 합의와 우연히 예상되는 합의를 비교하는 일반적으로 사용되는 합의 척도이다.    
+$p_{ij}$가 무작위로 선택된 피실험자가 i에서 첫 번째 등급으로 평가될 확률일 경우 관찰자와 다른 범주 j에서 관찰된 합은 대각선 엔트리의 합이다. $P_0 = \sum_i(p_{ii})$
+등급이 독립적이라면, 합의 확률은 $P_C = \sum_i(p_i+p+i)$이다.    
+코헨의 k는 실제 합치도와 우연 합치도의 차이 $P_0 - P_C$를 이 차이가 얻을 수 있는 최대값에 대한 비율이다.  
+
+$$
+k = {{P_0 - P_c} \over {1 - P_c}}
+$$
+
+R에서 `Kappa`는 `vcd`패키지를 통해 사용할 수 있다.  
+- `Kappa(table)`
+
+* table: Kappa 함수를 적용할 교차표
+
+또한, Kappa의 **가설검정**은 다음과 같이 진행할 수 있다.  
+
+* H0: 평가자의 등급은 우연에 기인한다.
+* H1: 평가자의 등급은 우연에 기인하지 않는다.  
+
+```{r}
+Kappa(SexualFun)
+```
+
+`SexualFun`변수에 `Kappa`함수를 사용하여 코헨의 **Kappa**를 구해보았다.  
+가중치를 주지않는 경우에는 **Kappa = 0.1293**, 가중치를 주는 경우에는 **Kappa = 0.2374**로 가중치를 주었을 때, 더 큰 유사성을 보이는 것을 확인하였다.  
+
+또한, 가중치를 주지않는 경우의 유의확률은 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다. 따라서, 평가자의 등급평가는 우연이라고 할 수 있다.  
+가중치를 주는 경우의 유의확률은 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, 평가자의 등급은 우연에 기인하지 않는다고 할 수 있다.  
+
+```{r}
+confint(Kappa(SexualFun))
+summary(Kappa(SexualFun))
+```
+
+`confint`함수를 통해 kappa의 신뢰구간을 얻을 수 있다.  
+가중치를 주지 않을 경우의 **Kappa** 95% 신뢰구간은 (-0.005,0.263) 이며, 가중치를 주는 경우의 95% 신뢰구간은 (0.084, 0.391)이다. 
+
+`summary`함수를 통해 kappa의 통계량 및 가설검정 뿐만아니라 가중치 정보 또한 확인할 수 있다.    
+
+### 4.7.2 Observer agreement chart
+
+Bangdiwala가 제안한 **agreement chart**는 분할표에서 합의 강도와 간단한 그래픽 표현과 직관적인 해석을 통해 합의 강도의 대체 척도를 제공한다.  
+더욱 중요한 것은, 합의가 완벽하지 않을 때 합의 불일치의 패턴을 보여준다.  
+
+#### 4.7.2.1 Construction of the baisc plot
+
+k x k 분할표가 주어졌을 때, **agreement chart**는 n x n 정사각형으로 생성되며, 여기서 $n = n_{++}$는 총 표본 크기이다.  
+각각의 크기가 $n_{ii}$x$n_{ii}$ 검은색 사각형은 관찰된 합의를 보여준다.  
+완전한 합의일 경우, 주변 총합에 의해 결정된 k개의 직사각형은 모든 정사각형이며, 음영 정사각형으로 완전히 채워지면서 B=1이다.  
+
+R에서 `agreement chart`는 `vcd`패키지의 `agreementplot`을 사용하여 시각화할 수 있다.  
+- `agreementplot(table, weights)`
+
+* table: agreement chart를 그릴 교차표
+* weights: 가중치 설정 (default는 자동으로 가중치를 만들어주고 weights = 1로 설정하면 가중치가 없는 것이다.)
+
+```{r}
+agreementplot(SexualFun, main = "Unweighted", weights = 1)
+agreementplot(SexualFun, main = "Weighted")
+```
+
+위의 그림은 가중치를 고려하지 않는 경우의 `agreementplot`이며, 아래 그림의 경우 가중치를 고려하는 경우의 `agreementplot`이다.  
+검은색 사각형의 경우, 가중치를 고려하지 않는 경우의 일치도를 보여주며 회색 사각형의 경우 가중치를 고려하는 경우의 일치도를 보여준다.  
+
+가중치를 고려한 경우의 면적이 가중치를 고려하지 않은 경우보다 크며, 각 셀의 빈도 사각형을 고려했을 때에도 더 일치하는 것을 보여준다.  
+따라서, 가중치를 고려한 경우의 평가자간 등급의 합의가 조금 더 일치하는 것을 확인할 수 있다.  
+
+#### 4.7.2.2 Partial agreement
+
+```{r}
+B <- agreementplot(SexualFun)
+unlist(B)[1:2]
+```
+
+일치도 추정값인 `B`또한 가중치를 적용하지 않았을 때에는 0.146이지만, 가중치를 적용했을 때에는 0.498로 훨씬 더 일치도가 높은 것을 확인할 수 있다.  
+
+```{r}
+data("Mammograms", package = "vcdExtra")
+```
+
+`Mammograms`는 두 명의 독자가 평가한 110개의 유방조영술에 대한 데이터로 테이블의 형태이며, `vcdExtra`패키지 안에 포함돼있다.  
+
+* Reader: 평가자인 독자 (Factor variable - Reader1, Reader2)
+* Grade: 평가점수 (Factor variable - Absent,Minimal,Moderate,Severe)
+
+```{r}
+B <- agreementplot(Mammograms, main = "Mammogram ratings")
+```
+
+`Mammograms` 데이터에 대한 `agreement plot`을 그려보았다. 검은색 사각형과 회색 사각형의 면적을 볼때, 앞서 살펴본 데이터보다 평가자간의 등급 일치도가 높은 것을 알 수 있다.  
+또한, 두 평가자는 **Absent, Severe**와 같은 극단적인 범주에 더 자주 동의하는 것처럼 보인다.  
+
+```{r}
+unlist(B) [1:2]
+```
+
+일치도값인 B를 확인해본 결과, 가중치를 주지 않을경우에는 0.422이지만 가중치를 적용한 경우에는 0.836으로 매우 높은 값을 가지고 있는 것을 확인할 수 있다.  
+따라서, `Mammograms`데이터는 평가자간 일치도가 상당히 높은 데이터임을 알 수 있다.  
+
+### 4.7.3 Observer bias in agreement
+
+순서 척도를 사용하면 인접한 범주 사이의 경계에 대해 더 엄격한 임계값을 사용하기 때문에 한 관찰자가 다른 관찰자보다 더 높거나 낮은 범주로 개체를 일관되게 할당하는 위험이 발생할 수 있다.  
+**관찰자 합도표는** 어두운 사각형과 대각선의 관계를 통해 이를 직접 보여준다. 주변 총량이 동일하면 사각형은 대각선을 따라 나간다.  
+
+*Example 4.19: Diagnosis of MS patients*
+
+```{r}
+cotabplot(MSPatients, cond = "Patients",
+          panel = cotab_agreementplot,
+          text_gp = gpar(fontsize = 18), xlab_rot = 20)
+```
+
+```{r}
+agr1 <- agreementplot(MSPatients[, , "Winnipeg"])
+agr2 <- agreementplot(MSPatients[, , "New Orleans"])
+rbind(Winning = unlist(agr1),
+      NewOrleans = unlist(agr2))[, 1:2]
+```
+
+두 환자 그룹의 경우, 두 중간 범주의 직사각형은 대각선 아래에 있음을 알 수 있다. 이것은 **New Orleans 신경학자, Winnipeg 신경학자**가 환자들을 더 심각한 진단 범주로 분류하는 경향이 있다는 것을 보여준다.  
+대각선에서의 이탈은 **Winnipeg 환자들에게 더 크게** 나타나는 것을 볼 수 있으며, **New Orleans 환자에게는 Winnipeg 환자에 비해 더 심각한 범주를 적게 사용하여 대각선 이탈이 더 낮은 것**을 확인할 수 있다.  
+
+**Winnipeg, New Orleans**환자 모두 가중치를 적욯하지 않았을 때 보다, 가중치를 적용한 경우의 일치도가 훨씬 높게 나타나는 것을 알 수 있다.  
+
+## 4.8 Trilinear plost
+
+**삼선형 그림(Trilinear plot)**은 3열 분할표 또는 상대 비율을 표시할 때, 세 변수에 대해 특수화된 방법이다.  
+예를 들어, 개인은 세 개의 범주 중 하나에 배정되거나, 국회의원 선거에서 세 정당 간의 투표 분열을 볼 수 있다. 즉, 이 표시는 빈도와 비율에 모두 유용하다.  
+
+**Trilinear plot**은 관측치를 각 열의 상대 비율에 해당하는 좌표를 정삼각형 안에 있는 점으로 표시한다.  
+세 개의 꼭짓점은 세 개의 열 중 하나에 100%가 발생할 때 세 개의 극단을 나타낸다.  
+정확한 중심에 있는 한 점은 모든 3개의 열에서 1/3의 동일한 비율을 나타낸다. 실제로 각 점은 삼각형의 무게 중심을 나타내며 좌표는 해당 정점에 배치된 가중치를 나타낸다.  
+
+```{r}
+library(ggtern)
+```
+
+`ggtern`패키지는 `ggplot2`의 기능을 확장하여 `ggplot2`에서는 사용할 수 없는 몇 가지의 새로운 플랏 형태를 제공하며, 특히, **삼항식 다이어그램**을 시각화할 수 있는 기능을 제공한다.  
+
+또한, **Trilinear plot**은 R에서 `ggtern`패키지에 포함된 `ggtern`함수를 통해 그릴 수 있다.  
+- `ggtern(data, aes(x,y,z,colour))`
+
+* data: Trilinear plot을 시각화함에 있어 사용되는 데이터
+* x: x축에 사용되는 변수
+* y: y축에 사용되는 변수
+* z: z축에 사용되는 변수
+* colour: 그룹을 구분하는데 사용되는 변수
+
+```{r}
+DATA <- data.frame(
+  A = c(40,20,10),
+  B = c(30,60,10),
+  C = c(30,20,80),
+  id = c("1","2","3"))
+aesthetic_mapping <- aes(x = C, y = A, z= B, colour = id)
+ggtern(data = DATA, mapping = aesthetic_mapping) +
+  geom_point(size = 4)+
+  theme_rgbw()
+```
+
+위의 그림은 단순성을 위해 필요한 몇몇의 모수를 추가하지 않았다.  
+각 꼭짓점 레이블이 지정된 변수의 100%에 해당하며 이 변수의 백분율은 중간점까지 선형적으로 감소한다.  
+그리드 선은 각 축을 따라 백분율을 나타낸다.  
+
+빨간색 점은 **A data(40,30,30)**의 점을 나타내며, 초록색 점은 **B data(30,60,10)**, 파란색 점은 **C data(10,10,80)**의 좌표를 나타낸다.  
+
+*Example 4.20: Lifeboats on the Titanic*
+
+```{r}
+data("Lifeboats", package = "vcd")
+head(Lifeboats)
+```
+
+`Lifeboats`데이터는 타이나틱호 침몰 전에 진수된 구명보트 20척 중 18척에 대한 데이터로, `vcd`패키지 안에 포함돼 있다.  
+
+* launch: 탈출 시간 (POSIXt)
+* side: 봍트의 사이드 (Factor variable - Port, Startboard)
+* boat 보트의 고유 번호 (Factor variable - 1 ~ 16, A ~ D)
+* crew: 탈출한 남자 승무원의 수 (Discrete variable)
+* men: 탈출한 남자 승객의 수 (Discrete variable)
+* women: 탈출한 여성 승객 + 탈출한 여자 승무원의 수 ((Discrete variable))
+* total: 총 탈출한 승객의 수 (Discrete variable)
+* cap: 보트의 수용인원 (Discrete variable)
+
+```{r}
+Lifeboats$id <- ifelse(Lifeboats$men / Lifeboats$total > .1, as.character(Lifeboats$boat), "")
+AES <- aes(x = women, y = men, z = crew,
+           colour = side, shape = side, label = id)
+ggtern(data = Lifeboats, mapping = AES) +
+  geom_text(size=6)+
+  geom_point(size = 2)+
+  geom_smooth_tern(method = "lm", alpha = 0.2) +
+  theme_rgbw()
+```
+
+`Lifeboats`의 `id`변수의 경우 탈출한 남성 승객의 수 / 총 승객의 탈출 인원 수가 0.1보다 큰 경우 `Lifeboats`데이터의 `boat id`를 가지도록 하였고 그 외에는 공백으로 남겨두도록 코딩을 진행하였다.  
+
+위의 그림을 보면 point가 좌측 하단 부근에 몰려있는 것을 확인할 수 있으며, 이는 보트를 통해 탈출을함에 있어 여성의 비율이 높은 것을 알 수 있다.  
+또한, 우현에서 진수된 보트들은 대부분 여성 생존자가 많은 것에 비해, 좌현에서 진수된 보트들은 남성, 남성 승무원, 여성의 비율이 우현에서 진수된 보트보다는 더 높은 것을 확인할 수 있다.  
+
+우리는 2개의 side에서 발사된 보트의 구성의 차이를 살펴보기 위해 선형 회귀선을 추가하였다.  
+보트1은 여성의 20%에 불과한 반면, 보트3은 50%, 보트 7,5,9는 약 75%의 비율을 가지고 있는 것을 확인할 수 있다.  
+
+***
+
+## Summary of Chapter4
+
+* 이원 교차표의 경우, 일차 빈도표에 비해 적용될 수 있는 분석기법이 많고 전처리 방법 또한 다양하므로 다양한 분석 기법을 익히는 것이 중요하다.  
+* **오즈비(Odds ratio)**의 경우 사건이 발생할 확률이 발생하지 않을 확률에 비해 몇 배 더 높은가의 의미를 가지고 있으며, 2차원의 분할표에서 많이 사용되는 개념 중 하나이다.  
+* 특정 변수에 대하여 평가자를 통해 변수를 측정하는 경우, 평가자의 평가가 어느 한 곳으로 치우치치않게 하는 것은 중요하다. 이러한 경우, **Kappa** 또는 **agreement plot**을 통해 평가자의 평가가 적합하게 이뤄젔는지에 대한 검정을 진행할 수 있다.  
+* **sieve diagram**은 분할표의 관찰빈도와 독립성을 가정했을 때의 기대빈도를 시각화를 통해 비교하고자 할때, 유용하게 사용할 수 있다.  
+* **association plot**은 **sieve diagram**과 달리, 직사각형의 면적이 편차를 나타내며 관찰빈도를 비교하기 보다는 편차에 대한 비교를 진행할 때 사용하는 방법이다.  
+* **CMHtest**는 분할표 변수 중, 순서형 수준이 포함되는 경우에 독립성 검정을 순서형 수준을 고려하여 진행할 수 있도록 도와주는 방법이다.  
+* 이차원 분할표를 넘어 삼차원, 사차원을 가는 경우 분할표의 변수 뿐만아니라, 분할표를 구분하는 **계층 변수**에 대한 관심을 가져야 하며, 이러한 계층 변수를 어떻게 처리할지에 대한 고민도 하는 것이 중요하다.  
+* **Fourfold display**는 여러개 혹은 단일 계층을 가지는 2x2 분할표에 대해 **오즈비**를 비교하고자 할 때, 유용하게 사용할 수 있는 방법이다.  
+* **Trilinear plot**은 3열 분할표에 대한 상대비율을 시각화를 통해 나타내고자 할 때, 유용하게 사용할 수 있는 방법이다.  
+
+*** 

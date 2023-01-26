@@ -1,0 +1,430 @@
+---
+title: 통계밥법론 Chapter10 실습코드
+author: 202140191 엄태훈
+date: 2021-06-05(SAT)
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Chap10 Multiple Regression - Dummy Variables,Contrasts,and Analysis of Covariacne
+
+
+이번 챕터에서는 앞서 살펴본 다중회귀분석과 더불어 **더미 변수**와 **대조**에 대해 알아보도록 한다.  
+
+**더미 변수(Dummy variable)**은 질적인 특성을 갖고있는 독립변수들을 통합하는 것을 말한다. 예를 들어, A,B,C 3개의 변수를 가지고 있다고 가정하고 이에 대한 더미 변수화를 지정하게 되면, A =(1,0,0), B=(0,1,0), C=(0,0,1)와 같은 식으로 표현될 수 있다.  
+
+또한, 분산분석의 개념과 회귀분석의 개념이 혼합된 **공분산분석(Analysiss of Covariance)**에 대해서도 알아보자.  
+
+
+## 10.2 Example-Height and Weight
+
+### 10.2.2 Data Description
+
+* feet: 정수로 반올림한 피트 단위의 높이
+* inches: 인치단위의 높이
+* months: 월 단위로 표혀한 나이
+* lbs: 파운드 단위의 몸무게
+* sex: 남성 혹은 여성
+* meters: 미터단위의 높이
+
+### 10.2.3 Data Problems
+
+```{r}
+library(HH)
+data(htwt)
+
+levels(factor(htwt$sex,exclude=NULL))
+
+any(is.na(htwt$ht))
+```
+
+`any`함수를 이용해 *ht*변수 안에 결측값이 있는지 확인한다.  
+확인결과, TRUE를 반환하여 결측값이 있는 것으로 보인다.  
+
+
+```{r}
+for (h in tapply(htwt$ht,factor(htwt$sex,exclude = NULL),c)){
+  stem(h,scal=1.5)
+}
+```
+
+*ht*변수를 성별에 따라 `stem`함수를 이용하여 줄기 잎 그림 으로 표현하였다.  
+
+```{r}
+library(dplyr)
+
+df_htwt <- htwt %>% 
+  select("lbs","months","sex","ht")
+
+splom(~df_htwt,groups=df_htwt$sex,pch=c(17,19),col=c("#7685c8","#E16A92"),key=list(text=list(c("Male","Female")),
+      points=list(pch=c(17,19),col=c("#7685C8","#E16A92"))))
+```
+
+데이터 탐색을 위해 성별을 그룹으로 지정하고 `splom`함수를 사용하여 산점도 행렬을 그린 후, 변수 간 관계를 살펴보았다.  
+
+
+```{r}
+xyplot(lbs~ht,data=htwt,groups=sex,pch=c(17,19),
+       col=c("#7685c8","#E16A92"),
+       key=list(text=list(c("Male","Female")),
+                points=list(pch=c(17,19),
+                            col=c("#7685C8","#E16A92"))))
+```
+
+성별에 따른 ht변수와 lbs변수의 산점도를 그려보았다.
+
+```{r}
+## one-wway analysis of variance
+htwt.aov <- aov(ht ~ sex,data=htwt)
+
+summary(htwt.aov)
+
+model.tables(htwt.aov,type="means")
+```
+
+ht변수에 대해서 성별로 평균 차이가 있는지에 대한 분산분석을 진행한 결과, P-value는 0에 매우 가까운 값으로 유의수준 0.05보다 작으므로 유의한 것을 확이할 수 있다.  
+
+따라서, 성별에 따라서 ht변수에 대한 평균차이가 존재하는 것을 알 수 있다.  
+
+### 10.2.4 Three Variants on the Analysis
+
+```{r}
+## dummy variable
+
+htwt$female <- as.numeric(htwt$sex == "f")
+```
+
+성별이 female인 경우를 1로 지정하고 남성인 경우를 0으로 지정하여 더미변수화를 진행해주었다.  
+
+```{r}
+htwt.lm <- lm(ht ~ female, data=htwt)
+
+summary(htwt.lm)
+
+anova(htwt.lm)
+```
+
+더미변수화를 진행한 후 회귀분석과 다시 한 번 분산분석을 진행해본 결과, 유의한 변수임을 알 수 있었고 분산분석의 결과는 앞선 결과와 동일하게 성별 간 평균차이가 존재하는 것을 확인할 수 있었다.
+
+```{r}
+## dummy variable
+
+htwt$treat <- (htwt$sex == "f") - (htwt$sex == "m")
+
+htwtb.lm <- lm(ht ~ treat,data=htwt)
+
+summary(htwtb.lm)
+
+anova(htwtb.lm)
+```
+
+앞선 더미변수 방법과는 다르게 여성일 경우 1, 남성일 경우 -1로 변환해 준 후, 다시 한 번 분석을 진행해본 결과 동일한 결과가 나온 것을 확인할 수 있다.  
+
+## 10.4 Polynomial Contrasts and Orthogonal Polynomials
+
+```{r}
+data(fabricwear)
+
+bwplot(wear~speed,data=fabricwear,ylab="wear",xlab="speed")
+```
+
+**fabricwear**데이터의 *wear,speed*변수를 이용하여 boxplot을 그려본 결과, speed가 높아짐에 따라 wear의 평균 또한 같이 높아지는 것을 확인할 수 있다.  
+
+
+```{r}
+fabricwear.aov <- aov(wear ~ speed, data=fabricwear)
+
+summary(fabricwear.aov)
+```
+
+분산분석 결과, 탐색적 자료분석을 통해 얻은 결과와 동일하게 wear변수에 대하여 적어도 한 speed 집단 간 유의한 평균차이가 발생하는 것을 알 수 있다.  
+
+```{r}
+tmp.c <- zapsmall(contrasts(fabricwear$speed),14)
+
+dimnames(tmp.c)[[1]] <- levels(fabricwear$speed)
+
+tmp.c
+
+
+par(mfrow=c(2,3))
+tmp.c_df <- data.frame(tmp.c)
+plot(rownames(tmp.c_df),tmp.c_df$.L,type="o",xlab="speed",ylab="polynomials",main=".L",col="#7685c8")
+plot(rownames(tmp.c_df),tmp.c_df$.Q,type="o",xlab="speed",ylab="polynomials",main=".Q",col="#7685c8")
+plot(rownames(tmp.c_df),tmp.c_df$.C,type="o",xlab="speed",ylab="polynomials",main=".C",col="#7685c8")
+plot(rownames(tmp.c_df),tmp.c_df$X.4,type="o",xlab="speed",ylab="polynomials",main="^4",col="#7685c8")
+plot(rownames(tmp.c_df),tmp.c_df$X.5,type="o",xlab="speed",ylab="polynomials",main="^5",col="#7685c8")
+```
+
+
+데이터를 1차,2차,3차,4차,5차로 변환시키고 차수가 증가함에 따른 변화를 살펴보기 위해 plot을 통해 나타내보았다.  
+
+
+```{r}
+zapsmall(crossprod(tmp.c),13)
+
+min.nonzero <- function(x, digits=13){
+  xx <- zapsmall(x,digits)
+  min(xx[xx != 0])
+}
+
+tmp.min <- apply(abs(tmp.c),2,min.nonzero)
+
+sweep(tmp.c,2,tmp.min, "/")
+```
+
+
+```{r}
+summary(fabricwear.aov,
+        split=list(speed=list(speed.L=1,speed.Q=2,
+                   speed.C=3,rest=4:5)))
+
+summary.lm(fabricwear.aov)
+
+```
+
+앞서, 차수 변환을 시켜준 데이터에 대하여 분산분석을 진행해 보았다.  
+분산분석결과, 1차,2차,4차의 다항식은 유의한 평균차이가 적어도 한 집단 이상 존재한다는 결과를 얻을 수 있었다.  
+3차,5차의 다항식은 P-value가 유의수준 0.05보다 높으므로 집단 간 유의한 평균차이가 존재하지 않는다.  
+
+## 10.6 Example-Hot Dog Data
+
+### 10.6.2 Data Description
+
+* Type: 핫도그의 유형
+* Calories: 핫도그의 칼로리
+* Sodium: 핫도그 당 나트륨 밀리그램
+
+### 10.6.4 Concomitant Explanatory Variable _ ANCOVA
+
+```{r}
+data(hotdog)
+bwplot(Sodium~Type,data=hotdog,col=c(1:3),
+       par.settings=list(box.rectangle=list(col=c(1:3)),box.umbrella=list(col=c(1:3)),box.dot=list(col=c(1:3))))
+```
+
+탐색적 자료분석을 위한 boxplot 결과, 핫도그에 들어가느 고기 종류에 따른 나트륨은 큰 평균차이가 존재하지 않는 것 처럼 보인다.  
+```{r}
+data("col3x2")
+
+hotdog.key <- list(title="Type", border=TRUE, space="right",
+                   text=list(levels(hotdog$Type),
+                             col=col3x2[1:3]),
+                   points=list(pch=15:17,
+                               col=col3x2[1:3]),
+                   lines=list(lty=1,
+                              lwd=trellis.par.get("superpose.line")$lwd[1:3],
+                              col=col3x2[1:3]))
+TxC <- ancovaplot(Sodium ~ Type, x=Calories, data=hotdog, col=col3x2,
+                  main="Sodium ~ Type, x=Calories",
+                  scales=list(alternating=FALSE),
+                  between=list(x=c(0,0,1)))
+update(TxC, key=hotdog.key)
+```
+
+핫도그의 고기 유형에 따른 나트륨을 비교하고 칼로리를 공변량으로 지정한 결과를 `ancovaplot`을 통해 살펴보았다.  
+
+그림으로만 확인해봤을때, 평균차이는 존재하지 않는 것처럼 보인다.  
+
+```{r}
+aovStatementAndAnova(TxC)
+anova(aov(Sodium~Type,data=hotdog))
+```
+
+분산분석을 진행한 결과 또한, 유의확률이 유의수준 0.05보다 큰 값을 가지므로 고기의 유형에 따른 칼로리의 평균 차이는 존재하지 않는다고 할 수 있다.  
+
+```{r}
+CgT <- ancovaplot(Sodium ~ Calories, groups=Type, data=hotdog, col=col3x2,
+                  main="Sodium ~ Calories, groups=Type",
+                  scales=list(alternating=FALSE),
+                  between=list(x=c(0,0,1)))
+update(CgT, key=hotdog.key)
+```
+
+그룹변수를 Type으로 지정하고, 종속변수가 Sodium이고 독립변수가 Calories에 대한 `ancovaplot`을 그래프로 나타내보았다.  
+
+```{r}
+aovStatementAndAnova(CgT, warn=FALSE)
+anova(aov(Sodium ~ Calories, data=hotdog))
+```
+
+Type을 Group으로 지정하고 반응변수를 Sodium으로 했을 때, 유의확률이 유의수준 0.05보다 작으므로, Calories 변수에 따른 유의한 평균차이가 적어도 한 집단 이상 있는 것을 확인할 수 있다. 
+
+```{r}
+hotdog.key <- list(title="Type", border=TRUE, space="right",
+                   text=list(levels(hotdog$Type),
+                             col=col3x2[1:3]),
+                   points=list(pch=15:17,
+                               col=col3x2[1:3]),
+                   lines=list(lty=1,
+                              lwd=trellis.par.get("superpose.line")$lwd[1:3],
+                              col=col3x2[1:3]))
+CpT <- ancovaplot(Sodium ~ Calories+Type, data=hotdog, col=col3x2,
+                  main="Sodium ~ Calories + Type",
+                  scales=list(alternating=FALSE),
+                  between=list(x=c(0,0,1)))
+update(CpT, key=hotdog.key)
+```
+종속변수를 Sodium으로하고 독립변수는 Calories, Type으로 지정한 후, `ancovaplot`을 그려 보았다.  
+
+```{r}
+aovStatementAndAnova(CpT)
+CpT.aov <- aov(Sodium ~ Calories + Type, data=hotdog)
+anova(CpT.aov)
+```
+분산분석결과, 종속변수 Sodium에 대해서 **Calories,Type**모두 유의한 것으로 보아 두 변수 모두 적어도 한 집단 간 유의한 평균차이가 존재한다는 것을 알 수 있다.  
+
+```{r}
+hotdog.key <- list(title="Type", border=TRUE, space="right",
+                   text=list(levels(hotdog$Type),
+                             col=col3x2[1:3]),
+                   points=list(pch=15:17,
+                               col=col3x2[1:3]),
+                   lines=list(lty=1,
+                              lwd=trellis.par.get("superpose.line")$lwd[1:3],
+                              col=col3x2[1:3]))
+
+hotdog$Sodium.Calories <-
+   hotdog$Sodium - predict.lm(CpT.aov, type="terms", terms="Calories")
+
+T.C <- ancovaplot(Sodium.Calories ~ Type, x=Calories, data=hotdog, col=col3x2,
+                  main="Sodium.Calories ~ Type, x=Calories",
+                  scales=list(alternating=FALSE),
+                  between=list(x=c(0,0,1)))
+update(T.C, key=hotdog.key)
+```
+**hotdog$Sodium.Calories** 변수에 Sodium 변수 - (Calories + Type)을 이용한 회귀예측값을 계산하여 넣어주었다.  
+그 다음, Sodium.Calories변수를 종속변수로 지정하고 Type을 독립변수로 지정한 후, Calories를 공변량으로 지정해주었다.  
+
+```{r}
+aovStatementAndAnova(T.C)
+anova(aov(Sodium.Calories ~ Type, data=hotdog))
+```
+
+위의 Formula를 분산분석에 적용했을 때, Type 주효과는 유의한 것을 확인할 수 있다.  
+따라서, Type 집단에 따라서 적어도 한 집단 간 유의한 평균 차이가 발생하는 것을 알 수 있다.  
+
+```{r}
+CpT.mmc <- mmc(CpT.aov)
+CpT.mmc
+```
+
+차이가 발생하는 집단을 찾기 위해 다중비교를 진행하였다.  
+**Poultry-Meat**, **Poultry-Beef**의 집단이 신뢰구간 0을 포함하지 않으므로 유의한 차이를 보이는 집단이라고 할 수 있다.  
+
+```{r}
+mmcplot(CpT.mmc)
+```
+
+`mmcplot`을 통해서도 다중비교의 결과를 그림을 통해서 살펴볼 수 있다.  
+
+```{r}
+CsT <- ancovaplot(Sodium ~ Calories * Type, data=hotdog, col=col3x2,
+                  main="Sodium ~ Calories * Type",
+                  scales=list(alternating=FALSE),
+                  between=list(x=c(0,0,1)))
+update(CsT, key=hotdog.key)
+
+```
+
+Sodium변수를 종속변수로 지정한 후, Calories,Type를 독립변수로 지정하였고 *를 이용하여 교호작용 또한 고려하여 `ancovaplot`을 통해 그림을 그려보았다.  
+
+```{r}
+aovStatementAndAnova(CsT)
+anova(aov(Sodium ~ Calories * Type,data=hotdog))
+
+```
+
+분산분석 결과, 주효과들은 유의하다는 결과가 나왔지만, 두 주효과의 교호작용은 유의하지 않은 것을 확인할 수 있다.  
+
+### 10.6.5 Tests of Equality of Regression Lines
+
+
+```{r}
+removeAnnotation <-
+       function(x) {
+         update(x,
+                main=list(x$main, cex=1.1),
+                ylab=NULL,
+                xlab=NULL,
+                legend=NULL,
+                scales=list(alternating=0, tck=0),
+                par.strip.text=list(cex=.9, lines=1.1))
+      }
+
+## 2 x 3, with empty spots
+print(position=c(.03, .31,  .53, .62), more=TRUE, removeAnnotation(CgT))
+print(position=c(.50, .00, 1.00, .31), more=TRUE, removeAnnotation(TxC))
+print(position=c(.50, .31, 1.00, .62), more=TRUE, removeAnnotation(CpT))
+print(position=c(.50, .62, 1.00, .93), more=TRUE, removeAnnotation(CsT))
+
+## column labeling
+grid.text(x=c(.29, .75), y=.02, gp=gpar(fontsize=14),
+          c(expression("constant intercept" ~~ alpha),
+            expression("variable intercept" ~~ alpha)))
+
+## row labeling
+grid.text(x=.02, y=c(.15, .45, .75), rot=90, gp=gpar(fontsize=14),
+          c(expression("zero slope" ~~ beta==0),
+            expression("constant slope" ~~ beta),
+            expression("variable slope" ~~ beta)))
+
+## main title
+grid.text(x=.5, y=.98, gp=gpar(fontsize=18),
+          "Composite graph illustrating four models with a factor and a covariate")
+```
+
+
+## 10.7 ancovaplot Function
+
+```{r}
+data(hotdog,package = "HH")
+data(col3x2,pacakge="HH")
+
+## constant line across all groups
+## y ~ x
+ancovaplot(Sodium ~ Calories,groups=Type,data=hotdog,col=col3x2)
+
+## different horizontal line in each group
+## y ~ a
+ancovaplot(Sodium ~ Type, x = Calories, data=hotdog, col=col3x2)
+
+## constant slope, different intercepts
+## y ~ x + a or y ~ a + x
+ancovaplot(Sodium ~ Calories + Type, data=hotdog, col=col3x2)
+
+## different slopes, and differnet intercepts
+## y ~ x * a or y ~ a * x
+ancovaplot(Sodium ~ Calories * Type, data=hotdog, col=col3x2)
+```
+
+`ancovaplot`또한 Formula를 +,* 등의 기호를 사용하여 다양한 조합을 그림으로 나타낼 수 있다.  
+
+# References
+
+[ANCOVA](https://m.blog.naver.com/PostView.naver?isHttpsRedirect=true&blogId=y4769&logNo=220627663821)
+
+***
+
+# Summary of Chapter10
+
+* **더미 변수(Dummy variable)**은 독립변수를 0과 1로 변환한 변수를 말한다. 예를 들어, 성별에 대한 데이터가 "M","F"인 경우, 문자열이기 때문에 데이터로 사용할 수가 없다. 따라서, 이러한 문자열에 대하여 숫자로 변환해주는 작업을 **더미변수변환**라고 할 수 있다.  
+
+* 문자열을 더미변수로 바꿔주는 과정에서 대응되는 더미를 잘못 만들어주거나, 원하는 가변수로 변하지 않은 상태에서 분석을 진행하면 이상한 모형이 도출될수도 있기 때문에 항상 더미변수화를 진행한 후에는 올바르게 변수변환이 되었는지 확인하는 것이 필요하다.  
+
+* 앞선 챕터에서 독립변수와 종속변수의 인과관계를 살펴보는 **회귀분석**과 종속변수에 대해서 독립변수의 집단 간 유의한 차이가 발생하는지에 대해 알아보기 위한 **분산분석**에 대해서 알아보았다.
+
+* **공분산분석(ANCOVA)**는 회귀분석과 분산분석을 섞은 개념이라고 할 수 있다. 외생변수를 공변량으로 처리한 후, 독립변수의 각 집단 사이의 종속변수 값에 대해서 차이가 있는지를 확인하는 방법이다.  
+
+* **공변량**은 종속변수에 영향을 미칠 수 있으나 독립변수로 설정되지 않은 변수를 말하며, 잡음을 통제하는 과정이라고 말할 수 있다.  
+
+* 공분산분석 또한 분산분석, 회귀분석의 기본 가정사항인 **정규성**, **등분산성**, **독립성**을 가정한다.  
+
+* R에서 공분산분석을 진행하고자 하는 경우, `ancovaplot`을 이용하여 시각적인 방법을 이용하거나, `lm`함수를 이용하여 공변량을 지정하고 회귀모형을 적합시킨 후에, `anova`함수를 이용하여 분산분석을 진행함으로써 공분산분석의 결과를 얻을 수 있다.  
+
+***

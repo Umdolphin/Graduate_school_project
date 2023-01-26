@@ -1,0 +1,665 @@
+---
+title: "통계방법론 Chap12 실습코드"
+author: "202140191 엄태훈"
+date: 2021-05-08(SAT)
+output:
+  html_document:
+    code_folding: show
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 10
+    highlight: haddock
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+  word_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+<body style="background-color:#FFFFE6">
+<style type="text/css">
+  body{
+     font-size: 16px;
+     font-family: 맑은 고딕
+  }
+  td{
+     font-size: 16px;
+     font-family: 맑은 고딕
+  }
+  code.r{
+    font-size: 16px;
+    font-weight: bold;
+    font-family: 맑은 고딕
+  }
+  pre {
+    font-size: 14px
+    font-family: 맑은 고딕
+  }
+  h1,h2,h3,h4,h5,h6{
+    font-family: 맑은 고딕;
+  }
+  h1{
+    font-size: 22pt;
+  }
+  h2{
+    font-size: 20pt;
+  }
+  h3{
+    font-size: 18pt;
+  }
+</style>
+
+<br>
+
+# Chapter12 Two-Way Analysis of Variance  
+
+앞 챕터의 일원분산분석(One-Way Anova)는 설명변수가 1개, 종속변수가 1개 일 때 모집단에 대한 평균을 비교하는 방법이었다.  
+일원분산분석에서 종속변수는 연속형 자료 이어야하고, 설명변수는 대체로 3개 이상의 집단을 갖는 범주형 변수이어야 했다.    
+
+**이원분산분석(Two-way Anova)**는 One-way Anova와 달리, 설명변수가 2개, 종속변수가 1개 일 때 모집단에 대한 평균을 비교하는 방법이다.  
+일반적으로, 설명변수 2개를 **주효과**라고 일컫는다.  
+이때, One-Way Anova와 동일하게 설명변수는 범주형 자료이어야 한다.  
+
+또한, 이원분산분석은 일원분산분석과는 주효과간 차이와 더불어, **교호작용**이라는 추가적인 효과를 고려한다.  
+**교호작용**은 두 주효과가 서로 상호간에 영향을 주고 받으면서 나타나는 반응효과를 말한다.  
+
+기본 가정사항은 **독립성**, **정규성**, **등분산성**으로 일원분산분석과 같은 기본 가정사항을 가진다.    
+
+주효과 A를 지하철 이용 방법, 주효과 B를 지하철역, 반응변수를 승객의 수라고 하자.  
+이원분산분석의 귀무가설은 다음과 같다.  
+
+**주효과 A에 대한 귀무가설**
+H0: 지하철 이용 방법에 따른 승객의 수의 차이가 없을 것이다.  
+H1: 지하철 이용 방법에 따른 승객의 수의 차이가 있을 것이다.  
+
+**주효과 B에 대한 귀무가설**
+H0: 지하철 역에 따른 승객의 수의 차이가 없을 것이다.  
+H1: 지하철 역에 따른 승객의 수의 차이가 있을 것이다.  
+
+**교호작용에 대한 귀무가설**
+H0: 지하철이용 방법과 지하철 역의 교호작용 효과가 없을 것이다.  
+H1: 지하철이용 방법과 지하철 역의 교호작용 효과가 있을 것이다.  
+
+***
+
+
+## 12.1 Example-Display Panel Data  
+### 12.1.3 Analysis Goals    
+
+```{r}
+library(HH)
+data(display)
+```
+
+**display** 데이터는 아래와 같이 구성 돼있다.  
+
+* time: 초를 기준으로한 시간. **(반응변수)**  
+* panel: 3개의 범주로 구성된 테스트 중인 패널. **(설명변수)**  
+* emergenc: 4개의 범주로 구성된 시뮬레이션 된 비상상황. **(설명변수)**
+* panel.ordered: 반응 평균의 순서와 맞도록 수준이 정렬된 패널요인의 반복.  
+
+***
+
+anova Formula에서 `변수*변수`의 형태로 지정을 해주게 되면, 그 두 변수의 주효과와 더불어 교호작용의 유의성까지 확인할 수 있다.  
+
+
+```{r}
+displayf.aov <- aov(time~emergenc*panel,data=display)
+```
+
+
+```{r}
+anova(displayf.aov)
+```
+
+분산분석 결과, 2개의 주효과는 유의확률이 유의수준 0.05보다 작으므로 유의하다.  
+따라서, 2개의 주효과 모두 적어도 한 집단 간 유의한 차이가 발생하는 것을 알 수 있다.  
+
+교호작용의 경우, **emergenc:panel**의 형태로 표시되며, 유의확률이 유의수준 0.05보다 크므로 유의하지 않다.  
+따라서 두 개의 주효과의 교호작용 효과는 유의하지 않음을 알 수 있다.  
+
+***
+
+```{r}
+interaction2wt(time ~ panel.ordered * emergenc, data=display)
+```
+
+`interaction2wt`을 통해 교호작용 그림을 그리게되면 위와같은 결과를 얻을 수 있다.  
+먼저, 각 독립변수의 범주별 반응변수에 대한 boxplot을 확인할 수 있다. 이를 통해, 주효과의 집단에 따라 주효과의 변화를 살펴 볼 수 있다.  
+또한, 왼쪽위와 오른쪽 아래 패널은 교호작용 그래프를 나타낸다.  
+왼쪽 위의 그래프는 거의 평행하고 오른쪽 아래의 교호작용의 plot은 교차점이 있지만 선마다 거의 평행을 이룸을 볼 수 있다.  
+이를 통해, 우리는 교호작용의 효과가 유의하지 않음을 확인할 수 있다.  
+
+***
+
+또 다른 교호작용 효과 확인 방법으로는 `interaction.plot`함수는 교호작용에 대한 plot만을 그릴 수 있다.  
+
+`interaction.plot(x.factor,trace.factor,reponse)`를 이용하여 그린다.  
+
+* x.factor: x축에 올 독립변수  
+* trace.factor: y축에 올 또 다른 독립변수
+* reponse: 반응변수  
+
+
+```{r}
+interaction.plot(x.factor = display$panel.ordered,trace.factor=display$emergenc,response=display$time,
+                 ylab="emergenc",xlab="panel.ordered")
+```
+
+interaction.plot의 결과, 앞에서 우리가 그려봤던 상호작용 plot 그림과 동일한 그림을 얻을 수 있다.  
+
+***
+
+`mmc`함수에서 `foucs`옵션은 독립변수 중 어느 변수를 기준으로 다중비교 분석을 진행할지 결정하는 옵션이다.  
+
+```{r}
+displayf.mmc <- mmc(displayf.aov,focus="panel")
+displayf.mmc
+```
+
+panel 집단에 대한 다중비교 분석결과, 3-1,3-2 집단은 신뢰구간이 0을 포함하지 않으므로 집단 간 차이가 있음을 알수 있다.    
+
+```{r}
+mmcplot(displayf.mmc,style="both")
+```
+
+`mmcplot`을 통해 유의한 차이가 있는 집단이 붉은색으로 지정된 것을 시각적으로 확인할 수 있다.  
+
+```{r}
+mmcplot(displayf.mmc,type="none")
+```
+
+`type=none`으로 지절하는 경우, 각 집단의 종속변수에 대한 신뢰구간에 대한 그림을 그릴 수 있다.  
+
+```{r}
+displayr.aov <- aov(time~Error(emergenc/panel)+panel,data=display)
+summary(displayr.aov)
+```
+
+위의 anova의 Formula는 우리가 알고있는 형태와 많이 다른 것을 확읺라 수 있다.  
+**Error(emergenc/panel)+panel**의 의미는 emergenc 변수는 random 인자로, panel 인자는 fixed 인자로 설정한다는 것이다.  
+또한, Error가 분수의 꼴로 돼있으므로 panel변수가 emergenc 내에서 nested한다는 의미도 가지고 있다.  
+
+
+## 12.9 Example-The Blood Plasma Data  
+### 12.9.3 Analysis
+
+<br>
+
+```{r}
+data(plasma)
+```
+
+**plasma** 데이터는 위와 같이 구성 돼있다.  
+
+* plasma: 플라즈마의 시트레이트 농도(마이크로몰/리터 단위) **(반응변수)**  
+* time: 5개의 범주를 갖는 시간. **(설명변수)**  
+* id: 10개의 범주로 구성된 요인. 과목당 하나씩 있다. **(설명변수)**
+
+***
+
+데이터를 살펴보기 위해 x축을 time으로하고 y축을 plasma로 한 다음 id의 범주별 그래프를 그린 결과는 아래와 같다.  
+
+```{r}
+xyplot(plasma ~ time | id, data=plasma, type="b", pch=19, layout=c(10, 1), between=list(x=.5))
+```
+
+아래의 Formula는 id를 random effect, time은 fixed effect로 지정한 후, 분산분석을 진행한다는 의미이다.  
+
+```{r}
+plasma.aov <- aov(plasma ~ Error(id)+time,data=plasma)
+summary(plasma.aov)
+```
+
+```{r}
+interaction2wt(plasma ~ time* id, data=plasma)
+```
+
+plasma데이터의 교호작용 그림의 결과이다. 교호작용 패널의 그래프를 보면 선간의 교차점이 꽤 많은 것을 알 수 있다.  
+이를 통해, 두 독립변수 간 교호작용 효과가 존재할수도 있다는 추정을 해볼 수 있다.  
+
+```{r}
+
+plasma$time <-
+   factor(plasma$time,levels=unique(plasma$time),ordered=FALSE)
+plasma.aov2 <- aov(plasma ~ id + time, data=plasma)
+plasma.mmc <- mmc(plasma.aov2,focus="time")
+plasma.mmc
+```
+
+**다중비교**를 진행한 결과, 11am과 5pm 집단만이 신뢰구간 0을 포함하지 않는다.  
+따라서, 11am-5pm 집단간 차이만이 유의한 것을 확인할 수 있다.  
+
+
+```{r}
+mmcplot(plasma.mmc,style="both")
+```
+
+다중비교의 결과를 plot을 통해 나타낸 결과, 11am-5pm 집단 간 차이가 유의하여 붉은색으로 지정된 것을 확인할 수 있다.  
+
+
+## 12.13 Introduction to Nesting  
+### 12.13.1 Example-Workstation Data
+
+```{r}
+data("workstation")
+```
+
+**station** 데이터는 위와 같이 구성 돼있다.  
+
+* metohd: 1시간 동안 생산된 장치의 갯수 **(반응변수)**  
+* station: 2개의 범주로 구성된 지하철역. **(설명변수)**  
+* devices: 3개의 범주로 구성된 조립 방법. **(설명변수)**
+
+
+```{r}
+bwplot(devices~station|method,data=workstation)
+
+```
+
+boxplot을 살펴본결과, station에 따라 평균이 달라지는 것을 알 수 있고 metohd의 범주에 따라서도 boxplot의 평균이 달라지는 것을 확인할 수 있다.  
+
+### 12.13.3 Analysis Goals 
+
+아래의 anova formula는 station 변수가 method 변수에 대해서 nested 된 것을 가르키며, 그에 따른 분산분석을 진행하는 것이다.  
+
+```{r}
+workstation.aov <- aov(devices~method/station,
+                       data=workstation)
+summary(workstation.aov)
+```
+
+분산분석 결과, metohd의 주효과는 유의한 차이가 있는 것을 알 수 있고, station을 method에 대해서 netsted 했을 때의 두 변수간 교호작용은 유의한 것으로 확인되는 것을 확인할 수 있다.  
+
+```{r}
+model.tables(workstation.aov,"means",se=TRUE)
+```
+
+`model.tables`를 통해 station과 method에 대한 그룹의 평균과 더불어, 전체 평균에 대한 정보를 알 수 있다.  
+또한, `se=TRUE`옵션을 추가하여 standard errors에 대한 정보까지 확인할 수 있다.  
+
+
+## 12.14 Example-The Rhizobium Data
+```{r}
+data("rhiz.alfalfa")
+unique(rhiz.alfalfa$comb)
+```
+
+**rhiz.alfala**는 clover에서 자라는 박테리아에 대한 정보로 구성된 데이터이다.  
+**rhiz.alfalfa** 데이터의 2-way 독립변수는 아래 와 같이 구성 돼있다.  
+
+* strain: 실험에 사용되는 박테리아의 종류. 6개의 범주로 구성됐다. **(반응변수)**    
+* comb: 2개의 범주로 구성된 순수 박테리아와 혼합된 박테리아. **(설명변수)**  
+
+
+
+```{r}
+library(gridExtra)
+p1 <- bwplot(weight~strain|comb,data=rhiz.alfalfa)
+p2 <- bwplot(nitro~strain|comb,data=rhiz.alfalfa)
+p3 <- bwplot(Npg~strain|comb,data=rhiz.alfalfa)
+
+print(p1,split=c(1,1,1,3),more=TRUE)
+print(p2,split=c(1,2,1,3),more=TRUE)
+print(p3,split=c(1,3,1,3),more=FALSE)
+```
+
+comb변수를 group으로 rhiz.alfalfa의 종속변수들에 대한 boxplot을 그린 결과이다.  
+
+```{r}
+data("rhiz.clover")
+```
+
+**rhiz.clover**는 clover에서 자라는 박테리아에 대한 정보로 구성된 데이터이다.  
+독립변수와 종속변수는 **rhiz.alfala**데이터와 같다.  
+단, strain에 대한 독립변수의 level은 다르게 구성됐다.  
+
+```{r}
+p4 <- bwplot(weight~strain|comb,data=rhiz.clover)
+p5 <- bwplot(nitro~strain|comb,data=rhiz.clover)
+p6 <- bwplot(Npg~strain|comb,data=rhiz.clover)
+
+print(p4,split=c(1,1,1,3),more=TRUE)
+print(p5,split=c(1,2,1,3),more=TRUE)
+print(p6,split=c(1,3,1,3),more=FALSE)
+```
+
+comb변수를 group으로 rhiz.clover의 종속변수들에 대한 boxplot을 그린 결과이다.  
+
+
+### 12.14.6 Alfalfa Analysis
+
+```{r}
+## unset position(rhiz.alfalfa$comb) for glht
+rhiz.alfalfa.aov <- aov(Npg~strain*comb,data=rhiz.alfalfa)
+
+summary(rhiz.alfalfa.aov)
+```
+
+분산분석 결과, **strain**변수는 적어도 한 집단 간 차이가 유의하다는 결론이 나왔고 comb변수와 교호작용 효과는 유의하지 않은 것을 알 수 있다.  
+
+```{r}
+alf.means <- model.tables(rhiz.alfalfa.aov,type="means",se=TRUE,cterms = "strain")
+alf.means
+```
+
+`model.tables`를 통해 집단 간 평균과 standard error에 대한 결과를 얻을 수 있다.  
+`cterms` 옵션을 이용하여 **strain**변수에 대한 정보만을 확인한다.  
+a.comp 범주가 평균이 가장 높은 것을 확인할 수 있다.  
+
+```{r}
+old.fin <- par()$fin
+par(fin=c(old.fin[1], 2.5))
+
+plot(y=c(1.01,1,.99,1,1,1), x=alf.means$tables$strain,pch=16,xlim=c(29.5, 32.7),yaxt="n", ylim=c(.85,1.10), ylab="",
+     xaxt="n", xlab="",col=1:6)
+rug(alf.means$tables$strain, ticksize=-.1)
+axis(3)
+mtext("Npg", 3, line=3)
+
+
+lines(x=c(29.7,31.5), y=c(.95,.95))
+lines(x=c(30.5,32.5), y=c(.90,.90))
+strain.labels <- paste(dimnames(alf.means$tables$strain)[[1]],
+                       format(alf.means$tables$strain, digits=6),
+                       sep=": ")
+
+axis(1, at=alf.means$tables$strain[c(2,4, 6)], labels=strain.labels[c(2,4,  6)], line=1, tick=FALSE, adj=.45)
+axis(1, at=alf.means$tables$strain[c(    5  )], labels=strain.labels[c(    5  )], line=2, tick=FALSE, adj=.45)
+axis(1, at=alf.means$tables$strain[3         ], labels=strain.labels[3         ], line=2, tick=FALSE, adj=.45)
+axis(1, at=alf.means$tables$strain[1         ], labels=strain.labels[1         ], line=3, tick=FALSE, adj=.4)
+```
+
+`model.tables`의 결과를 `plot,lines,axis`함수를 통하여 시각적으로 나타낼 수도 있다.  
+
+```{r}
+par(fin=old.fin)
+```
+
+```{r}
+rhiz.alfalfa.mmc <- mmc(rhiz.alfalfa.aov,focus="strain")
+rhiz.alfalfa.mmc
+```
+
+다중비교를 진행한 결과, **a.comp-3DOa1**, **a.comp-3DOa10**, **a.comp-3DOa7**, 집단의 평균차이 신뢰구간이 0을 포함하지 않으므로 집단 간 차이가 유의한 것을 확인할 수 있다.  
+
+
+```{r}
+mmcplot(rhiz.alfalfa.mmc,style="both")
+```
+
+`mmcplot`을 이용하여 시각적으로 조금 더 쉽게 살펴볼 수 있다.  
+
+***
+
+다중비교 후, 원하는 집단 간 차이를 살펴보기 위해 cbind를 이용하여 contrast matrix를 만들어 준 후, 다시 한 번 다중비교 분석을 진행하였다.  
+
+```{r}
+alf.comp <- cbind("1,7,10-c"=c(-3, 0, 0, 1, 1, 1),
+                  "1,10-7"  =c( 0, 0, 0, 1, 1,-2),
+                  "1-10"    =c( 0, 0, 0, 1,-1, 0),
+                  "15-12"   =c( 0, 1,-1, 0, 0, 0),
+            "1,7,10,c-12,15"=c( 1,-2,-2, 1, 1, 1))
+dimnames(alf.comp)[[1]] <- dimnames(rhiz.alfalfa.mmc$none$lmat)[[2]]
+alf.mmc <- mmc(rhiz.alfalfa.aov, focus="strain",
+                         focus.lmat=alf.comp)
+alf.mmc
+alf.both_style <- mmcplot(alf.mmc, h=c(.45, .55), type="lmat", style="both",
+        sub=list("\n         The MMC panel shows informative overprinting.  Please see Tiebreaker panel and caption.", cex=.75))
+alf.both_style
+alf.both2_style <- alf.both_style
+
+alf.both2_style$par.settings$layout.heights$panel <- c(.75, .25)
+alf.both2_style     
+```
+
+
+분석결과, **c(a.comp) - (3DOa1, 3DOa7, 3DOa10)**의 집단 간 차이만 유의한 것을 확인할 수 있다.  
+
+### 12.14.7 Clover Analysis
+
+```{r}
+rhiz.clover.aov <- aov(Npg~strain*comb,data=rhiz.clover)
+
+summary(rhiz.clover.aov)
+```
+
+**rhiz.clover**데이터에 대한 분산분석 결과, strain이 유의한 것을 확인할 수 있고 **rhiz.alfala** 데이터와 달리 교호작용이 유의한 것을 확인할 수 있다.  
+
+```{r}
+model.tables(rhiz.clover.aov,type="means",se=TRUE)
+```
+
+
+교호작용 효과가 유의하므로 `cterms`옵션을 사용하지 않고 주효과와 교호작용에 대한 model table을 확인한다.    
+
+
+```{r}
+rhiz.clover.mmc <- mmc(rhiz.clover.aov,focus="strain")
+rhiz.clover.mmc
+```
+
+집단 간 차이를 확인하기 위해 다중비교를 진행한 결과, 차이가 유의한 집단은 다음과 같다.  
+**3DOk5-k.comp**, **3DOk5-3DOk7**, **3DOk5-3DOk13**, **3DOk5-3DOk4**, **3DOk1-3DOk13**, **3DOk1-3DOk4**
+
+```{r}
+mmcplot(rhiz.clover.mmc,style="both")
+```
+
+`mmcplot`을 통해서도 집단 간 유의한 차이가 있는 그룹을 확인할 수 있다.  
+
+```{r}
+interaction2wt(Npg~strain*comb,data=rhiz.clover,par.settings=list(
+                 plot.symbol=list(pch=18),
+                 box.dot=list(pch=18),
+                 axis.text=list(cex=.6) 
+                 ))
+```
+
+교호작용 plot에서 `par.settings`옵션을 통해 box와 plot의 symbol을 지정해줄 수 있다.  
+
+boxplot을 통해 각 범주 데이터의 이상치를 확인할 수 있다.  
+또한, 교호작용이 유의하므로 교호작용 패널의 선들이 교차점을 가지고 대체로 평행하지 않은 형태를 보이는 것을 살펴볼 수 있다.  
+
+```{r}
+interaction2wt(Npg~strain*comb,data=rhiz.clover,simple=TRUE,par.settings=list(
+                 plot.symbol=list(pch=18),
+                 box.dot=list(pch=18),
+                 axis.text=list(cex=.6)))
+```
+
+`simple=TRUE`라는 옵션을 지정하게 되면 범주에 따라서 pch옵션을 자동으로 다르게 해준다. 따라서, 범주간 데이터를 구별하는데 더 유용하다.  
+
+
+***
+
+아래의 anova formula는 **strain**변수가 **comb**변수에 nested 된 formula 이다.  
+
+```{r}
+rhiz.clover.nest.aov <-
+  aov(Npg~comb/strain,data=rhiz.clover)
+summary(rhiz.clover.nest.aov)
+```
+
+nested를 진행한 분산분석의 결과, 주효과 comb는 유의하지 않고, 교호작용의 효과만 유의한 것을 살펴볼 수 있다.  
+
+
+```{r}
+old.width <- options(width=35)
+names(coef(rhiz.clover.nest.aov))
+options(old.width)
+```
+
+nested된 anova 결과의 계수를 살펴보면 위와 같다.  
+
+
+```{r}
+summary(rhiz.clover.nest.aov,
+        split=list("comb:strain"=
+                     list(clover=c(1,3,5,7,9),
+                          "clover+alf"=c(2,4,6,8,10))))
+```
+
+split을 통해 범주를 나눈 후, 그 범주에 따른 교호작용 또한 살펴볼 수 있다.  
+
+***
+
+rhiz.clover의 독립변수 간 교호작용이 유의했으므로 inetr 변수에 두 변수의 교호작용을 넣어 준후 분석을 진행해본다.  
+
+```{r}
+rhiz.clover$inter <- with(rhiz.clover, interaction(comb, strain))
+levels(rhiz.clover$inter)
+rhiz.clover.inter.aov <- aov(Npg ~ inter, data=rhiz.clover)
+summary(rhiz.clover.inter.aov)
+```
+
+```{r}
+cs12.mmc <- mmc(rhiz.clover.inter.aov, linfct=mcp(inter="Tukey"))
+mmcplot(cs12.mmc,
+  main="clover and clover+alfalfa comparisons",style="both")
+```
+
+교호작용에 대한 다중 비교 plot을 그리면 위와 같다.  
+유의한 집단간 차이가 보이지만, 너무 많은 집단간 차이가 출력되어 한 눈에 알아 볼 수 없다.    
+
+교호작용 분석을 진행할 때에는 적절한 제약조건이 필요하다는 것을 확인할 수 있다.  
+
+```{r}
+## Look at the contrasts, their generated dummy variables  
+## and their regression coefficients
+## Abbreviate their names for presentation,
+
+tmp <- abbreviate(names(coef(rhiz.clover.nest.aov)))
+tmp
+```
+
+
+contrasts를 통해 R 프로그램 내에서 더미변수가 어떻게 지정됐는지 확인할 수 있다.  
+
+```{r}
+contrasts(rhiz.clover$comb)
+contrasts(rhiz.clover$strain)
+```
+
+
+```{r}
+cnx <- aov(Npg~ comb/strain, data=rhiz.clover,x=TRUE)$x
+
+dimnames(cnx)[[2]] <- tmp
+
+## cnx
+cnx[seq(1,60,5),c(1,2,3,5,7,9,11)]
+
+cnx[seq(1,60,5),c(4,6,8,10,12)]
+
+```
+
+앞서 분산분석의 결과로 얻어진 회귀계수를 더미변수로에 함께 배치되도록 지정해주었다.  
+cnx를 통해 살펴본 결과, 우리가 지정한 회귀계수가 더미변수 안에 적절하게 들어간 것을 확인할 수 있다.  
+
+```{r}
+cnxb <- round(coef(summary.lm(rhiz.clover.aov)),3)
+dimnames(cnxb)[[1]]<-tmp
+cnxb[c(1,2,3,5,6,7,11,4,6,8,10,12),]
+```
+
+clover 데이터의 실험에서 더미변수와 회귀계수를 함께 배치한 뒤 분석한 선형회귀분석 결과는 위와 같이 나온다.   
+
+## 12.16 Example-Animal Feed Data
+### 12.16.2 Analysis
+
+```{r}
+data(feed)
+feed.int.aov <- aov(retained~temp*supp,data=feed)
+anova(feed.int.aov)
+```
+
+feed 데이터의 분산 분석 결과, **temp, supp** 독립변수는 유의확률이 유의수준 0.05보다 작으므로 적어도 집단 간 차이가 한 집단 이상에서 유의한 차이가 있다는 것을 알 수 있다.  
+교호작용의 유의확률은 유의수준 0.05보다 크므로 유의하지 않은 것을 확인할 수 있다.  
+
+```{r}
+feed.aov <- aov(retained ~ temp + supp,data=feed)
+anova(feed.aov)
+
+summary(feed.aov,split=
+          list(temp=list(linear=1,quadratic=2),
+               supp=list(linear=1,quadratic=2,rest=3:4)))
+
+```
+
+
+feed 데이터의 contrasts를 고차 방정식을 적용하여 anova 분석을 다시 한 번 진행해보았다.  
+1차, 2차는 모두 유의하게 나온 것을 알 수 있었지만 rest(나머지) 방정식에서는 더 이상 유의하지 않은 것을 알 수 있다.  
+
+```{r}
+model.tables(feed.aov,type="means",se=TRUE)
+```
+
+```{r}
+interaction2wt(retained ~ supp * temp, data=feed)
+```
+
+교호작용의 패널은 거의 평행한 모양에 가깝기 때문에 앞서 살펴본 것 처럼, 교호작용이 유의하지 않은 것을 다시 한 번 확인할 수 있다.  
+
+# Appendix: R Markdown Theme
+## Change of Theme
+
+R markdown은 다양한 theme를 가지고 있다.  
+theme는 다음과 같이 설정할 수 있다.  
+
+Ouput:  
+  html_document:  
+  theme: **theme**이름
+
+사용할 수 있는 Theme의 종류는 아래의 링크에서 볼 수 있다.    
+https://rfriend.tistory.com/311  
+
+## Change of Background
+
+theme가 아닌 Markdown의 background를 변경을 원할수도 있다.  
+Markdown의 경우 HTML을 기반으로 하기때문에 이러한 스타일의 변경은 css를 수정해주어야한다.  
+
+html에서 내용을 가지고 있는 부분은 **body**이다.  
+이러한 **body**의 배경색을 변경해주면 markdown의 배경색을 변경할 수 있다.  
+변경방법의 코드는 아래와 같다.  
+
+`<body style="background-color:grey;">`
+
+기본 색깔이 아닌 Color Hex를 지정하여 배경색을 지정해줄 수도 있다.  
+`<body style="background-color:#FFFFE6;">`
+
+# References {-}
+
+[이원분산분석의 정의](https://rfriend.tistory.com/136)  
+[이원분산분석의 특징](http://contents2.kocw.or.kr/KOCW/document/2016/chungang/parkjunseong2/9.pdf)  
+[Nested of Two-Anova](https://stackoverflow.com/questions/37497948/aov-error-term-in-r-whats-the-difference-bw-errorid-and-errorid-timevar/42664178)  
+[R markdown theme](https://rfriend.tistory.com/311)
+[R background color](https://stackoverflow.com/questions/65541245/how-do-i-change-the-entire-background-color-in-an-rmarkdown-html-document)
+
+
+
+***
+
+# Summary of Chapter12
+
+* 우리는 Chapter6에서 설명변수의 집단에 따른 평균적인 차이가 존재하는지에 대해 분석하는 **One-Way-ANOVA**방법에 대해서  살펴보았다. 회귀에서도 단순선형회귀, 다중선형회귀가 있는 것 처럼, 분산분석 또한 설명변수가 2개 이상인 경우에 사용하는 분석방법이 있다.  
+
+* (집단을 3개 이상 가지는)설명변수가 2개 이상인 경우에는 일원분산 분석이 아닌 **이원분산분석(Two-way ANOVA)**를 이용하여 집단간 평균의 차이가 존재하는지에 대해서 검정을 진행해야 한다.  
+
+* 이원분산분석을 통해 집단간 평균의 차이를 살펴보고자 할 때, 사용하는 2개 이상의 설명변수들을 **주효과**라고 하며, 이러한 주효과들이 서로 영향을 받으면서 나타는 효과를 **교호작용**이라고 한다. 일원분산분석과 달리 이원분산분석은 교호작용을 반드시 분석을 진행할 때 고려해 주어야한다.
+
+* 이원분산분석 역시 일원분산분석과 같이 **정규성**, **독립성**, **등분산성** 3가지의 기본 가정을 가지고 분석을 진행한다.
+
+* R에서는 `aov`함수를 이용하여 분산분석을 진행할 수 있다고 했는데, 이원분산분석 또한 `aov`함수를 이용하여 진행할 수 있다. `(반응변수 ~ 설명변수 * 설명변수,data)`의 형태로 Formula를 지정하게 되면 **이원분산분석**과 더불어 주효과 간 교호작용의 유의성 까지 확인할 수 있다. 
+
+* `aov`에 사용되는 formula를 `interactionw2t`함수에 지정하게 되면 각 주효과에 따른 반응변수의 *boxplot*과 교호작용 plot까지 확인할 수 있기 때문에 데이터 탐색에 꽤나 유용하게 사용할 수 있다.  
+
+
+
+***

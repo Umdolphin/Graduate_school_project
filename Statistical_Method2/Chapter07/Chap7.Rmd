@@ -1,0 +1,1368 @@
+---
+title: 통계밥법론2 Chap7 실습코드
+author: 202140191 엄태훈
+date: 2021-10-30(SAT)
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Chap7 Logistic Regression Models
+
+반응변수가 범주형(보통 이항이지만, 셋 이상)인 경우에는 연속형 변수와 다른 모델링 프레임워크 및 시각화 방법을 사용해야 한다.  
+기존에 사용하던 선형회귀모델을 적합시키게 되면, 반응변수가 범주형이기 때문에 모델이 적절한 예측을 제공하지 못할수도 있다.  
+또한, 설명변수에 모델을 적합시킨 후에는 유의한 설명변수가 무엇인지를 확인하고 잔차진단 과정을 통해 결과를 왜곡할 수 있는 이상치를 탐지하고 결과를 통해 통계적 추론 및 예측을 진행한다.  
+
+***
+## 7.1 Introduction
+
+지금까지 우리가 살펴본 Chapter를 통해 범주형 변수 간의 관계를 확인하고 이러한 결과를 시각화 할 수 있는 방법들에 대해서 알아보았다.  
+Chpater7에서는 **반응변수가 범주형 변수**인 경우의 데이터 분석을 위핸 모델링 기반 방법에 대해서 알아본다.  
+여기서 사용되는 모델들은 관측치에 대해 확률 분포를 고려하고 모델에 의해 설명되는 체계적 성분과 그렇지 않은 무작위 성분을 명확히 구별한다는 점에서 우리가 이전에 살펴봤던 모델들과는 차이가 있다.  
+모델 기반 접근방식을 통해 불확실성에 대한 측정과 동시에 설명 변수 범위에 대해 예측 값을 추정할 수 있는 능력을 통해 범주형 데이터를 간결하게 요약할 수 있다.  
+
+***
+
+## 7.2 The logistic regression model
+
+**로지스틱 회귀 모형(Logistic regression model)**은 반응변수가 이산형 변수일 때, 반응변수와 설명 변수 집합 사이의 관계를 설명하는데 사용된다.  
+선형 회귀분석이 독립변수와 종속변수 사이의 선형적 관계를 살펴보는 것이라면, 로지스틱 회귀분석은 일반화 선형모형의 특수한 경우로 그래프가 S형 곡선을 가지고 있는 것이 특징이다.  
+
+또한, 로짓(logit)함수를 사용하여 출력값의 범위를 [0,1]로 제한하는데, 이는 로지스틱 회귀모형의 핵심 아이디어 중 하나로 확률적으로 결과를 해석할 수 있도록 돕는다.  
+
+$$
+logit(\pi) = log (\frac{\pi}{ 1- \pi}) \\ (여기서,  \pi = 확률)
+$$
+
+일반적으로 출력값이 0.5보다 클 경우, 사건이 발생한다고 예측하고 출력값이 0.5보다 작을 경우에는 사건이 발생하지 않는다고 가정한다.  
+EX)
+
+* 고객 신용도 평가 (우량 / 불량), 
+* 심장병 예측 (발생 / 발생 X) 등
+
+이때, **threshold**로 사용되는 0.5의 경우 연구자의 연구목적에 따라 다른 값을 지정할 수도 있다.  
+
+```{r warning = FALSE}
+library(MASS)
+p <- c(0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95)
+odds <- p / (1 - p)
+data.frame(p,
+           odds = as.character(fractions(odds)),
+           logit = log(odds))
+
+```
+
+`logit`함수는 앞서 설명한 것처럼 오즈에 **log**를 취한 형태로 쓰이는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+library(popbio)
+library(vcd)
+logi.hist.plot(Arthritis$Age, Arthritis$Improved > "None", type = "hist",
+                       counts = TRUE, ylabel = "Probability (Better)",xlab = "Age")
+```
+
+`pobio`패키지는 연령 또는 단계별로 표시된 데이터에 대한 투영 행렬 모델을 구성하고 분석하도록 도와주는 패키지이다.  
+
+`logi.hist.plot`함수는 히스토그램과 상자그림을 이용하여 더 나은 반응에 대한 관측치의 확률의 조건부 분포를 확인할 수 있다.  
+- `logi.hist.plot(x,y,type,counts)`
+
+* x: x축에 사용될 데이터
+* y: y축에 사용될 데이터
+* type: 시각화 타입
+* counts: 빈도표시 여부
+
+`logi.hist.plot`을 `Arthritis`데이터의 **Age, Improved**변수를 통해 그려보았다.
+0과 1로 분류될 경우에 각 연령에 대한 빈도 및 히스토그램, 상자그림을 통해 반응변수에 대한 전반적인 설명변수의 분포를 확인할 수 있다.  
+또한, **나이가 증가할수록 약의효과가 좋게 나타날 확률이 점점 높아지는 것**을 볼 수 있다.  
+
+### 7.2.1 Fitting a logistic regression model
+
+R에서는 `glm`함수를 사용하여 로지스틱 회귀모형을 적합시킬 수 있다.  
+이때, `family = binomial(link = logit)`옵션을 적용하는데, 로지스틱 회귀모형의 경우 반응변수가 이항변수가 되도록 설정해야하며 **logit link function**을 사용해야 하기때문에 `family = binomial`옵션을 지정한다.  
+`family = binomial`옵션을 지정하게 되면 `link`옵션을 입력하지 않아도 `link function`은 자동으로 **logit**으로 설정이 된다. 
+
+*Example 7.1: Arthritis treatment*
+
+```{r warning = FALSE}
+library(vcd)
+data("Arthritis", package  = "vcd")
+Arthritis$Better <- as.numeric(Arthritis$Improved > "None")
+```
+
+**Improved = None**이 아닐 경우 1을 가지고 **Improved = None**인 경우에는 0을 가지는 변수 `Better`을 새로 생성하였다.  
+
+```{r warning = FALSE}
+arth.logistic <- glm(Better ~ Age, data = Arthritis, family = binomial)
+arth.logistic
+```
+
+**Better**를 반응변수로 하고 **Age**를 설명변수로 하는 로지스틱 회귀모형 `arth.logistic`을 생성하였다.  
+로지스틱 회귀모형을 적합시키게 되면, 추정된 설명변수의 계수와 모형의 잔차, AIC 등의 정보를 얻을 수 있다.  
+
+```{r warning = FALSE}
+library(lmtest)
+coeftest(arth.logistic)
+```
+
+`lmtest`패키지는 선형 회귀 분석 모형에서 진단 검사를 위한 검정, 데이터 집합 예제를 제공하며 **parametric**모델의 추론을 도와주는 함수를 제공한다.  
+
+`coeftest`는 추정된 계수에 대해 **Wald**검정을 수행하고 검정에 대한 신뢰구간을 계산하기위한 함수이며, `lmtest`패키지에 포함돼있다.  
+- `coeftest(model)`
+
+* model: wald 검정을 수행할 적합된 모델
+
+`coeftest`를 `arth.logistic`모델에 사용한 결과, **절편, Age**는 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+
+* H0: 주어진 설명변수의 계수는 0이다. 즉, 주어진 설명변수는 유의하지 않다.
+* H1: 주어진 설명변수의 계수는 0이 아니다. 즉, 주어진 설명변수는 유의하다.
+
+따라서, **Age**는 유의한 변수임을 확인할 수 있다.  
+
+`arth.logistic`모형을 통해 추정된 식은 다음과 같다. 
+
+$$
+logit(\pi) = -2.642071 + 0.049249 * Age
+$$
+
+```{r warning = FALSE}
+exp(coef(arth.logistic))
+```
+
+추정된 로지스틱 회귀모형의 계수에 `exp`를 취하게 되면 각 설명변수에 대한 오즈비를 구할 수 있다.  
+나이가 1단위 증가할수록 약의 효과가 뚜렷할 오즈가 **exp(0.049249) = 1.05**배 증가한다.  
+
+```{r warning = FALSE}
+exp(10 * coef(arth.logistic)["Age"])
+```
+
+계수에 10을 곱하게 되면 단위가 10으로 바뀌게 되므로, 나이가 10단위 증가할수록 약의 효과가 뚜렷할 오즈가 **1.63**배 증가하는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+arth.lm <- glm(Better ~ Age, data = Arthritis)
+coef(arth.lm)
+```
+
+`glm`함수의 옵션에서 `family = binomial`옵션을 지정하지 않을 경우, 로지스틱 회귀모형이 아닌 일반 선형회귀 모델에 적합시키게 된다.  
+일반 선형회귀 모형에 데이터를 적합시키게 되면 추정된 계수가 달라질 뿐만아니라 로지스틱 회귀모형과 다른 결과가 도출될수도 있다.  
+
+```{r warning = FALSE}
+summary(arth.lm)
+```
+
+일반 선형회귀 모델에 데이터를 적합시킨 결과, 절편은 유의하지 않지만 **Age**는 유의확률이 유의수준 0.05보다 작으므로 유의한 변수임을 알 수 있다.  
+`Arthritis` 데이터의 경우, 로지스틱 회귀 모델, 일반 선형회귀 모델 모두 설명변수 **Age**가 유의하게 나오는 것을 확인할 수 있다.  
+
+### 7.2.2 Model tests for simple logistic regression
+
+로지스틱 회귀 모형에 대해 수행할 수 있는 두 가지 주요 가설 검정 유형이 있다. 이 주제에 대해서는 7.3에서 더 자세히 다루며, 여기서는 `Arthritis`데이터를 이용하여 주요 아이디어를 살펴본다.  
+가장 기본적인 가설 검정은 $logit(\pi) = \alpha$일때보다 얼마나 나은가 즉, $H_0: \beta = 0$에 대한 검정을 진행한다.  
+
+두 번째 가설 검정은 데이터를 통해 얻은 모델이 포화모델과 비교했을 때, 얼마나 나쁜 모델인가에 대한 검정을 진행하는 것이다.  
+여러 데이터를 추가하여 모델은 더 복잡해졌지만, 모델의 잔차가 기존의 간단한 모델과 비교했을 때 비슷한 수준이라면, 복잡한 모델을 사용할 필요가 없다.  
+
+```{r warning = FALSE}
+anova(arth.logistic, test = "Chisq")
+```
+
+`anova`를 통해 기존에 절편만으로 설명된 모델에 **Age**변수를 추가할 경우, **Age**변수는 유의한 영향을 미치는지에 대한 검정을 진행해 보았다.  
+**Age**의 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, **Age**변수의 계수는 0이 아니며, 모형에 유의한 영향을 주는 변수임을 알 수 있다.  
+
+```{r warning = FALSE}
+library(vcdExtra)
+LRstats(arth.logistic)
+```
+
+`LRstats`를 통해 모형의 검정을 진행한 결과, 유의확률이 유의수준 0.05보다 작으므로 **포화모델의 잔차**와 **적합시킨 모델의 잔차**는 서로 유의한 차이가 있는 것을 알 수 있다.  
+따라서, 기존모델에 **Age**변수를 추가하여 모델을 적합시키는 것은 유의하다고 볼 수 있다.  
+
+### 7.2.3 Plotting a binary response
+
+이항 반응 변수에 대한 모델을 적응 시킨 후 결과만을 통해 변수들의 관계를 해석하는 것과 이해하는 것은 쉽지않다.  
+이러한 경우, 적합시킨 모형과 함께 시각화 방법을 이용하면 모형을 이해하는 데 큰 도움이 된다.  
+
+*Example 7.2: Arthritis treatment - Plotting logistic regression with base graphics*
+
+```{r warning = FALSE}
+plot(jitter(Better, .1) ~ Age, data = Arthritis,
+     xlim = c(15,85), pch = 16,
+     ylab = "Probability (Better)")
+xvalues <- seq(15, 85, 5)
+pred.logistic <- predict(arth.logistic,
+                         newdata = data.frame(Age = xvalues),
+                         type = "response", se.fit = TRUE)
+
+upper <- pred.logistic$fit + 1.96 * pred.logistic$se.fit
+lower <- pred.logistic$fit - 1.96 * pred.logistic$se.fit
+
+polygon(c(xvalues, rev(xvalues)),
+        c(upper, rev(lower)),
+        col = rgb(0, 0, 1, .2), border = NA)
+lines(xvalues, pred.logistic$fit, lwd = 4, col = "blue")
+abline(arth.lm, lwd = 2)
+lines(lowess(Arthritis$Age, Arthritis$Better, f = .9),
+      col = "red", lwd = 2)
+```
+
+적합된 로지스틱 모형의 경우, 로지스틱 회귀 분석을 저장한 객체를 통해 얻을 수 있으며, 이 모형을 통해 적합된 곡선과 새로운 데이터에 대한 예측을 진행할 수 있다.  
+
+새로운 데이터를 얻었을 때, 적합된 모델을 새로운 데이터에 대한 예측에 사용하기 위해서는 `predict`함수를 사용한다.  
+- `predict(model,newdata,type,se.fit)`
+
+* model: 적합시킬 모델  
+* newdata: 새로운 데이터  
+* type: 예측의 형태 ("response"로 지정하게 되면 반응변수가 0 ~ 1 사이의 값을 가짐)  
+* se.fit: 표준오차 포함 여부 
+
+**검은색 점**의 경우, 새로운 데이터를 로지스틱 회귀모형에 적합시켰을때의 출력값을 나타내며, 가운데의 **보라색 band**는 로지스틱 회귀 곡선에 대한 신뢰수준 95%의 band를 나타낸다.  
+**파란색 선**의 경우 예측값에 대한 로지스틱 회귀 곡선, **빨간색 선**의 경우 우리가 적합한 데이터에 대한 비모수적인 회귀 곡선을 나타낸다.  
+
+*Example 7.3: Arthritis treatment - Plotting logistic regression with ggplot2*
+
+```{r warning = FALSE}
+library(ggplot2)
+# basic logistic regression plot
+gg <- ggplot(Arthritis, aes(x = Age, y = Better)) +
+  xlim(5, 95) +
+  geom_point(position = position_jitter(height = 0.02, width = 0))+
+  stat_smooth(method = "glm", family = binomial,
+              alpha = 0.1, fill = "blue", size = 2.5,
+              fullrange = TRUE)
+```
+
+```{r warning = FALSE}
+gg <- gg + stat_smooth(method = "lm", se = FALSE,
+                       size = 1.2, color = "black",
+                       fullrange = TRUE)
+gg <- gg + stat_smooth(method = "loess", se = FALSE,
+                       span = 0.95, colour = "red", size = 1.2)
+```
+
+```{r warning = FALSE}
+gg
+```
+
+기본적인 plot함수를 이용하지 않고 `ggplot`함수를 통해서도 시각화를 진행할 수 있다.  
+ggplot을 통해 시각화를 진행한 결과, 앞서 그렸던 그림과 상당히 유사한 그림을 얻는 것을 확인할 수 있다.  
+`stat_smooth(method = glm, family = binomial)`을 지정하게 되면 로지스틱 회귀 모형에 대한 적합선을, `stat_smooth(method = lm)`은 선형 회귀모형에 대한 적합선, `stat_smooth(method = loess)`은 비모수적 접근을 통한 회귀 적합선을 나타낸다.   
+
+**파란색**선이 로지스틱 회귀모형의 적합선, **검은색**선이 선형 회귀모형의 적합선, **빨간색**선이 비모수적인 접근을 통한 회귀 적합선을 나타낸다.  
+**보라색**band는 앞선 plot과 동일하게 로지스틱 회귀 적합선에 대한 신뢰수준 95%의 band를 나타낸다.  
+
+### 7.2.4 Grouped binomial data
+
+이항 변수의 데이터가 관측치가 아닌 성공, 실패에 대해 기록된 형태의 데이터로 주어질 수 있다. 
+
+이때, 실패횟수, 성공횟수에 대한 2열의 행렬로 구성된 응답으로 데이터를 재구성해야 하며, 적합 모형을 확률로 표시할 때에는 일반적으로 성공에 대한 비율을 사용한다. 또는, trials를 이용하여 모형을 적합시킬수도 있다.    
+
+*Example 7.4: Space shuttle disaster*
+
+```{r warning = FALSE}
+data("SpaceShuttle" , package = "vcd")
+head(SpaceShuttle)
+```
+
+`SpaceShuttle`데이터는 NASA의 우주왕복선 프로그램의 O-ring 실패에 관한 자료이며, `vcd`패키지에 포함돼있다.  
+
+* FlightNumber: 비행번호 (Norminal variable)
+* Temperature: 시작시 온도 (Discrete variable)
+* Pressure: 압력 (Discrete variable)
+* Fail: O-ring 실패 발생여부 (Factor variable - No,Yes)
+* nFailures: O-ring 실패횟수 (Discrete variable)
+* Damage: 피해지수 (Damage index)
+
+```{r warning = FALSE}
+shuttle.mod <- glm(cbind(nFailures, 6 - nFailures) ~ Temperature, data = SpaceShuttle, na.action = na.exclude,
+                   family = binomial)
+```
+
+`shuttle.mod`은 이항 반응변수에 대해서 성공, 실패에 대해 2열의 행렬로 구성한 후, **Temperature**를 설명변수로 하는 로지스틱 회귀모형을 적합시킨 결과이다.  
+`na.action = na.exclude`는 결측치를 제거하고 분석을 진행하라는 옵션이다.  
+
+```{r warning = FALSE}
+SpaceShuttle$trials <- 6
+shuttle.modw <- glm(nFailures / trials ~ Temperature,
+                    weight= trials, data = SpaceShuttle,
+                    na.action = na.exclude, family = binomial)
+```
+
+`shuttle.modw`은 이항 반응 변수에 대해서 trials과 실패횟수를 활용한후, **Temperature**를 설명변수로 하는 로지스틱 회귀모형을 적합시킨 결과이다.  
+
+```{r warning = FALSE}
+all.equal(coef(shuttle.mod), coef(shuttle.modw))
+```
+
+`all.equal`을 통해 두 모형의 계수를 확인해 본 결과, 반응변수에 대해서 각각 다른 방법을 사용하여 설정하고 로지스틱 회귀모형을 적합했어도 서로 같은 계수값을 가지는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+anova(shuttle.mod, test = "Chisq")
+```
+
+`anova`를 통해 기존에 절편만으로 설명된 모델에 **Temperature**변수를 추가할 경우, **Temperature**변수는 유의한 영향을 미치는지에 대한 검정을 진행해 보았다.  
+**Temperature**의 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, **Temperature**변수의 계수는 0이 아니며, 모형에 유의한 영향을 주는 변수임을 알 수 있다.  
+
+```{r warning = FALSE}
+library(ggplot2)
+ggplot(SpaceShuttle, aes(x = Temperature, y = nFailures / trials)) +
+  xlim(30, 81) +
+  xlab("Temperature (F)") +
+  ylab("O-Ring Failure Probability") +
+  geom_point(position = position_jitter(width = 0, height = 0.01), aes(size = 2)) +
+  theme(legend.position = "none") +
+  geom_smooth(method = "glm", family = binomial, fill = "blue", aes(weight = trials), fullrange = TRUE, alpha = 0.2,size = 2)
+```
+
+`ggplot`을 이용하여 **Temperature**의 관측값에 따른 로지스틱 회귀분석 결과에 대한 시각화를 진행하였다.  
+`fullrange = TRUE`로 설정할 경우, 적합 회귀 곡선과 신뢰 밴드를 전체 범위로 확장한다.  
+**파란선**의 경우 적합 로지스틱회귀 곡선, **보라색**의 경우 적합식에 대한 신뢰수준 95% band를 나타낸다.  
+
+그림을 보면 **Temperature**이 높아질수록 **Probability**가 0에 가까워지는 것을 확인할 수 있다. 
+즉, **Temperature**이 높을수록 반응변수의 사건이 발생하지 않을 것으로 분류할 확률이 높다라고 할 수 있다.  
+
+***
+
+## 7.3 Multiple logistic regression models
+
+일반선형회귀 모형의 경우, 독립변수가 하나인 단순회귀, 독립변수가 여러개인 다중회귀로 구분할 수 있다.  
+로지스틱 회귀모형 또한 **독립변수를 여러개**를 사용하여 **다중 로지스틱 회귀모델**을 생성할 수 있다.  
+
+*Example 7.5: Arthritis treatment*
+
+```{r warning = FALSE}
+arth.logistic2 <- glm(Better ~ I(Age-50) + Sex + Treatment,
+                      data = Arthritis,
+                      family = binomial)
+```
+
+`Arthritis`데이터의 **Better**를 반응변수로하고 **Age, Sex, Treatment**를 독립변수로 활용하는 **다중 로지스틱 회귀분석**을 진행해 보았다. 
+여기서, 절편 해석의 용이함을 위해 **Age**가 아닌 **Age-50**을 적합시켜 평균에 조금 더 가까운 모형을 적합시켰다.  
+**Age-50**을 적합시키게 되면, **Age**변수의 계수는 그대로이지만, 절편의 계수만 바뀌는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+coeftest(arth.logistic2)
+```
+
+`coeftest`를 통해 계수에 대한 검정을 진행해 보았다.  
+절편을 제외한 **Age, Sex, Treatment**변수 모두 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, 설명변수들의 계수는 0이 아니므로 유의한 변수들임을 확인할 수 있다.  
+
+모형을 통해 추정된 로지스틱 회귀식은 아래와 같다.  
+
+$$
+logit(\pi) = -0.578134 + 0.048747 Age -1.487831sex + 1.759804 Treatment 
+$$
+
+위의 식에서 **Sex = Male이면 1, Sex = Female이면 0**의 값을 가지고 **Treatment = Treated이면 1, Treatment = Placebo이면 0**의 값을 가진다.  
+
+```{r warning = FALSE}
+exp(cbind(OddsRatio = coef(arth.logistic2),
+          confint(arth.logistic2)))
+```
+
+`exp`를 통해 오즈비를 계산하고 `confint`를 이용하여 오즈비에 대한 95% 신뢰구간을 구했다.  
+오즈비를 살펴본 결과, **Treatment = Treated**일 경우 그렇지 않은 사람에 비해서 약의 효능이 좋을 오즈가 **5.81배** 높은 것을 알 수 있었고 나이가 한 단위 증가할수록 그렇지 않은 사람보다 약의 효능이 좋을 오즈가 **1.04배** 증가하는 것을 확인할 수 있었다.  
+
+### 7.3.1 Conditional plots
+
+가장 간단한 그림에서는 하나 이상의 반응 변수에 대해, 정의된 데이터의 부분 집합에 대해 개별적으로 적합 관계(예측값, 신뢰구간 band)를 표시한다.  
+또한, 여러 패널을 통해 데이터에 대해서 수준 별로 시각화를 진행할수도 있다.  
+
+*Example 7.6: Arthritis treatment - conditional plots*
+
+```{r warning = FALSE}
+library(ggplot2)
+gg <- ggplot(Arthritis, aes(Age, Better, color = Treatment)) +
+  xlim(5,95)+
+  theme_bw()+
+  geom_point(position = position_jitter(height = 0.02, width =0))+
+  stat_smooth(method = "glm", family = binomial,
+              alpha = 0.2, aes(fill = Treatment),
+              size = 2.5, fullrange = TRUE)
+gg
+```
+
+위 그림의 경우, 데이터가 **Treatment = Treated일 때 파란색**, **Treatment = Placebo일 때, 빨간색**으로 구분하여 각 데이터의 위치, 적합 회귀선, 신뢰구간 band를 나타내었다.  
+**Treatment = Treated**인 경우, 0보다는 1(약의 효능이 있다.)로 더 많이 분류하는 것을 볼 수 있었고 나이가 증가함에 따라 적합 회귀선 또한 **Treatment = Placebo**에 비해 1로 더 빠르게 수렴하는 것을 볼 수 있다.    
+
+```{r warning = FALSE}
+gg + facet_wrap(~ Sex)
+```
+
+`facet_wrap`함수는 1d 시퀀스의 패널을 2d로 전환해주는 함수로 `ggplot2`패키지에 포함돼있다.  
+- `facet_wrap(variable)`
+
+* variable: 패널을 나누고자 하는 기준 변수
+
+기존에 그린 그림에서 `facet_wrap`함수를 사용하여 **Sex의 수준(Female, Male)**에 따라 패널을 분리하였다.  
+
+**Sex = Female**의 경우 앞서 살펴본 그림과 동일하게 **Treatment = Treated**일 때, 나이가 증가함에 따라 1의 확률로 더 빠르게 수렴한다.  
+하지만, **Sex = Male**의 경우 **Sex = Female**과 다르게 **Treatment = Treated**일 경우 나이가 증가함에 따라 **Better**에 대한 확률이 감소하며, **Treatment = Placebo**일 경우 나이가 증가함에 따라 **Better**에 대한 확률이 증가하는 **Age**와 **Treatment**의 단계 기능에 대한 역설적이고 부정적인 관계를 보여주는것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+addmargins(xtabs(~Sex + Treatment, data = Arthritis), 2)
+```
+
+`addmargins`함수를 통해 분할표의 빈도를 살펴본 결과, **Sex = Male**의 총빈도는 **Sex = Female**의 절반도 안 되는 것을 볼 수 있다.  
+이러한 표본부족 문제 때문에 **Age**와 **Treatment**간 역설적이고 부정적인 관계를 보여줄수도 있다는 추측을 해볼 수 있다.  
+
+### 7.3.2 Full-model plots
+
+두 개 이상의 설명변수를 가지는 모형의 경우, 조건의 변수에 의해 층화되기 보다 모든 설명 변수를 반응 변수와 함께 표현하는 것이 좋다.  
+이러한 그림은 반응변수의 예측값을 선택한 설명 변수와 비교하면서 보여준다.  
+
+`vcd`패키지 에서는 예측된 반응 변수를 시각화 하도록 `binreg_plot`함수를 제공한다.  
+이 함수의 경우, 적합 모형 개체에서 이항 결과에 대한 설명 변수의 부분 집합을 사용하여 개별 그림을 생성할 수 있다.  
+- `binreg_plot(model, type)`
+
+* model: 적합시킨 모델
+* type: fitted value의 표시 방법 ("response" = 0~1의 확률값, "link" = 선형직선)
+
+*Example 7.7: Arthritis treatment - full model plots*
+
+
+```{r warning = FALSE}
+library(vcd)
+binreg_plot(arth.logistic2, type = "link")
+```
+
+반응변수 `better`에 대해서 x축을 수치형 변수인 *Age*로 설정하고 사용한 **설명변수(sex,treatment)**의 조합에 따른 적합 회귀선과 각 데이터의 분포를 살펴볼 수 있다.  
+**sex = Female, Treatment = Treated**일 때, 적합 회귀선이 가장 높은 것(Better일 가능성이 높다.)을 확인할 수 있고 **sex = Male, Treatment = Treated**일 때, 적합 회귀선이 가장 작은 것(Better일 가능성이 낮다.)을 확인할 수 있다.  
+
+```{r warning = FALSE}
+binreg_plot(arth.logistic2, type = "link", subset = Sex == "Female", main = "Female", xlim = c(25,75), ylim = c(-3,3))
+binreg_plot(arth.logistic2, type = "link", subset = Sex == "Male", main = "Male", xlim = c(25,75), ylim = c(-3,3))
+```
+
+`binreg_plot`에서 `subset`옵션을 통해 원하는 변수의 수준만을 사용한 결과를 살펴볼 수 있다.  
+`type = link`옵션은 독립변수 들의 결과를 선형형태로 반환하는 역할을 하기에 추정 회귀선이 직선이 나오는 것을 알 수 있다.  
+
+위의 그림의 경우, **Sex = Female**인 경우만을 고려하였고 아래 그림의 경우, **Sex = Male**인 경우만을 고려하였다.  
+두 그림 모두 **Treatment = Treated**인 경우에 추정 회귀선이 더 높은 것(Better일 가능성이 높다.)을 알 수 있다.  
+
+```{r warning = FALSE}
+binreg_plot(arth.logistic2, subset = Sex == "Female", main = "Female", xlim = c(25,75))
+binreg_plot(arth.logistic2, subset = Sex == "Male", main = "Male", xlim = c(25,75))
+```
+
+```{r warning = FALSE}
+binreg_plot(arth.logistic2, type = "response", subset = Sex == "Female", main = "Female", xlim = c(25,75))
+binreg_plot(arth.logistic2, type = "response", subset = Sex == "Male", main = "Male", xlim = c(25,75))
+```
+
+`type = 'response'`로 지정하거나 아예 `type`을 지정해주지 않으면 위와 같이 0~1의 확률값을 가지는 곡선 형태의 추정 회귀선이 나오는 것을 확인할 수 있다.  
+이는, `type = link`와는 다르게 선형적으로 가정하지 않고 설명변수들에 대한 반응변수 결과를 확률로 나타내기 때문이다.  
+
+앞선 결과와 동일하게, `type = response`로 설정하여도 **Sex = Male**, **Sex = Female**모두 **Treatment = Treated**의 추정 회귀선이 더 높은 곳에 있으며 나이가 증가함에 따라 1에 확률에 더 빠르게 수렴하는 것을 확인할 수 있다.  
+
+### 7.3.3 Effect plots
+
+두 개 이상의 변수에서, 반응변수에 대한 모형 그림은 교호작용이 포함되어 있거나 주효과 또는 교호작용에 관심이 집중되어 다른 설명 변수를 제어할 때 번거로울 수 있다.  
+**effects display**의 경우 이러한 문제에 대해 유용한 해결책이 될 수 있다. R에서는 `effects`패키지를 통해 사용할 수 있다.  
+`effects`패키지는 선형 예측변수를 사용하는 다양한 통계 모형에 대해 그래픽 및 표 형식의 교호작용을 표시해주는 함수들을 제공한다.  
+
+**effects display**의 아이디어는 매우 간단하지만 매우 일반적이며 임의 복잡성의 모델을 처리한다.  
+주어진 선형 모델 또는 일반화된 선형 모델에서 시각화하고자 하는 설명 변수의 특정 부분 집합을 고려하여 변수의 주효과와 교호작용을 포함하는 모든 적합치를 계산한다. 이때, 다른 모든 변수는 일반적인 값으로 고정됨으로써 제어된다.    
+
+#### 7.3.3.2 Partial residuals
+
+이산형 반응 데이터의 경우 데이터를 적합된 관계와 함께 데이터가 있는 위치를 확인하는 것이 중요하다. **효과 패키지**에서는 부분 잔차를 표시할 수 있으므로 이러한 아이디어를 더욱 발전 시킬 수 있다.  
+**부분 잔차**를 **effects display**에 추가하게되면 **비선형 관계 또는 생략된 교호작용**과 같은 연속형 설명 변수로 인한 반응 평균의 적합성 결여 또는 잘못 지정된 데이터를 확인하는데 도움이 된다.  
+
+*Example 7.8: Arthritis treatment*
+
+```{r warning = FALSE}
+library(effects)
+arth.eff2 <- allEffects(arth.logistic2, partial.residuals = TRUE)
+names(arth.eff2)
+```
+
+`allEffects`는 모델에서 모든 고차항을 식별하고 반응변수의 예측된 확률을 계산할 수 있도록 도와주는 함수로, `effects`패키지에 포함돼있다.  
+- `allEffectS(model,partial.residuals)`
+
+* model; allEffects 함수를 적용할 모형
+* partial.residuals: 부분 잔차 표시 여부
+
+위의 코드는 **Age,Sex,Treatment**에 대한 반응변수의 예측된 확률을 계산한다.  
+
+```{r warning = FALSE}
+arth.eff2[["Sex"]]
+```
+
+반응변수 `Better`에 대한 **Sex = Female**의 효과는 약 0.609, **Sex = Male**의 효과는 약 0.260으로 약 2.5배 정도 차이가 존재하는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+arth.eff2[["Sex"]]$model.matrix
+```
+
+**Sex**에 대한 주효과 매트릭스를 살펴본 결과 **Sex = Female**일 경우 **Sex**는 0의 값을 가지며, **Sex = Male**일 경우 **Sex**는 1의 값을 가지고 나머지 계수들은 동일한 값을 가지는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+plot(arth.eff2, rows = 1, cols = 3,
+     type = "response", residuals.pch = 15)
+```
+
+`allEffects`의 결과를 **plot**으로 나타내게 되면 각 설명변수의 수준의 변화에 따른 **Better**에 대한 예측 확률의 변화를 시각적으로 살펴볼 수 있다.  
+`Age effect plot`을 통해 **Age**가 증가할수록 **Better**에 대한 확률이 높아진다.(약의 효능이 있을 확률이 높다.)  
+`Sex effect plot`을 통해 **Sex = Male**일 경우보다 **Sex = Female**일때 **Better**에 대한 확률이 높아진다.  
+`Treatment effect plot`을 통해 **Treatment = Placebo**일 경우보다 **Treatment = Treated**일 경우에 **Better**에 대한 확률이 높아지는 것을 확인할 수 있다.  
+```{r warning = FALSE}
+plot(arth.eff2, rows = 1, cols = 3,
+     type = "link", residuals.pch = 15)
+```
+
+`type = link`옵션을 사용하는 경우, `Sex effect plot`, `Treatment effect plot`에서 `type = response`를 지정했을 때 보다 변수의 수준에 따른 효과의 차이가 더 크게나는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+arth.full <- Effect(c("Age", "Treatment", "Sex"),
+                    arth.logistic2)
+```
+
+`Effect`함수의 경우 한 변수를 제어변수로 설정하고 그 제어 변수에 따른 나머지 변수들의 반응변수에 대한 수준 변화를 보여준다.  
+`Effect`함수는 `effects`패키지에 포함돼있다.  
+- `Effect(term,model)`
+
+* term: 반응변수에 대한 수준 변화를 관찰할 변수들 (마지막 변수가 제어변수가 된다.)
+* model: 변수들을 이용하여 적합시킨 모델
+
+위의 코드에서는 `Effect`함수에서 마지막에 들어가는 변수를 **Sex**로 설정했으므로, **Sex**가 제어변수가 된다.  
+
+```{r warning = FALSE}
+plot(arth.full, multiline = TRUE, ci.style = "bands",
+     colors = c("red", "blue"), lwd = 3,
+     ticks = list(at = c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)),
+     key.args = list(x = 0.52, y = 0.92, columns = 1,
+                     grid = TRUE)
+     )
+```
+
+`Effect`를 사용하여 얻은 결과에 대해서 `plot`함수를 이용하여 시각화를 진행하면 위와 같다. 
+**Sex**에 따라 패널 구별되는 것을 볼 수 있고, 앞선 결과들과 같이 **Sex = Female**일 때 **Treatment**의 수준에 상관없이 반응변수에 대한 확률이 **Sex = Male**일 때보다 모두 더 높게 나타나는 것을 것을 확인할 수 있다.  
+
+`multiline`옵션은 마지막 제어변수의 모든 수준의 조합을 고려하여 패널을 나눌지 혹은 제어변수의 각 수준만을 고려하여 패널을 나눌지 결정한다. **TRUE**로 지정하게 되면 제어변수의 각 수준만을 고려하여 패널을 나눈다.  
+`ci.style`은 신뢰구간의 스타일을 결정하는 것으로 여기에서는 `bands`로 설정하여 각 회귀 적합선에 대한 95% 신뢰수준 **band**가 출력된다.  
+
+```{r warning = FALSE}
+plot(arth.full, multiline = TRUE, ci.style = "bands",
+     type = "response",
+     colors = c("red", "blue"), lwd = 3,
+     key.args = list(x = .52, y = .92, columns = 1),
+     grid = TRUE)
+```
+
+`type = response`로 지정하게 되면 적합선이 선형적인 직선이 아니라 0~1의 확률값을 가지는 곡선의 형태를 띄는 것을 확인할 수 있다.  
+앞선 결과와 동일하게 **Sex = Female**인 경우 **Treatment**의 수준에 관계없이 **Sex = Male**보다 추정 회귀선이 항상 높은 값을 갖는 것을 알 수 있다.  
+
+
+***
+
+## 7.4 Case studies
+
+아래 예제는 다중 로지스틱 회귀 모델에서 데이터 분석, 모델 구축 및 시각화의 몇 가지 문제를 설명한다.  
+우리는 주어진 모델을 해석하기 위한 데이터, 모델링 단계 및 그래프를 보기 위한 탐색 플롯의 조합에 초점을 맞춘다.  
+
+### 7.4.1 Simple models: Group comparisions and effect plots
+
+*Example 7.9: Donner Party*
+
+```{r}
+data("Donner", package = "vcdExtra")
+library(car)
+some(Donner, 8)
+```
+
+`Donner`데이터는 1847년 미국 시에라 네바다 산맥의 동쪽에서 발생한 눈보라에 대한 생존자 및 사망자에 대한 데이터로, `vcdExtra`패키지에 포함돼있다.  
+
+* row: 사람의 이름
+* family: 가족 이름 (Factor variable - Other, Breen, Donner, Graves ...)
+* age: 나이 (Discrete variable)
+* sex: 성별 (Factor variable - Male, Female)
+* survived: 생존여부 (Factor variable - 0,1)
+* death: 사망날짜 (POSIXct)
+
+`car` 패키지는 대부분 선형 모델 및 일반화된 선형 모델에 대한 기능과 회귀진단, 특히 그래픽 진단을 할 수 있는 다양한 함수들을 제공한다.  
+
+```{r warning = FALSE}
+Donner$survived <- factor(Donner$survived, labels = c("no", "yes"))
+```
+
+**Survived**변수를 0 또는 1에서 **No,Yes**의 수준을 가지는 **Factor variable**로 바꿔주었다.  
+
+```{r}
+xtabs(~ family, data = Donner)
+```
+
+`xtabs`함수를 이용하여 `Donner`데이터의 **family**변수에 대한 빈도를 살펴보았다.  
+`Donner`데이터에서, **기타(Other)**가 가장 많이 있으며, 그 다음으로는 **Donner**, **MurFosPik** 가족 순으로 많은 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+fam <- Donner$family
+levels(fam)[c(3,4,6,7,9)] <- "Other"
+```
+
+```{r warning = FALSE}
+fam = factor(fam,levels(fam)[c(1, 2, 4:6, 3)])
+Donner$family <- fam
+xtabs(~family, data = Donner)
+```
+
+가족 그룹에 대해서 일정 빈도가 넘는 가족들의 변수는 그대로 사용하고 작은 가족들의 경우에는 기타 범주로 통합하였다.  
+**family**변수의 수준이 기존 10개에서 4개로 축소된 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+xtabs(~ survived + family, data = Donner)
+```
+
+```{r warning = FALSE}
+plot(survived ~ family, data = Donner, col = c("pink", "lightblue"))
+```
+
+재구성한 가족 그룹에 대한 생존빈도를 살펴보기 위해 Plot을 그려 보았다.  
+**Breen** 가족의 경우 모든 가족이 생존해 있는 것을 알 수 있었으며, **Donner**, **MurFosPik** 가족은 절반은 생존, 절반은 사망했고 **Reed** 가족은 1명 사망, 6명 생존인 것을 확인할 수 있었다.  
+
+```{r warning = FALSE}
+library(gpairs)
+library(vcd)
+gpairs(Donner[,c(4,2,3,1)],
+       diag.pars = list(fontsize = 20, hist.color = "gray"),
+       mosaic.pars = list(gp = shading_Friendly),
+       outer.rot = c(45,45))
+```
+
+`Donner`데이터에 대한 변수 간 패턴을 파악하기 위해 `gpairs`함수를 사용해 보았다.  
+반응변수 **survived**는 **survived = yes**가 약간 빈도가 더 많긴 하지만 한 쪽으로 심하게 치우치는 문제는 발생하지 않은 것처럼 보인다.  
+**Sex, Survived**의 모자이크 플롯을 살펴보면, **Sex = Male**일 때 **survived = Yes**는 음의 잔차를 가지는 것을 확인할 수 있고 **Sex = Female**일 때 **Survived = Yes**는 양의 잔차를 가지는 것을 확인할 수 있다.  
+이를 통해, 성별이 남성인 경우 생존을 하지 못할 빈도가 높은 경향이 있고 성별이 여성인 경우 생존할 빈도가 높은 경향이 있는 것을 알 수 있다.  
+
+**family, Survived**의 모자이크 플롯을 살펴보면 앞선 결과와 동일하게 **Breen**가족만이 **Survived = Yes**일때 양의 잔차를 가지고 나머지 가족들은 **Survived = Yes**일때 음의 잔차를 가지는 것을 확인할 수 있다.  
+
+
+```{r warning = FALSE}
+gg <- ggplot(Donner, aes(age, as.numeric(survived == "yes"),
+                         color = sex)) +
+  ylab("Survived") +
+  theme_bw() +
+  geom_point(position = position_jitter(height = 0.02, width = 0))
+```
+
+```{r warning = FALSE}
+gg + stat_smooth(methd = "glm", family = binomial,
+                 formula = y ~ x,
+                 alpha = 0.2,
+                 size = 2,
+                 aes(fill = sex))
+```
+
+**Age**를 x축으로 설정하고, **Survived**를 y축으로 설정한 후, 로지스틱 회귀모형에 적합시킨뒤, **sex**에 따른 생존율을 살펴보았다.  
+**Age**가 40대 이하인 경우 **Sex = Female**의 생존율이 **Sex = Male**의 생존율보다 높았지만, **Age**가 40대 이상인 경우 **Sex = Male**의 생존율이 **Sex = Female**의 생존율보다 높아지는 것을 확인할 수 있었다.  
+
+```{r warning = FALSE}
+gg + stat_smooth(metohd = "glm", family = binomial,
+                 formula = y ~ poly(x,2), alpha = 0.2, size = 2,
+                 aes(fill = sex))
+```
+
+`poly`함수를 사용하여 **Age**에 대한 2차 관계를 허용하여 그림을 다시 그려보았다. 
+**2차 곡선**으로 그리게 될 경우, 앞서 살펴본 그림에 비해서 **Sex = Male**과 **Sex = Female**간의 확률차이가 현저히 줄어든 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+gg + stat_smooth(metohd = "loess", span = 0.9,
+                  alpha = 0.2, size = 2,
+                 aes(fill = sex)) +
+  coord_cartesian(ylim = c(-0.05, 1.05))
+```
+
+`metohd = "loess"`(비선형 곡선)를 이용하는 경우, `method = glm, family = binomial`과 같이 **Age**가 40대 이하에서 **Sex = Female**의 생존확률이 **Sex = Male**보다 높고 **Age**가 40대가 넘어가는 경우 **Sex = Male**의 생존확률이 **Sex = Female**의 생존확률보다 높아지는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+donner.mod1 <- glm(survived ~ age + sex,
+                   data = Donner, family = binomial)
+Anova(donner.mod1)
+```
+
+반응변수 **Survived**에 대한 **age, sex**를 설명변수로 하는 로지스틱 회귀 모형 적합 결과, 두 설명변수의 유의확률이 모두 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, 두 설명변수 **age, sex**는 계수가 0이 아니므로 유의한 설명변수라고 할 수 있다.  
+
+```{r warning = FALSE}
+donner.mod2 <- glm(survived ~ age * sex,
+                   data = Donner, family = binomial)
+Anova(donner.mod2)
+```
+
+**age,sex**변수의 교호작용을 고려하기 위해 Formula를 **age*sex**로 지정하였다.  
+주효과 **age,sex** 변수는 유의확률이 유의수준 0.05보다 작으므로 유의하하다.  
+두 변수의 **교호작용(age:sex)**은 유의확률이 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다. 따라서, 계수가 0이므로 유의하지 않은 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+donner.mod3 <- glm(survived ~ poly(age, 2) + sex,
+                   data = Donner, family = binomial)
+Anova(donner.mod3)
+```
+
+**age**변수의 2차항을 고려하기 위해 `poly()`함수를 사용하였다.  
+2차항을 적용한 결과, **poly(age,2),sex** 변수 모두 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서, 계수가 0이 아니라고 할 수 있으므로 유의한 변수임을 확인할 수 있었다.  
+
+```{r warning = FALSE}
+donner.mod4 <- glm(survived ~ poly(age,2) * sex,
+                   data = Donner, family = binomial)
+Anova(donner.mod4)
+```
+
+**age의 2차항**과 **Sex**를 설명변수로 고려한 후, 두 변수의 교호작용을 살펴보았다.  
+앞선 1차식들의 교호작용과는 달리, **age의 2차항과 Sex**의 교호작용의 유의확률은 유의수준 0.05보다 작으므로 귀무가설을 기각한다. 따라서 계수가 0이 아니므로 유의한 변수라고 할 수 있다.  
+또한, **age의 2차항** 주효과인 **Sex**도 유의확률이 유의수준 0.05보다 작으므로 유의한 변수임을 확인할 수 있었다.     
+
+```{r warning = FALSE}
+library(vcdExtra)
+LRstats(donner.mod1,donner.mod2,donner.mod3,donner.mod4)
+```
+
+`LRstats()`함수를 사용하여 모델들의 주요 적합치를 비교해 보았다.  
+**donner.mod1, donner.mod2는** 유의확률이 유의수준 0.05보다 낮으므로 변수를 추가하는것은 포화모델과 비교할 때, 유의한 잔차의 차이를 발생시키는 것임을 알 수 있다.  
+반면, **donner.mod3,donner.mod4**는 유의확률이 유의수준 0.05보다 높으므로 포화모델에 가까운 모델임(변수를 추가했을때, 유의한 잔차의 차이가 발생하지 않음.)을 확인할 수 있었다.  
+
+
+```{r warning = FALSE}
+mods <- list(donner.mod1, donner.mod2, donner.mod3, donner.mod4)
+LR <- sapply(mods, function(x) x$deviance)
+LR <- matrix(LR,2,2)
+rownames(LR) <- c("additive", "non-add")
+colnames(LR) <- c("linear", "non-lin")
+LR <- cbind(LR, diff = LR[,1] - LR[,2])
+LR <- rbind(LR, diff = c(LR[1,1:2] - LR[2,1:2], NA))
+LR
+```
+
+LR통계량을 추출하여 행 및 열의 차이를 함께 표에 배열해서 모형을 비교해 보았다.  
+결과적으로, **Survived**와 **Age**와의 관계가 **Sex = Male**과 **Sex = Female**에 따라 다르다는 증거가 있지만 선형적인 로지스틱에 의해서 잘 설명되지는 않는것을 확인할 수 있다(잔차의 차이가 크지 않기 때문이다.).  
+
+```{r warning = FALSE}
+library(splines)
+donner.mod5 <- glm(survived ~ ns(age,2) * sex,
+                   data = Donner, family = binomial)
+Anova(donner.mod5)
+```
+
+단순성을 위해 2차 효과인 `poly()`함수가 아닌 `splines`패키지의 `ns()`함수를 사용하여 스플라인을 사용하여 다시 한 번 분석을 진행해 보았다.  
+`splines`패키지는 `spline`을 하기 위한 다양한 함수를 제공하며 그 중 `ns`는 **natural cubic spline**을 생성할 수 있게 도와주는 함수이다.  
+
+`ns(age,2)`를 통해 spline을 적용하여 분석을 진행한 결과, **주효과와 교호작용** 모두 유의확률이 유의수준 0.05보다 작으므로 유의한 변수인 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+donner.mod6 <- glm(survived ~ ns(age,4) * sex,
+                   data = Donner, family = binomial)
+Anova(donner.mod6)
+```
+
+`ns(age,4)`를 사용하여 **age**변수를 4차 스플라인의 형태로 만들어 로지스틱 회귀분석을 진행한 결과, **주효과들**은 유의확률이 유의수준 0.05보다 작으므로  유의하게 나타나지만,  **교호작용**은 유의확률이 유의수준 0.05보다 크므로 유의하지 않은 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+LRstats(donner.mod4, donner.mod5, donner.mod6)
+```
+
+**donner.mod4, donner.mod5, donner.mod6** 모두 유의확률이 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다. 즉, 주어진 모형에 변수를 추가시키는 것은 유의한 잔차의 차이를 발생시키지 못한다는 것을 알 수 있다.  
+따라서, `spline`을 이용하여 모형을 적합시키는 것은 적절한 방법이 아닌 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+library(effects)
+donner.eff6 <- allEffects(donner.mod6, xlevels = list(age = seq(0,50,5)))
+plot(donner.eff6, tickcs = list(at=c(0.001, 0.01, 0.05, 0.1, 0.25,0.5,0.75,0.9,0.95,0.99,0.999)))
+```
+
+**donner.mod6**를 이용하여 *effects plot*을 그려보았다. **Sex = Female**의 경우, 0-15세 사이에서 생존확률이 가장 높았고 **Age**가 증가할수록 생존확률이 점점 떨어지는 것을 확인할 수 있었다.  
+**Sex = Male**의 경우, **Age**가 0-15세 사이에서 생존확률이 가장 높았고 **Age**가 15-25세 생존확률이 전반적으로 낮았지만, **Age**가 25세 이후부터 생존확률이 다시 조금씩 증가하는 것을 볼 수 있다.    
+
+*Example 7.10: Racial profiling: Arrests for marijuana possession*
+
+
+```{r warning = FALSE}
+library(effects)
+data("Arrests", package = "effects")
+Arrests[sample(nrow(Arrests),6),]
+```
+
+`Arrests`데이터는 토론토 경찰에 의한 인종 프로파일링 가능성에 대한 조사 데이터로 `effects`패키지에 포함돼있다.  
+신문이 분석한 대마초 소지 혐의로 5,226건의 구속 기록을 담고 있으며, 반응 변수는 **released**로 주요 설명 변수는 체포된 사람의 피부색이다.  
+
+* released: 구속된 사람이 소환장과 함께 풀려났는지에 대한 여부 (Factor variable - No, Yes)
+* colour: 체포자의 인종 (Factor variable - White, Black)
+* year: 년도 (Discrete variable)
+* age: 나이 (Discrete variable)
+* sex: 성별 (Factor variable - Male, Female)
+* employed: 고용상태 (Factor variable - No,Yes)
+* citizen: 시민여부 (Factor variable - No,Yes)
+* checks: 체포인의 이름이 나타난 경찰 데이터 베이스 수 (Discrete variable)
+
+```{r warning = FALSE} 
+Arrests$year <- as.factor(Arrests$year)
+arrests.mod <- glm(released ~ employed + citizen + checks +
+                     colour*year + colour*age,
+                   family = binomial, data = Arrests)
+```
+
+**year**변수를 **factor**의 형태로 변환해 준 후, **released**를 반응변수로하고 **employed, citizen, checks, colour & year의 교호작용, Colour & age의 교호작용**을 설명변수로 하는 로지스틱 회귀모형을 적합시켰다.  
+
+```{r warning = FALSE}
+Anova(arrests.mod)
+```
+
+로지스틱 회귀분석 결과, **year,age**를 제외한 모든 설명변수들의 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각하여 유의한 설명변수임을 확인할 수 있었다.  
+특히, **colour:year**, **colour:age**의 교호작용 또한 유의한 변수임을 알 수 있다.  
+
+```{r warning = FALSE}
+lmtest::coeftest(arrests.mod)
+```
+
+`lmtest`패키지의 `coeftest`를 통해 변수들의 계수 추정치 및 Wald검정 결과를 확인할 수 있다.  
+**Employed, citizen, checks, colour, age, colourwhite:year1998, colourwhite:age**변수들은 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각하여 유의한 설명변수임을 알 수 있다.  
+
+특히, 앞선 결과에서 **age**변수는 유의하지 않게 나왔는데 앞선 검정은 **age**를 주효과가 아닌 교호작용의 일부로 인식한 후 검정을 진행하였고 **Wald**검정은 **age**를 주효과로 인식한 후 검정을 진행하였기 때문에 유의한 결과가 나온 것으로 생각된다.  
+
+**colour = White**의 경우 **colour = Black**인 경우보다 **released = Yes**일 오즈가 **exp(1.21) = 3.36배** 높은 것을 알 수 있었다.  
+**Employed = Yes**의 경우 **Employed = No**인 경우보다 **released = Yes**일 오즈가 **exp(0.735) = 2.12배** 높은 것을 알 수 있었다.  
+**age**가 한 단위 증가함에 따라, **released = Yes**일 오즈가 **exp(0.028) = 1.02**배 증가하는 것을 알 수 있었다.  
+
+```{r warning = FALSE}
+plot(Effect("colour", arrests.mod),
+     lwd = 3, ci.style = "bands", main = "",
+     xlab = list("Skin color of arrestee", cex = 1.25),
+     ylab = list("Probability(released)", cex = 1.25))
+```
+
+**relased**에 대한 **colour = White**의 확률이 **colour = Black**보다 높은 것으로 보아 흑인에 비해 백인은 심한대우를 덜 받은 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+plot(Effect(c("colour", "age"), arrests.mod),
+     lwd = 3, multiline = TRUE, ci.style = "bands",
+     xlab = list("Age", cex = 1.25),
+     ylab = list("Probability(released)", cex = 1.25),
+     key.args = list(x = 0.05, y = 0.99, cex = 1.2, columns=1))
+```
+
+**Age**와 같이 고려하여 **Effect display**를 살펴본 결과, **Age**가 30대 이하인 젊은 흑인의 경우 동등한 나이의 백인에 비해 더 심한대우를 받았지만 **Age**가 많아짐에 따라 오히려 흑인이 백인에 비해 심한대우를 덜 받은 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+plot(Effect(c("colour","year"), arrests.mod),
+     lwd = 3, multiline = TRUE,
+     xlab = list("Year", cex = 1.25),
+     ylab = list("Probability(released)", cex = 1.25),
+     key.args = list(x = 0.7, y = 0.99, cex = 1.2, columns = 1))
+```
+
+**Age**와 **Year**를 같이 고려하여 **released**반응변수에 대한 **effects display**를 그려보았다.  
+**2001년 이전**까지 흑인과 백인간 차별대우가 많았지만, **2000년 이후**부터는 그 차이가 많이 줄어든 것을 확인할 수 있다.
+
+```{r warning = FALSE}
+arrests.effects <- allEffects(arrests.mod,
+                              xlevels = list(age = seq(15,45,5)))
+plot(arrests.effects,
+     ylab = "Probability(released)",
+     ci.style = "bands", ask = FALSE)
+```
+
+`allEffects`함수를 사용하여 시각화를 하게 되면 각 설명변수의 수준 혹은 값이 변화함에 따라 반응변수에 대한 확률 변화를 한 패널안에서 확인할 수 있다. 
+**Employed = Yes**인 경우, **Employed = No**인 사람에 비해 심한대우를 덜 받았음을 알 수 있고 **Citizen = Yes**인 경우, **Citizen = No**인 사람에 비해 심한대우를 덜 받았으며, **checks**가 낮을수록 심한대우를 덜 받았던 것을 확인할 수 있다.  
+
+### 7.4.2 More complex models: Model selection and visualization
+
+*Example 7.11: Death in the ICU*
+
+
+```{r warning = FALSE}
+data("ICU", package = "vcdExtra")
+names(ICU)
+```
+
+`ICU` 데이터 세트는 호스머, 레메쇼와 스투르디반트와 프렌들리에서 도출된 성인 중환자실 입원후 환자의 생존에 대한 훨씬 더 큰 연구의 일부인 200명의 피험자 샘플로 구성되 있으며, `vcdExtra`패키지에 포함돼있다.    
+이 연구의 목표는 환자의 병원 퇴원 시 생존 확률을 예측하고 ICU 사망률과 관련된 위험 요인을 연구하는 로지스틱 회귀 모델을 개발하는 것이었다.  
+
+* died: 퇴원 전 사망여부 (Factor variable - No, Yes)
+* age: 나이 (Discrete variable)
+* sex: 성별 (Factor variable - Female, Male)
+* race: 환자의 인종 (Factor variable - Black, Other, White)
+* service: ICU 입원 서비스 (Factor variable - Medical, Surgical)
+* cancer: 현재 문제가 암인지에 대한 여부 (Factor variable - No, Yes)
+* renal: 만성 신부전 병력 여부 (Factor variable - No, Yes)
+* infect: 중환자실 입원 시 감염 가능성 여부 (Factor variable - No, Yes)
+* cpr: 중환자실 입원 전 cpr 여부 (Factor variable - No, Yes)
+* systolic: 입원 시 수축기 혈압 (Discrete variable)
+* hrtrate: 심박수 (Discrete variable)
+* previcu: 6개월 이내에 ICU에 입원한 적 있는지에 대한 여부 (Factor variable - No, Yes)
+* admit: 입원 유형 (Factor variable - Elective, Emergency)
+* fracture: 고관절 골절 관련 입원 여부 (Factor variable - No, Yes) 
+* po2: 시작 혈액 가스의 PO2수치 (Factor variable - >60, <=60)
+* ph: 시작 혈액 가스의 PH수치 (Factor variable - >=7.25, <7.25)
+* pco: 시작 혈액 가스의 PCO2수치 (Factor variable - <=45, >45)
+* bic: 시작 혈액 가스의 Bicarbonate수치 (Factor variable - >=18, <18)
+* creatin: 시작 혈액 가스의 Creatin수치 (Factor variable - <=2, >2)
+* coma: 중환자실에 입원 했을 때 의식 수준 (Factor variable - None, Stupor Coma)
+* white: race 변수의 재코딩 (Factor variable - White, Non-White)
+* uncons: coma 변수의 재코딩 (Factor variable - No, Yes)
+
+
+```{r warning = FALSE}
+ICU <- ICU[,-c(4,20)]
+```
+
+`ICU`데이터에서 **race**와 **coma**는 재코딩된 변수가 존재하기 때문에 각각 2개의 변수를 가지고 있다.  
+따라서, 변수가 겹치지않도록 두 개의 변수 중 각각 하나씩 제거한 후, 분석을 진행한다.  
+
+```{r warning = FALSE}
+icu.full <- glm(died ~., data = ICU, family = binomial)
+summary(icu.full)
+```
+
+**반응변수(died)**를 제외한 모든 데이터를 설명변수로 사용하여 로지스틱 회귀 분석을 진행하였다.  
+**age, cancerYes, admit, pco, uncons**변수는 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각하게 된다. 따라서, 유의한 변수임을 알 수 있다.  
+그 외의 설명변수들은 유의확률이 유의수준 0.05보다 크므로 귀무가설을 기각하지 못하게된다. 따라서, 유의하지 않은 변수임을 확인할 수 있다.  
+
+```{r warning = FALSE}
+LRtest <- function(model){
+  c(LRchisq = (model$null.deviance - model$deviance),
+    df = (model$df.null - model$df.residual))
+}
+(LR <- LRtest(icu.full))
+
+(pvalue <- 1 - pchisq(LR[1],LR[2]))
+```
+
+우리가 적합시킨 `icu.full`모델의 L0와 L1잔차 비교를 통해 모형의 적합도 검정을 진행해 보았다.  
+L0-L1의 검정통계량 값은 79.38262으로 카이제곱 분포를 따르며, 유의확률이 유의수준 0.05보다 작으므로 귀무가설을 기각한다.  
+따라서, 기존 모델에 변수를 추가하여 적합된 `icu.full`모델은 적합한 모형임을 확인할 수 있다.  
+
+```{r warning = FALSE}
+icu.full1 <- update(icu.full, . ~ . - renal - fracture)
+anova(icu.full1, icu.full, test = "Chisq")
+```
+
+`update`함수를 통해 전체 모델에서 **renal, fracture**를 제거한 후 로지스틱 회귀모형을 다시 한 번 적합시켜 보았다.   
+anova 검정결과, **renal, fracture**를 제외한 모델과 제외하지 않은 모델간 잔차의 차이는 약 1.7로 매우 작으며, 유의확률이 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다. 따라서, **renal, fracture**를 제거 하는 것은 모형에 대해서 유의한 잔차의 차이를 만들어내지 못한다고 할 수 있다.  
+
+```{r warning = FALSE}
+library(rms)
+dd <- datadist(ICU[,-1])
+options(datadist = "dd")
+icu.lrm1 <- lrm(died ~ ., data = ICU)
+icu.lrm1 <- update(icu.lrm1, . ~ . - renal - fracture)
+```
+
+모델 선택을 고려하기 전에 계수 및 중요도 테스트 표를 보는 것보다 모델에 대해서 시각적으로 살펴보는 것이 더 유용하다.  
+R에서 이러한 방법은 `rms`패키지를 통해 사용할 수 있는데, `rms`패키지는 회귀 모형화, 검정, 추정 검증과 더불어 그례픽을 통해 모델의 성능을 표현하도록 도와준다.  
+`lrm`함수는 `rms`패키지에 포함된 함수로 최대우도 추정 혹은 패널티된 최대우도 추정치를 사용하여 이항 및 비례 승산 순서형 로지스틱 회귀모형을 적합시킨다.  
+도출된 모형의 결과를 시각화하기 위해서는 `glm`이 아닌 `rms`패키지의 `lrm`함수롤 통해 로지스틱 회귀모형에 적합시켜야한다.  
+- `lrm(formula,data)`
+
+* formula: 분석가가 원하고자 하는 모델의 형태 (변수들의 구성)
+* data: 로지스틱 모형을 적합시킬 데이터
+
+`lrm`을 통해 **ICU**데이터에 대해 다시 한 번 로지스틱 회귀모형을 적합시켜 보았다.  
+
+```{r warning = FALSE}
+sum.lrm1 <- summary(icu.lrm1)
+plot(sum.lrm1, log = TRUE, main = "Odds ratio for 'died",
+     cex = 1.25, col = rgb(0.1,0.1,0.8, alpha = c(0.3,0.5,0.8)))
+```
+
+`lrm`을 통해 로지스틱 회귀모형을 적합시킨 후, `summary`함수를 통해 적합된 모형에 대해 훨씬 더 상세한 정보를 생성할 수 있다.  
+또한, `sumamry`된 `lrm`의 결과를 저장하여 `plot`함수를 통해 시각화를 하게 되면 신뢰구간과 함께 모형 항에 대한 오즈비를 제공한다.  
+이 그림에서는 연속형 변수가 맨 위에 먼저 표시된다.  
+각 선은 오즈비에 대한 신뢰 구간을 표시하고 세모는 추정된 오즈비를 나타낸다.  
+
+**uncons, Cancer, age, ph**의 오즈비가 다른 설명변수들에 비해 크게 추정되는 것을 확인할 수 있다. 즉, 종속변수 **died**에 영향을 많이 끼치는 변수라고 할 수 있다.  
+
+```{r warning = FALSE}
+library(MASS)
+icu.step1 <- stepAIC(icu.full1, trace = FALSE)
+icu.step1$anova
+```
+
+```{r warning = FALSE}
+icu.step2 <- stepAIC(icu.full, trace = FALSE, k = log(200))
+icu.step2$anova
+```
+
+`stepwise(단계적 변수선택법)`을 통해 다차원의 변수를 저차원으로 줄일 수 있다. 
+이때, 표본 크기가 상당히 큰 경우 일반적으로 더 작은 모델을 선택하는 `(k=log())`를 지정하여 사용할 수 있다.  
+R에서는 `stepAIC`함수를 사용하여 stepwise를 사용할수 있다.  
+- `stepAIC(model)`
+
+* model: stepwise를 적용하고자 하는 모델
+
+```{r warning = FALSE}
+lmtest::coeftest(icu.step2)
+```
+
+`stepwise`를 사용하여 변수를 선택한 결과, **age, admitEmergency,cancer, uncons**변수가 선택되었고 네 변수 모두 유의확률이 유의수준 0.05보다 작으므로 유의한 것을 확인할 수 있다.  
+앞선 분석에서, `lrm`의 `plot`을 통해 오즈비의 추정값이 높았던 4개의 설명변수와 동일한 변수가 선택된 것 또한 살펴볼 수 있다.  
+
+```{r warning = FALSE}
+anova(icu.step2, icu.step1, test = "Chisq")
+```
+
+`(k=log())`를 적용한 `icu.step2`와 사용하지 않은 `icu.step1`을 비교한 결과, 유의확률이 유의수준 0.05보다 작으므로 유의한 잔차의 차이가 있는 것을 확인할 수 있다.  
+위의 결과를 통해, `Model2(k=log()를 적용하지 않은 모델)`의 잔차가 더 작으므로 `Model1`에 비해 더 적합한 모델임을 확인할 수 있다.  
+
+```{r warning = FALSE}
+icu.glm3 <- update(icu.step2, . ~ . - age + ns(age,3)+
+                     (cancer + admit + uncons) ^ 2)
+anova(icu.step2, icu.glm3, test = "Chisq")
+```
+
+`ns(age,3)`을 통해 **age**변수에 대한 3차원의 스플라인과 **cancer,admit,uncons**의 2차식을 추가한 후, 다시 한 번 로지스틱 회귀모형을 적합시켜 보았다.  
+`anova`함수를 통해 `stepwise`를 통해 적합시킨 이전 모델과 비교해본 결과 잔차의 차이는 3.73이고 유의확률은 유의수준 0.05보다 크므로 귀무가설을 기각하지 못한다.  
+따라서, 변수를 추가하는 것은 유의미한 잔차의 차이를 만들어내지 못하며, 적합하지 않은 모델이라고 할 수 있다.  
+
+```{r warning = FALSE}
+icu.glm4 <- update(icu.step2, . ~ . + age * (cancer + admit + uncons))
+anova(icu.step2, icu.glm4, test = "Chisq")
+```
+
+기존 모형에 **cancer,admit,uncons**변수들의 교호작용을 고려하여 새로운 모델을 만든 후, `stepwise`를 통해 적합시킨 모형들과 비교를 해본 결과, 잔차의 차이는 5.3712이고 유의확률은 유의수준 0.05보다 커 귀무가설을 기각하지 못한다.  
+따라서, 교호작용 term을 추가하는 것은 유의미한 잔차의 차이를 만들어내지 못하며, 적합하지 않은 모델이라고 할 수 있다.  
+
+*Example 7.12: Death in the ICU - Visualization*
+
+한 가지 흥미로운 시각화 방법은 다양한 설명 변수의 값이 로그 오즈 예측값으로 변환되는 방법과 이러한 예측에 미치는 영향의 상대적 강도를 보여주는 **노모그램(nomogram)**이다.  
+`nomogram`은 `rms`패키지에 포함돼있으며, `lrm`을 사용한 모델에만 적용되므로 이 점을 반드시 유의해야한다.  
+- `nomogram(model)`
+
+* model: `lrm`함수를 이용하여 적합시킨 모델
+
+```{r warning = FALSE}
+icu.lrm2 <- lrm(died ~ age + cancer + admit + uncons, data = ICU)
+plot(nomogram(icu.lrm2), cex.var = 1.2, lplabel = "Log odds death")
+```
+
+노모그램에서 각 설명변수는 공통척도 100점에 대한 효과의 크기에 따라 크기가 조정된다.  
+
+예를들어, **Age = 60**이고 **Cancer = No**, **admit = Emergency**, **uncons = Yes**인 사람이 있다고 가정하자.  
+이러한 경우 총점 척도는 50 + 0 + 84 + 100 = 234점이며, 로그 오즈의 척도는 약 2.2로 계산될 수 있다.  
+
+```{r warning = FALSE}
+levels(ICU$cancer) <- c("-", "Cancer")
+levels(ICU$admit) <- c("-", "Emerg")
+levels(ICU$uncons) <- c("-", "Uncons")
+
+icu.glm2 <- glm(died ~ age + cancer + admit + uncons,
+                data = ICU, family = binomial)
+
+binreg_plot(icu.glm2, type = "link", conf_level = 0.68,
+            legend = FALSE,
+            labels = TRUE, labels_just = c("right","bottom"),
+            cex = 0, point_size = 0.8, pch = 15:17,
+            ylab = "Log odds(died)",
+            ylim = c(-7,4))
+```
+
+위의 그림의 경우, `labels = TRUE, legend = FALSE`를 이용하여 범례가 박스가 아닌 선에 직접 레이블에 붙여쓰도록 했다.  
+사망에 대한 로그오즈는 모든 경우에 **Age**가 증가할수록 서서히 커지는 것을 확인할 수 있다.  
+특히, 환자가 **admit = Emergency**인 경우에 로그오즈가 높으며,  **admit = Emergency**이면서 **uncons = Yes**일 경우 사망에 대한 로그오즈가 가장 높아진다.  
+
+***
+
+## 7.5 Influence and diagnostic plots
+
+OLS 회귀분석에서 **영향 측도(레버리지, Cook의 D, DFBETA등)** 및 관련 그림을 사용하면 개별 사례가 개별 설명 변수의 적합된 회귀 모델에 과도햔 영향을 미치는지 여부를 결정한다.  
+프레기븐은 로지스틱 모델과 가중 최소 제곱 사이의 관계를 이용하여 이러한 방법에 대한 이론적 기초를 제공한다.  
+
+### 7.5.1 Residuals and leverage
+
+**잔차(residuals)**는 실제값과 모형으로부터 예측된 값과의 차이를 의미한다.  
+
+**레버리지(leverage)**는 개별 사례가 결과에 미치는 잠재적 영향을 측정하며, 개별 사례가 예측 변수 공간의 중심으로부터 얼마나 떨어져 있는지에 정비례한다.  
+
+**쿡의거리(Cook's Distance)**는 i번째 관측치를 포함했을때와 포함하지 않았을 때의 적합치 사이의 거리를 계산한다. 일반적으로 기준값이 1보다 클 경우 이상치로 간주한다.  
+
+**DFBETA**는 i번째 관측치가 DFBETA의 기준값인 2 또는 $2/sqrt(n)$보다 크면 이상치로 간주한다.  
+
+### 7.5.2 Influence diagnostics
+
+*Example 7.13: Donner Party*
+
+```{r warning = FALSE}
+inf1 <- influence.measures(donner.mod3)
+names(inf1)
+```
+
+적합시킨 모델에 대한 모든 진단 측정의 세부사항은 `influence.measures`함수를 사용하여 얻을 수 있다.  
+- `influence.measures(model)`
+
+* model: 진단하고자 하는 적합된 모델 
+
+```{r warning = FALSE}
+summary(inf1)
+```
+
+`influence.measures`를 적용한 결과를 `summary`함수를 통해 쉽게 살펴볼 수 있다.  
+영향치로 판단되는 경우 `*`표시가 나타나는 것을 볼 수 있다.  
+**Breen, Patrick**의 경우, **dffit** 측도가 영향치라고 판단을 하며, **Donner, Elizabetch**, **Graves, Elizabetch C.**의 경우, **cov.r, hat**측도가 영향치라고 판단했다.  
+
+```{r warning = FALSE}
+op <- par(mar = c(5,4,1,1) + .1, cex.lab = 1.2)
+res <- influencePlot(donner.mod3, id.col = "blue", scale = 8, id.n = 2)
+k <- length(coef(donner.mod3))
+n <- nrow(Donner)
+text(x = c(2,3) * k / n, y = -1.8, c("2k/n", "3k/n"), cex = 1.2)
+```
+
+위의 그래프의 경우, `donner.mod3`에 대한 영향 측정 진단 및 진단 그림이며, **쿡의 D**값을 보여주기 위해 플롯 기호의 크기를 추가로 사용하는 `car`패키지의 `influencePlot`의 결과이다.  
+`influenceplot`은 원의 영역이 쿡의 거리에 비례하는 관측치를 나타내는 **표준화 잔차**대 **hat value**의 원 그림을 그려준다.  
+- `influenceplot(model)`
+
+* model; 영향 측정 진단을 하고자 하는 적합된 모델
+
+점에 대한 영향 통계량이 포함된 데이터 프레임을 통해 이러한 점이 영향력 있는 것으로 간주되는 것을 알 수 있다.  
+수평 및 수직 기준선은 주목할 만한 잔차 및 레버리지에 대한 일반적인 컷오프 값을 나타낸다.  
+`id.n`인수는 각 표준화된 잔차, hat value, Cook's에 대해 `id.n`만큼의 가장 극단적인 관측치를 선택한다.  
+
+앞선 결과에서도 볼 수 있듯이, **Donner, Elizabetch**, **Graves, Elizabetch C.**의 경우, **Hat-Values**에서 영향치라고 판단하는 것을 다시 한 번 볼 수 있다.  
+
+```{r warning = FALSE}
+idx <- which(rownames(Donner) %in% rownames(res))
+cbind(Donner[idx,2:4],res)
+```
+
+극단적으로 관측된 값들만 출력을 해보았다.  
+**Breen, Patrick**, **Reed,James**는 생존한 40~50대 남성이었고 둘 다 양의 잔차가 크기 때문에 특이하다는 것을 알 수 있다.  
+**Donner, Elizabetch**, **Graves, Elizabetch C.**는 40대인 젊은 여성임에도 불구하고 생존하지 못하였기 때문에 영향치로 판단했다고 추측된다.  
+
+```{r warning = FALSE}
+influenceIndexPlot(donner.mod3, vars = c("Cook", "Studentized", "hat"), id.n=4)
+```
+
+`influenceIndexPlot`의 경우 데이터의 관측번호에 대한 다양한 영향 진단을 통해 극단적인 관측치들을 파악할 수 있으며, `car`패키지에 포함돼있다.  
+- `influenceIndexPlot(model,vars)`
+
+* model: 영향 진단을 하고자하는 적합된 모델
+* vars: 사용할 영향 측도
+
+`Cook.s`에서는 **Breen, Patrick**, **Reed,James**의 값이 1보다 크기 때문에 영향치로 판단하였고,  
+`표준화잔차`에서도 **Breen, Patrick**, **Reed,James**이 큰 양의 잔차를 갖기 때문에 영향치로 판단하였으며,
+`Hat-value`에서는  **Donner, Elizabetch**, **Graves, Elizabetch C.**이 기준 값을 넘기 때문에 영향치로 판단하였다.  
+
+*Example 7.14: Death in the ICU*
+
+```{r warning = FALSE}
+icu.glm2 <- glm(died ~ age + cancer + admit + uncons,
+                data = ICU, family = binomial)
+```
+
+`ICU`데이터에서 **died**를 종속변수로하고 **age,cancer,admit,uncons**를 독립변수로 하는 로지스틱 회귀모형을 적합시켰다.  
+
+```{r warning = FALSE}
+library(car)
+res <- influencePlot(icu.glm2, id.col = "red",
+                     scale = 8, id.cex = 1.5, id.n = 3)
+```
+
+```{r warning = FALSE}
+idx <- which(rownames(ICU) %in% rownames(res))
+cbind(ICU[idx, c("died", "age", "cancer", "admit", "uncons")],res)
+```
+
+```{r warning = FALSE}
+influenceIndexPlot(icu.glm2, vars = c("Cook", "Studentized","hat"),id.n=4)
+```
+
+**ICU**데이터에 대해 `influencePlot`, `influenceIndexPlot`를 이용하여 극단적인 관측치 판단을 진행해 보았다.  
+**127, 208, 766, 881**번 인덱스를 가지는 데이터가 극단치로 감지되었다.  
+특히, 208번 데이터의 경우 **Cancer = no**, **Age**가 70세인 노인이지만 사망한 결과가 있다. 또한, 선택적 절차를 통해 입원을 했지만 의식이 없었다는 점에서 매우 이상한 것을 확인할 수 있다. 이는 코딩 오류 혹은 다른 이상 징후가 있었을지도 모른다는 신호이다.    
+
+또한, 881번 환자의 경우 의식불명이 었었지만 살아난 것을 확인할 수 있고 다른 2명 또한 사망했지만 암이 없고 의식도 있어 예측이 잘 안되는 것을 알 수 있다.  
+그러나 이러한 결과들은 **Cook's D**의 값이 기준값보다 상대적으로 작으므로 모델에 큰 영향을 미치지않는 것을 알 수 있다.  
+
+```{r warning = FALSE}
+inf1 <- influence.measures(icu.glm2)
+dfbetas <- data.frame(inf1$infmat[,2:5])
+colnames(dfbetas) <- c("dfb.age", "dfb.cancer", "dfb.admit",
+                       "dfb.uncons")
+head(dfbetas)
+```
+
+`influence.measures`함수를 통해 각 변수들에 대한 **DFBETA**통계량을 쉽게 얻을 수 있다.  
+
+```{r warning = FALSE}
+op <- par(mar = c(5,5,1,1) + .1)
+cols <- ifelse(ICU$died == "Yes", "red", "blue")
+plot(dfbetas[,1], type = "h", col = cols,
+     xlab = "Observation index",
+     ylab = expression(Delta * beta[Age]),
+     cex.lab = 1.3)
+points(dfbetas[,1], col = cols)
+big <- abs(dfbetas[,1]) > .25
+idx <- 1 : nrow(dfbetas)
+text(idx[big], dfbetas[big,1], label = rownames(dfbetas)[big],
+     cex = 0.9, pos = ifelse(dfbetas[big,1] > 0,3,1),
+     xpd = TRUE)
+abline(h = c(-.25, 0, .25), col = "gray")
+par(op)
+```
+
+`ICU`데이터 모형에서 **DFBETA(AGE)**에 대한 인덱스 그림을 나타내었다. 
+환자의 생존여부에 따라 색깔을 다르게 지정하는데, **died = yes**인 경우 **빨간색**, **died = no**인 경우 **파란색**으로 표시된다.  
+**DFBETA**의 절대값이 0.2보다 큰 경우의 관측치의 인덱스가 plot에 표시되는 것을 확인할 수 있다.  
+127번, 165번, 204번, 222번, 380번을 극단적인 관측치로 판단한 것을 살펴볼 수 있으며, 모두 **died = yes**인 관측치들 이었다.  
+
+```{r warning = FALSE}
+scatterplotMatrix(dfbetas, smooth = FALSE, id.n = 2,
+                  ellipse = TRUE, levels = 0.95, robust = FALSE,
+                  diagonal = "histogram",
+                  groups = ICU$died, col = c("blue","red"))
+```
+
+`scatterplotMatrix`함수를 통해 대각선의 일변량 표시와 다양한 적합선, 타원체 등 향상된 삼점도 행렬을 그릴 수 있다.  
+따라서, 우리는 `scatterplotMatrix`함수를 통해 변수별 표준화된 **DFBETA**의 scatterplot을 그릴 수 있다. 각 쌍의 그림에서 비정상적인 점을 식별하며, 각 비대각 패널에서 95% 데이터 타원과 선형 회귀선은 두 측정값 사이의 한계 관계를 보여준다.  
+`scatterplotMatrix`는 `car`패키지에 포함돼있다.  
+- `scatterplotMatrix(x)`
+
+* x: 산점도 행렬을 생성하고자 하는 데이터
+
+산점도 행렬에 표시되는 색은 환자의 생존여부에 따라 구분하였다. **died = No**인 경우 파란색, **died = Yes**인 경우 빨간색으로 지정하였다.  
+다른 변수들에 비해 **Age**변수의 **DFBETA**값을 가지고 있는 **dfb.age**의 경우 환자의 생존여부에 따라 분포가 큰 차이가 나는 것을 확인할 수 있다.  
+이에따라, **dfb.age**와 다른 변수들간의 관계를 살펴보게 되면 **died = Yes**에 관한 타원형의 너비가 상대적으로 큰 것을 확인할 수 있다.  
+
+### 7.5.3 Other diagnostic plots
+
+이 절에서 설명하는 그래픽 방법은 각각 주어진 방식으로 표현되는 특정 설명변수 집합을 가진 특정 모델의 적합성에 대한 간단한 지표이다.  
+설명 변수 및 설명 변수의 관계가 선형인지 여부, 여기에는 **Component-plus-residual plot**, **added-variable plot**, **constructed variable plot**이 포함된다.  
+
+#### 7.5.3.1 Component-plus-residual plots
+
+*Example 7.15: Donner Party*
+
+```{r warning = FALSE}
+donner.mod1 <- glm(survived ~ age + sex,
+                   data = Donner, family = binomial)
+donner.mod3 <- glm(survived ~ poly(age,2) + sex,
+                   data = Donner, family = binomial)
+```
+
+`donner.mod1`객체에는 **survived**를 종속변수로 하고 **age,sex**를 설명변수로하는 로지스틱 회귀모형을,
+`donner.mod3`객체에는 **survived**를 종속변수로 하고 **age의 2차식,sex**를 설명변수로하는 로지스틱 회귀모형을 적합시켰다.  
+
+```{r warning = FALSE}
+crPlots(donner.mod1, ~age, id.n=2)
+```
+
+`crPlots`의 경우 선형 및 일반화된 선형 모델에 대해 **부분 잔차 그림**이라고도 하며 **성분 + 잔차**그림을 구성한다.  
+`crPlots`함수는 `car`패키지안에 포함돼있다.  
+- `crPlots(model,variable)`
+
+* model:  성분+잔차 그림을 살펴보고자 하는 모델
+* variable: 모델에 적합된 변수들 중 살펴보고자 하는 변수
+
+이는 우리가 지정한 변수와 반응 변수간의 비선형 관계를 확인할 수 있다.  
+
+**파란색 파선**은 전체 모델에 대한 **Age** 기울기를 나타내고 **빨간색 곡선**은 **loess fit(비선형 곡선)**을 나타낸다.  
+각 점은 각 관찰값들의 **잔차**를 표시하며 몇 개의 데이터가 극단적인 잔차값을 가지는 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+crPlots(donner.mod3, ~poly(age,2), id.n=2)
+```
+
+2차식을 사용할 경우, 앞선 그림과 달리 **잔차**들이 특정 위치에 몰려있는 것을 확인할 수 있다.  
+또한, 제곱을 하는 2차식을 사용했기 때문에 몇몇의 극단적인 잔차들의 값이 더욱 커진 것을 살펴볼 수 있다.  
+
+#### 7.5.3.2 Added-variable plots
+
+*Example 7.16: Donner Party*
+
+```{r warning = FALSE}
+col <- ifelse(Donner$survived == "yes", "blue", "red")
+pch <- ifelse(Donner$sex == "Male", 16, 17)
+avPlots(donner.mod1, id.n = 2,
+        col = col, pch = pch, col.lines = "darkgreen")
+```
+
+`avPlots`은 로지스틱 회귀 분석 및 기타 선형 또는 일반화된 선형 모델의 문제를 진단하기 위한 또다른 중요한 도구이다. 이들은 기본적으로 조정된 반응 변수와 조정된 설명 변수에 대해 다른 모든 설명 변수 사이의 조건부 관계를 나타내는 그림이다.  
+R에서는 `car` 패키지를 통해 `avPlots`함수를 사용할 수 있다.  
+- `avPlots(model, id.n)`
+
+* model: 문제를 진단하기 위한 모델
+* id.n: 가장 극단적인 관측치 중 출력할 관측치의 갯수
+
+`Donner`데이터에 대한 문제를 진단하기 위해 `avPlots`의 일부 기능을 나타낼 수 있다.  
+
+색깔의 경우, **Survived = Yes**이면 파란색, **Survived = No**이면 빨간색으로 출력하게 설정하였다.  
+또한, 점의 모양의 경우 **Sex = Male**이면 원, **Sex = Female**이면 삼각형으로 그려지도록 설정하였다.  
+
+왼쪽패널은 **Age**에 대한 `avPlots`그림을 나타낸다.  
+초록색 직선은 **Age**변수의 변화에 따른 생존확률의 변화를 나타내며, **Age**가 증가함에 따라 생존확률이 점차 감소한다.  
+**Donner, Jacob**, **Keyes, Sarah**를 극단적인 관측치로 판단한 것을 살펴볼 수 있다.  
+**Age**변수가 30세보다 큰 값을 가지게 되면 거의 모든 변수에 대해서 **Survived = No**로 분류하는 것을 확인할 수 있다.  
+
+오른쪽패널은 **Sex**에 대한 `avPlots`그림을 나타낸다.  
+초록색 직선은 **Sex**변수의 변화에 따른 생존확률의 변화를 나타낸다. **Sex**가 **Male**로 변화함에 따라 생존확률이 점차 감소한다.  
+**Breen, Margaret I., Pike, Harriet**을 극단적인 관측치로 판단한 것을 살펴볼 수 있다.  
+
+*Example 7.17: Death in the ICU*
+
+```{r warning = FALSE}
+op <- par(mfrow = c(2,2), mar = c(4,4,1,2.5) + .1, cex.lab = 1.4)
+plot(died ~ age, data = ICU, col = c("lightblue", "pink"))
+plot(died ~ cancer, data = ICU, col = c("lightblue", "pink"))
+plot(died ~ admit, data = ICU, col = c("lightblue", "pink"))
+plot(died ~ uncons, data = ICU, col = c("lightblue", "pink"))
+```
+
+**반응변수(died)**에 대한 각 독립변수의 `Marginal plot`을 그려보았다.  
+색깔이 분홍색인 경우, **died = No**인 비율을 나타내고 색깔이 하늘색인 경우, **died = Yes**인 비율을 나타낸다.  
+**age**가 높아질수록, **died = Yes**인 비율이 높았고 응급하게 병원에 입원한 경우에는 입원절차를 밟고 입원한 환자보다 **died = Yes**인 비율이 높았으며,
+환자가 의식불명인 경우, 그렇지 않은 사람보다 **died = Yes**비율이 높은 것을 확인할 수 있다.  
+
+```{r warning = FALSE}
+pch <- ifelse(ICU$died =="No", 1,2)
+avPlots(icu.glm2, id.n = 2, pch = pch, cex.lab = 1.3)
+```
+
+**died =No**인 경우, 점의 형태를 원으로하고 **died = Yes**인 경우 점의 형태를 삼각형으로 지정해주었다.  
+적합시킨 로지스틱 회귀모형을 `avPlots`함수를 이용하여 추가변수 플랏을 그려보았다.  
+
+각 패널의 라벨링된 점은 다른 설명변수 1개가 주어졌을 때, 잔차가 극단적인 값을 갖는 데이터를 말한다.  
+앞서, 극단적인 값으로 확인된 **127,881**번 데이터의 경우, 모든 패널에서 극단적인 값으로 인식되는 것을 확인할 수 있다.  
+특히, 127번은 매우 극단적인 양의 잔차를 가지며 881번의 경우 매우 극단적인 음의 잔차를 가지는 것을 볼 수 있다.  
+
+```{r warning = FALSE}
+icu.glm2a <- glm(died ~ age + cancer + admit + uncons + systolic,
+                 data = ICU, family = binomial)
+anova(icu.glm2, icu.glm2a, test = "Chisq")
+```
+
+`glm2` 모델과 **systolic**를 추가한 `glm2a`모델이 유의한 차이가 있는지 `anova`검정을 실시해 보았다.  
+두 모형의 잔차차이는 3.5231이고 유의확률은 유의수준 0.05보다 높으므로 귀무가설을 기각하지 못한다. 따라서, 유의한 잔차의 차이가 발생하지 않는 것을 확인할 수 있다.  
+하지만, 유의확률이 0.06으로 유의수준인 0.05와 크게 차이가 없는 것으로 보아 약간의 유의한 잔차의 차이는 존재하는 것으로 생각된다.  
+
+```{r warning = FALSE}
+avPlot(icu.glm2a, "systolic", id.n = 3, pch = pch)
+```
+
+적합시킨 `glm2a`모델의 **systolic**데이터를 이용하여`avPlot`을 그려보았다.  
+이 그림에서 **331번**은 부분 레버리지가 높지만 영향력이 없다.  
+그러나 **84번,80번**의 경우 레버리지가 높고 잔차가 크기 때문에 모델에 영향을 미칠 수 있다.  
+또한, **systolic**가 커질수록 **died = Yes**일 확률이 점점 작아지는 것을 확인할 수 있다.  
+
+***
+
+## 7.A. Appendix
+
+R을 통해 시각화를 진행하여 Markdown으로 생성하는 경우, 경고메시지(Warning)가 많이 뜨는 경우가 종종 있다.  
+이 때, 경고메시지를 Markdown에 표시되지 않게 만들어 정리 된 Markdown을 만들고 싶다면 Chunk를 생성할 때, `{r}`이 아닌 `{r warning = FALSE}`로 만들어주면 된다.  
+`{r warning = FALSE}`를 지정해주게 되면 Markdown에서 경고메시지가 사라지는 것을 확인할 수 있다.  
+
+[Reference] https://m.blog.naver.com/y4769/221851780608
+https://specialscene.tistory.com/14
+
+***
+
+## Summary of Chapter7
+
+* **로지스틱 회귀분석**은 반응변수가 연속형이 아닌 **이산형 변수**일 때, 사용된다. 일반적인 선형회귀분석은 설명변수를 통해 종속변수를 예측하는 것이 목적이지만, 로지스틱 회귀분석은 **이산형 반응변수에 대해** 0 또는 1로 분류될 확률을 예측하는 것이 목적이다.  
+* 일반적으로 로지스틱 회귀분석의 분류 **threshold**는 0.5의 값을 사용한다. 즉, 추정된 확률값이 0.5보다 크면 반응변수를 1로 분류하고 추정된 확률값이 0.5보다 작으면 0으로 분류한다. 이러한 **threshold**는 분석가가 데이터의 분포에 따라 정할 수 있다.  
+* R에서는 **로지스틱 회귀모형**을 적합시킬때에 `glm`함수를 가장 일반적으로 사용한다. `type = response(link = logit)`옵션을 통해 이산형 반응변수를 가지며, **link function**은 **logit**함수를 사용하는 로지스틱 회귀모형을 적합시킬 수 있다.  
+* `coeftest`는 주어진 모델의 변수에 대해 **Wald**검정을 수행하여 각 설명변수의 유의성을 판단할 수 있도록 도와준다.  
+* **로지스틱 회귀모형**의 적합도를 구하는 방법 중 하나는 LR방법을 통해 잔차의 차이를 계산하는 것이다. 간단한 모형과 원하는 변수를 추가시킨 모형의 잔차를 비교하여, 유의한 잔차의 차이를 보이는 경우, 원하는 변수를 추가시킨 모형은 유의하다고 할 수 있다.  
+* `Effects`함수와 `Allefects`함수를 사용하게 되면 변수의 수준 변화에 따른 반응변수의 확률값 변화를 시각화를 통해 나타낼 수 있다.   
+* `rms`패키지의 `lrm`함수는 최대우도 추정법 혹은 페널티가 부여된 최대우도 추정법을 사용하여 **비례 승산 순서형 로지스틱 회귀모형**에 적합시킨다. `lrm`을 통해 적합시킨 로지스틱 회귀모형에 `plot`함수를 사용하게 되면, 변수들의 오즈비 추정값, 추정된 오즈비의 95% 신뢰구간 등의 정보를 시각할 수 있다.  
+* 회귀모형을 적합한 후, 잔차진단을 통해 모형에 영향을 미치는 극단적인 관찰값이 없는지 확인하는 것이 중요하다. 이러한 측도로는 **쿡의거리, Hat-value, 잔차**등이 있으며, R에서는 추가변수를 통해 극단값을 확인하는 `avPlot`또는 성분과 잔차를 한 그림안에 나타내주는 `crPlots`함수를 사용하여 잔차진단을 할 수 있다.  
+
+***
